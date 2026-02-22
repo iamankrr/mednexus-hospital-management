@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom'; // ✅ Removed BrowserRouter as Router
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
@@ -9,6 +9,10 @@ import Login from './pages/auth/Login';
 // ✅ Added Imports for Hospitals and Labs Pages
 import Hospitals from './pages/Hospitals';
 import Labs from './pages/Labs';
+
+// ✅ Enhanced Details Imports (Make sure these files exist in your pages folder)
+import EnhancedHospitalDetails from './pages/EnhancedHospitalDetails';
+import EnhancedLabDetails from './pages/EnhancedLabDetails';
 
 // ✅ New Registration Flow Imports
 import RegistrationChoice from './pages/RegistrationChoice';
@@ -56,76 +60,78 @@ import AdminManageServices from './pages/admin/AdminManageServices';
 // ✅ Added User Profile Import
 import UserProfile from './pages/UserProfile'; 
 
-// ✅ Added Change Password Import (File path apne hisaab se adjust kar lijiye agar 'auth' folder mein hai)
+// ✅ Added Change Password Import
 import ChangePassword from './pages/ChangePassword'; 
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Navbar />
+    <div className="App"> {/* ✅ No Router wrapper here, handled in main.jsx */}
+      <Navbar />
+      
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/search" element={<SearchResults />} />
         
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<SearchResults />} />
-          
-          <Route path="/hospitals" element={<Hospitals />} />
-          <Route path="/labs" element={<Labs />} />
-          
-          {/* ✅ CORRECTED: Only standard details routes remain */}
-          <Route path="/hospital/:id" element={<HospitalDetails />} /> 
-          <Route path="/lab/:id" element={<LabDetails />} /> 
-          
-          <Route path="/contact" element={<ContactUs />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/appointments/book" element={<BookAppointment />} />
-
-          {/* ✅ ADDED: User Profile & Change Password Routes */}
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/change-password" element={<ChangePassword />} />
-
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/about" element={<AboutUs />} />
-
-          {/* ✅ Submit Facility is here */}
-          <Route path="/submit-facility" element={<SubmitFacility />} />
-          <Route path="/my-submissions" element={<MySubmissions />} />
-
-          <Route path="/register" element={<RegistrationChoice />} />
-          <Route path="/register/user" element={<RegisterUser />} />
-          <Route path="/register/owner" element={<OwnerRegister />} />
-          <Route path="/register-owner" element={<OwnerRegister />} />
-
-          <Route path="/owner/register" element={<OwnerRegister />} /> 
-          <Route path="/owner/pending" element={<OwnerPending />} />
-          <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-          <Route path="/owner/facility" element={<OwnerFacility />} />
-          <Route path="/owner/appointments" element={<OwnerAppointments />} />
-          <Route path="/owner/manage-services" element={<ManageServices />} /> 
-
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/owners" element={<ManageOwners />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
-          <Route path="/admin/hospitals" element={<ManageHospitals />} />
-          <Route path="/admin/hospitals/add" element={<AddHospital />} />
-          <Route path="/admin/hospitals/edit/:id" element={<EditHospital />} />
-          <Route path="/admin/labs" element={<ManageLabs />} />
-          <Route path="/admin/labs/add" element={<AddLab />} />
-          <Route path="/admin/labs/edit/:id" element={<EditLab />} />
-          <Route path="/admin/reviews" element={<ManageReviews />} />
-          <Route path="/admin/contacts" element={<ContactRequests />} />
-          <Route path="/admin/submissions" element={<ReviewSubmissions />} />
-          <Route path="/admin/contacts" element={<ViewContacts />} />
-          <Route path="/admin/:type/:id/manage-services" element={<AdminManageServices />} /> 
-        </Routes>
+        <Route path="/hospitals" element={<Hospitals />} />
+        <Route path="/labs" element={<Labs />} />
         
-        <CompareBar />
-      </div>
-    </Router>
+        {/* ✅ CORRECTED: Only standard details routes remain */}
+        <Route path="/hospital/:id" element={<HospitalDetails />} /> 
+        <Route path="/lab/:id" element={<LabDetails />} /> 
+
+        {/* ✅ NEW: Hospital & Lab Services Routes added here */}
+        <Route path="/hospital/:id/services" element={<EnhancedHospitalDetails />} />
+        <Route path="/lab/:id/services" element={<EnhancedLabDetails />} />
+        
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/compare" element={<Compare />} />
+        <Route path="/favorites" element={<Favorites />} />
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/appointments/book" element={<BookAppointment />} />
+
+        {/* ✅ ADDED: User Profile & Change Password Routes */}
+        <Route path="/profile" element={<UserProfile />} />
+        <Route path="/change-password" element={<ChangePassword />} />
+
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/about" element={<AboutUs />} />
+
+        {/* ✅ Submit Facility is here */}
+        <Route path="/submit-facility" element={<SubmitFacility />} />
+        <Route path="/my-submissions" element={<MySubmissions />} />
+
+        <Route path="/register" element={<RegistrationChoice />} />
+        <Route path="/register/user" element={<RegisterUser />} />
+        <Route path="/register/owner" element={<OwnerRegister />} />
+        <Route path="/register-owner" element={<OwnerRegister />} />
+
+        <Route path="/owner/register" element={<OwnerRegister />} /> 
+        <Route path="/owner/pending" element={<OwnerPending />} />
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        <Route path="/owner/facility" element={<OwnerFacility />} />
+        <Route path="/owner/appointments" element={<OwnerAppointments />} />
+        <Route path="/owner/manage-services" element={<ManageServices />} /> 
+
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/owners" element={<ManageOwners />} />
+        <Route path="/admin/users" element={<ManageUsers />} />
+        <Route path="/admin/hospitals" element={<ManageHospitals />} />
+        <Route path="/admin/hospitals/add" element={<AddHospital />} />
+        <Route path="/admin/hospitals/edit/:id" element={<EditHospital />} />
+        <Route path="/admin/labs" element={<ManageLabs />} />
+        <Route path="/admin/labs/add" element={<AddLab />} />
+        <Route path="/admin/labs/edit/:id" element={<EditLab />} />
+        <Route path="/admin/reviews" element={<ManageReviews />} />
+        <Route path="/admin/contacts" element={<ContactRequests />} />
+        <Route path="/admin/submissions" element={<ReviewSubmissions />} />
+        <Route path="/admin/contacts" element={<ViewContacts />} />
+        <Route path="/admin/:type/:id/manage-services" element={<AdminManageServices />} /> 
+      </Routes>
+      
+      <CompareBar />
+    </div>
   );
 }
 

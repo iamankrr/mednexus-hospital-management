@@ -23,7 +23,7 @@ const EditHospital = () => {
     website: '',
     themeColor: '#1E40AF',
     googlePlaceId: '',
-    establishedDate: '', // ✅ Added field
+    establishedDate: '', 
     address: {
       street: '',
       area: '',
@@ -47,7 +47,7 @@ const EditHospital = () => {
     services: []
   });
 
-  const [newFacility, setNewFacility] = useState(''); // ✅ Fixed useState destructuring here
+  const [newFacility, setNewFacility] = useState(''); 
 
   useEffect(() => {
     fetchHospital();
@@ -67,8 +67,15 @@ const EditHospital = () => {
         website: hospital.website || '',
         themeColor: hospital.themeColor || '#1E40AF',
         googlePlaceId: hospital.googlePlaceId || '',
-        establishedDate: hospital.establishedDate || '', // ✅ Setting initial value
-        address: hospital.address || {},
+        establishedDate: hospital.establishedDate || '', 
+        address: {
+          street: hospital.address?.street || '',
+          area: hospital.address?.area || '',
+          city: hospital.address?.city || '',
+          state: hospital.address?.state || '',
+          pincode: hospital.address?.pincode || '',
+          landmark: hospital.address?.landmark || ''
+        },
         facilities: hospital.facilities || [],
         operatingHours: hospital.operatingHours || {},
         emergencyAvailable: hospital.emergencyAvailable || false,
@@ -83,20 +90,39 @@ const EditHospital = () => {
     }
   };
 
-  // ✅ UPDATED handleSave with comprehensive console logs
+  // ✅ UPDATED handleSave with Proper Validation
   const handleSave = async () => {
+    // Basic fields validation
     if (!formData.name || !formData.type) {
       alert('Name and Type are required!');
       return;
     }
 
+    // ✅ Added strict validation for required Address fields to prevent backend crash
+    if (!formData.address?.city || !formData.address?.state || !formData.address?.pincode) {
+      alert('City, State, and PIN Code are required fields!');
+      return;
+    }
+
     console.log('💾 Saving hospital:', id);
-    console.log('📦 Form data:', formData);
-    console.log('🖼️ Images:', formData.images);
+    console.log('📦 Form data being sent:', formData);
+    console.log('🖼️ Images array length:', formData.images?.length);
 
     try {
       setSaving(true);
-      const response = await hospitalAPI.update(id, formData);
+      
+      // ✅ Ensure the exact payload structure is sent
+      const payload = {
+        ...formData,
+        address: {
+          ...formData.address,
+          city: formData.address.city.trim(),
+          state: formData.address.state.trim(),
+          pincode: formData.address.pincode.trim()
+        }
+      };
+
+      const response = await hospitalAPI.update(id, payload);
       
       console.log('✅ Save response:', response.data);
       alert('✅ Hospital updated successfully!');
@@ -105,7 +131,7 @@ const EditHospital = () => {
     } catch (error) {
       console.error('❌ Save error:', error);
       console.error('❌ Error response:', error.response?.data);
-      alert(error.response?.data?.message || 'Failed to save changes');
+      alert(error.response?.data?.message || 'Failed to save changes. Please check required fields.');
     } finally {
       setSaving(false);
     }
@@ -259,7 +285,6 @@ const EditHospital = () => {
                 />
               </div>
 
-              {/* ✅ Established Date Field Added */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Established Date (Optional)
@@ -341,7 +366,7 @@ const EditHospital = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
                 <input
                   type="text"
                   value={formData.address.pincode}
@@ -383,7 +408,7 @@ const EditHospital = () => {
             <ImageUploadManager
               images={formData.images || []}
               onImagesChange={(newImages) => {
-                console.log('📸 New images:', newImages);
+                console.log('📸 New images set in form:', newImages);
                 setFormData({ ...formData, images: newImages });
               }}
               maxImages={10}

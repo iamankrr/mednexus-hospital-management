@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // ✅ Added axios for favorites logic
+import axios from 'axios'; 
 import {
   FaStar, FaGoogle, FaPhone, FaEnvelope, FaMapMarkerAlt,
   FaClock, FaAmbulance, FaHeart, FaShare, FaArrowLeft,
@@ -41,12 +41,11 @@ const HospitalDetails = () => {
   const [activeTab, setActiveTab]     = useState('overview');
   const [distance, setDistance]       = useState(null);
   
-  // ✅ Added Favorite State
   const [isFavorite, setIsFavorite]   = useState(false);
 
   useEffect(() => {
     fetchHospital();
-    checkIfFavorite(); // ✅ Check favorite status on mount
+    checkIfFavorite(); 
   }, [id]);
 
   const fetchHospital = async () => {
@@ -71,7 +70,6 @@ const HospitalDetails = () => {
     }
   };
 
-  // ✅ New function to check if hospital is favorite
   const checkIfFavorite = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -88,7 +86,6 @@ const HospitalDetails = () => {
     }
   };
 
-  // ✅ New function to toggle favorite status
   const handleToggleFavorite = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -119,6 +116,14 @@ const HospitalDetails = () => {
     }
   };
 
+  // ✅ New Scroll Function 
+  const scrollToServices = () => {
+    const servicesSection = document.getElementById('services-section');
+    if (servicesSection) {
+      servicesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div>
@@ -134,7 +139,6 @@ const HospitalDetails = () => {
   const theme = hospital.themeColor || '#1E40AF';
   const tabs  = ['overview', 'services', 'reviews'];
   const isCompared = compareList.some(h => h.id === hospital._id || h.id === hospital.id);
-  const hospitalId = hospital._id || hospital.id;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -284,8 +288,9 @@ const HospitalDetails = () => {
                 )}
 
                 {(hospital.tests?.length > 0 || hospital.doctors?.length > 0 || hospital.surgeries?.length > 0) ? (
+                  // ✅ UPDATED ONCLICK ACTION TO SCROLL INSTEAD OF NAVIGATE
                   <button
-                    onClick={() => navigate(`/hospital/${hospitalId}/services`)}
+                    onClick={scrollToServices}
                     className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-sm"
                   >
                     <FaClipboardList /> View All Services
@@ -294,7 +299,6 @@ const HospitalDetails = () => {
                 
                 <MapButton hospital={hospital} />
 
-                {/* ✅ Added Save/Favorite Button */}
                 <button
                   onClick={handleToggleFavorite}
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${
@@ -371,8 +375,9 @@ const HospitalDetails = () => {
 
                     {(hospital.tests?.length > 0 || hospital.doctors?.length > 0) && (
                       <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        {/* ✅ UPDATED ONCLICK ACTION TO SCROLL INSTEAD OF NAVIGATE */}
                         <button
-                          onClick={() => navigate(`/hospital/${hospitalId}/services`)}
+                          onClick={scrollToServices}
                           className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition"
                         >
                           <div className="flex items-center gap-4">
@@ -421,7 +426,7 @@ const HospitalDetails = () => {
                 {activeTab === 'reviews' && (
                   <div className="animate-fadeIn">
                     <ReviewForm
-                      facilityId={hospitalId}
+                      facilityId={hospital._id || hospital.id}
                       facilityType="hospital"
                       onReviewSubmitted={() => {
                         alert('Review submitted for moderation!');
@@ -522,12 +527,12 @@ const HospitalDetails = () => {
         </div>
       </div>
 
+      {/* ✅ ADDED ID "services-section" TO THIS DIV */}
       {(hospital.tests?.length > 0 || hospital.treatments?.length > 0 || hospital.surgeries?.length > 0 || hospital.doctors?.length > 0 || hospital.insuranceAccepted?.length > 0) && (
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div id="services-section" className="max-w-6xl mx-auto px-4 py-12 scroll-mt-6">
           <h2 className="text-3xl font-bold text-gray-900 mb-8">Services & Facilities</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Same services logic as before */}
             {hospital.tests && hospital.tests.length > 0 && (
               <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
                 <div className="flex items-center gap-3 mb-4">
@@ -754,9 +759,10 @@ const HospitalDetails = () => {
             </div>
           )}
 
+          {/* This button was scrolling down, so if the user is already at the bottom it might not be needed, but I kept it matching your existing design */}
           <div className="mt-8 text-center">
             <button
-              onClick={() => navigate(`/hospital/${hospitalId}/services`)}
+              onClick={scrollToServices}
               className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition inline-flex items-center gap-2"
             >
               <FaClipboardList /> View All Services & Details
