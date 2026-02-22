@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
+import API_URL from '../config/api'; // ✅ Imported API Config
 import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
 import { hospitalAPI, labAPI } from '../services/api';
@@ -79,23 +80,25 @@ const Home = () => {
     applyFilters();
   }, [hospitals, labs, filters, quickSearchKeyword]);
 
-  // ✅ UPDATED: Silent fail if not logged in (fixes 401 error in console)
   const fetchFavorites = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        // User not logged in - just skip fetching favorites
         console.log('ℹ️ Not logged in - skipping favorites');
         return;
       }
 
-      const response = await axios.get('http://localhost:3000/api/favorites', {
+      console.log('🔍 Fetching favorites...'); 
+
+      // ✅ Replaced localhost with API_URL
+      const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      console.log('✅ Favorites fetched:', response.data.data); 
+
       setFavorites(response.data.data || { hospitals: [], laboratories: [] });
     } catch (error) {
-      // Silently fail - user probably not logged in or token expired
       console.log('ℹ️ Favorites fetch skipped or failed due to auth');
     }
   };
@@ -253,8 +256,9 @@ const Home = () => {
 
       console.log('📍 API call:', { endpoint, facilityId, facilityType, isFavorite }); 
 
+      // ✅ Replaced localhost with API_URL
       const response = await axios.post(
-        `http://localhost:3000${endpoint}`,
+        `${API_URL}${endpoint}`,
         { facilityId, facilityType },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );

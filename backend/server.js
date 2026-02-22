@@ -22,7 +22,19 @@ connectDB().then(() => {
 });
 
 // ========== Middleware ==========
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://mednexus-hospital-management.vercel.app',
+    'https://mednexus-hospital-management-*.vercel.app' // For preview deployments
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -74,7 +86,6 @@ const ownerRoutes = require('./routes/ownerRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const searchHistoryRoutes = require('./routes/searchHistoryRoutes');
 const locationRoutes = require('./routes/locationRoutes');
-// ✅ CORRECT: Imported properly
 const uploadRoutes = require('./routes/uploadRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 
@@ -93,7 +104,6 @@ app.use('/api/owner', ownerRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/search-history', searchHistoryRoutes);
 app.use('/api/locations', locationRoutes);
-// ✅ CORRECT: Used as a router
 app.use('/api/upload', uploadRoutes);
 app.use('/api/submissions', submissionRoutes);
 
