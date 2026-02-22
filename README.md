@@ -2,6 +2,11 @@
 
 A comprehensive healthcare management platform built with MERN stack.
 
+## 🌐 Live Demo
+
+🚀 Frontend: https://mednexus-hospital-management.vercel.app  
+🔗 Backend API: https://mednexus-hospital-management.onrender.com
+
 ## 🌟 Features
 
 - 🔍 Search hospitals & diagnostic labs by location
