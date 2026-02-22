@@ -38,12 +38,14 @@ npm install
 npm run dev
 ```
 
-## 🔑 Default Credentials
+🔑 Default Credentials (For Demo Only)
 
-**Admin:** admin@hospital.com / admin123  
-**Owner:** owner@hospital.com / owner123  
-**User:** aman@example.com / password123
-
+Admin: admin@hospital.com  
+Owner: owner@hospital.com  
+User: aman@example.com
+  
+⚠️ Note: Passwords are not shared publicly.  
+Use seedData.js to generate test users.
 ## 👨‍💻 Developer
 
 **Aman Kumar**  
