@@ -22,19 +22,21 @@ connectDB().then(() => {
 });
 
 // ========== Middleware ==========
-// CORS configuration
+// ✅ UPDATED CORS CONFIGURATION
 const corsOptions = {
   origin: [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'http://localhost:3000',
     'https://mednexus-hospital-management.vercel.app',
-    'https://mednexus-hospital-management-*.vercel.app' // For preview deployments
+    /\.vercel\.app$/ // ✅ Allow all Vercel preview URLs dynamically
   ],
   credentials: true,
   optionsSuccessStatus: 200
 };
-app.use(cors(corsOptions));
 
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
