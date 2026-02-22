@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Backend URL
-const API_BASE_URL = 'http://localhost:3000/api';
+// Backend URL (✅ Updated to Render live URL)
+const API_BASE_URL = 'https://mednexus-hospital-management.onrender.com/api';
 
 // Create axios instance with better error handling
 const api = axios.create({
