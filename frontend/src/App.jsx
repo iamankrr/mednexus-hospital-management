@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom'; // ✅ Removed BrowserRouter as Router
+import { Routes, Route } from 'react-router-dom'; // ✅ No BrowserRouter here
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
@@ -65,7 +65,8 @@ import ChangePassword from './pages/ChangePassword';
 
 function App() {
   return (
-    <div className="App"> {/* ✅ No Router wrapper here, handled in main.jsx */}
+    <div className="App">
+      {/* ✅ Navbar is perfectly placed. It will use the Router from main.jsx */}
       <Navbar />
       
       <Routes>
@@ -75,11 +76,9 @@ function App() {
         <Route path="/hospitals" element={<Hospitals />} />
         <Route path="/labs" element={<Labs />} />
         
-        {/* ✅ CORRECTED: Only standard details routes remain */}
         <Route path="/hospital/:id" element={<HospitalDetails />} /> 
         <Route path="/lab/:id" element={<LabDetails />} /> 
 
-        {/* ✅ NEW: Hospital & Lab Services Routes added here */}
         <Route path="/hospital/:id/services" element={<EnhancedHospitalDetails />} />
         <Route path="/lab/:id/services" element={<EnhancedLabDetails />} />
         
@@ -90,7 +89,6 @@ function App() {
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/appointments/book" element={<BookAppointment />} />
 
-        {/* ✅ ADDED: User Profile & Change Password Routes */}
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/change-password" element={<ChangePassword />} />
 
@@ -98,7 +96,6 @@ function App() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/about" element={<AboutUs />} />
 
-        {/* ✅ Submit Facility is here */}
         <Route path="/submit-facility" element={<SubmitFacility />} />
         <Route path="/my-submissions" element={<MySubmissions />} />
 
