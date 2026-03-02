@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-// ✅ Added FaLock for the Change Password button
-import { FaUser, FaEnvelope, FaPhone, FaEdit, FaSave, FaLock } from 'react-icons/fa';
+// ✅ Added FaLock for the Change Password button, and FaSignOutAlt for Logout
+import { FaUser, FaEnvelope, FaPhone, FaEdit, FaSave, FaLock, FaSignOutAlt } from 'react-icons/fa';
 import Footer from '../components/Footer';
+import API_URL from '../config/api'; // ✅ Added API_URL import
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const UserProfile = () => {
     fetchUserProfile();
   }, []);
 
+  // ✅ UPDATED: using API_URL, setting user data, and added logging
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -27,17 +29,20 @@ const UserProfile = () => {
         return;
       }
 
-      const response = await axios.get('http://localhost:3000/api/users/profile', {
+      const response = await axios.get(`${API_URL}/api/users/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      // ✅ Actually set the user data
       setUser(response.data.data);
+      console.log('Profile loaded:', response.data.data);
+
       setFormData({
         name: response.data.data.name,
         phone: response.data.data.phone || ''
       });
     } catch (error) {
-      console.error('Fetch profile error:', error);
+      console.error('Profile error:', error);
       if (error.response?.status === 401) {
         navigate('/login');
       }
@@ -52,7 +57,7 @@ const UserProfile = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://localhost:3000/api/users/profile',
+        `${API_URL}/api/users/profile`, // ✅ Updated to use API_URL here too
         formData,
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -75,6 +80,12 @@ const UserProfile = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';  // ✅ Go to home page
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -95,8 +106,9 @@ const UserProfile = () => {
                   <FaUser className="text-4xl text-blue-600" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold">{user?.name}</h1>
-                  <p className="text-blue-100">{user?.email}</p>
+                  {/* ✅ Added fallbacks to header as well */}
+                  <h1 className="text-3xl font-bold">{user?.name || 'Loading...'}</h1>
+                  <p className="text-blue-100">{user?.email || 'Loading...'}</p>
                   <span className="inline-block mt-2 px-3 py-1 bg-blue-500 rounded-full text-sm font-semibold">
                     {user?.role === 'user' ? 'User' : user?.role === 'owner' ? 'Owner' : 'Admin'}
                   </span>
@@ -139,7 +151,7 @@ const UserProfile = () => {
                     </label>
                     <input
                       type="email"
-                      value={user?.email}
+                      value={user?.email || ''}
                       disabled
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100"
                     />
@@ -168,7 +180,8 @@ const UserProfile = () => {
                     <FaUser className="text-xl text-blue-600 mt-1" />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-700">Name</p>
-                      <p className="text-gray-900">{user?.name}</p>
+                      {/* ✅ Added user?.name fallback */}
+                      <p className="text-gray-900">{user?.name || 'Loading...'}</p>
                     </div>
                   </div>
 
@@ -176,7 +189,8 @@ const UserProfile = () => {
                     <FaEnvelope className="text-xl text-blue-600 mt-1" />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-700">Email</p>
-                      <p className="text-gray-900">{user?.email}</p>
+                      {/* ✅ Added user?.email fallback */}
+                      <p className="text-gray-900">{user?.email || 'Loading...'}</p>
                     </div>
                   </div>
 
@@ -198,12 +212,18 @@ const UserProfile = () => {
                       <FaEdit /> Edit Profile
                     </button>
 
-                    {/* ✅ New Change Password Button */}
                     <button  
                       onClick={() => navigate('/change-password')}  
                       className="flex-1 py-3 bg-yellow-600 text-white rounded-xl font-bold hover:bg-yellow-700 flex items-center justify-center gap-2 transition shadow-sm"
                     >  
                       <FaLock /> Change Password
+                    </button>
+
+                    <button  
+                      onClick={handleLogout}  
+                      className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 flex items-center justify-center gap-2 transition shadow-sm"
+                    >  
+                      <FaSignOutAlt /> Logout
                     </button>
                   </div>
                 </div>

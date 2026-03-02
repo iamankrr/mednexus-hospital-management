@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FaUpload, FaTrash, FaImage, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../config/api'; // ✅ ADDED: Dynamic API URL import
 
 const ImageUploadManager = ({ 
   images = [], 
@@ -34,8 +35,9 @@ const ImageUploadManager = ({
         const formData = new FormData();
         formData.append('image', file);
   
+        // ✅ UPDATED: Replaced localhost with dynamic API_URL
         const response = await axios.post(
-          'http://localhost:3000/api/upload/image',
+          `${API_URL}/api/upload/image`,
           formData,
           {
             headers: {
@@ -82,10 +84,11 @@ const ImageUploadManager = ({
           <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm font-medium">
             <FaUpload />
             Upload Images
+            {/* ✅ UPDATED ACCEPT FORMATS HERE */}
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
               onChange={handleImageUpload}
               className="hidden"
               disabled={uploading}
@@ -99,7 +102,6 @@ const ImageUploadManager = ({
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-blue-700">Uploading...</span>
-            {/* Kept progress for UI consistency, though Promise.all fetches it simultaneously now */}
           </div>
           <div className="w-full bg-blue-200 rounded-full h-2 animate-pulse">
             <div

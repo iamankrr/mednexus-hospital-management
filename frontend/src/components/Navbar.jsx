@@ -10,9 +10,10 @@ import {
   FaEnvelope,
   FaUserCircle,
   FaBell,
-  FaPlus // ✅ Added FaPlus
+  FaPlus 
 } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../config/api'; // ✅ ADDED: Dynamic API URL import
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -30,7 +31,8 @@ const Navbar = () => {
   const fetchUnreadAppointments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/appointments/my-appointments', {
+      // ✅ UPDATED: Replaced localhost with dynamic API_URL
+      const response = await axios.get(`${API_URL}/api/appointments/my-appointments`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -47,7 +49,7 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    window.location.href = '/';  
   };
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FaUpload, FaTrash, FaImage } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../config/api'; // ✅ ADDED: Dynamic API URL import
 
 const ImageUpload = ({ facilityType, facilityId, existingImages = [], onImagesUpdate }) => {
   const [uploading, setUploading] = useState(false);
@@ -38,9 +39,10 @@ const ImageUpload = ({ facilityType, facilityId, existingImages = [], onImagesUp
         formData.append('images', file);
       });
 
+      // ✅ UPDATED: Replaced localhost with dynamic API_URL
       const endpoint = facilityType === 'hospital'
-        ? `http://localhost:3000/api/upload/hospital/${facilityId}`
-        : `http://localhost:3000/api/upload/lab/${facilityId}`;
+        ? `${API_URL}/api/upload/hospital/${facilityId}`
+        : `${API_URL}/api/upload/lab/${facilityId}`;
 
       const response = await axios.post(endpoint, formData, {
         headers: {
@@ -70,8 +72,9 @@ const ImageUpload = ({ facilityType, facilityId, existingImages = [], onImagesUp
     try {
       const token = localStorage.getItem('token');
 
+      // ✅ UPDATED: Replaced localhost with dynamic API_URL
       await axios.delete(
-        `http://localhost:3000/api/upload/${facilityType}/${facilityId}/image`,
+        `${API_URL}/api/upload/${facilityType}/${facilityId}/image`,
         {
           headers: { Authorization: `Bearer ${token}` },
           data: { imageUrl }
@@ -119,10 +122,11 @@ const ImageUpload = ({ facilityType, facilityId, existingImages = [], onImagesUp
           }`}>
             {uploading ? '⏳ Uploading...' : '📁 Choose Images'}
           </span>
+          {/* ✅ UPDATED ACCEPT FORMATS HERE */}
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
             className="hidden"
             disabled={uploading}
             onChange={(e) => handleFileSelect(e.target.files)}
@@ -130,7 +134,7 @@ const ImageUpload = ({ facilityType, facilityId, existingImages = [], onImagesUp
         </label>
 
         <p className="text-xs text-gray-500 mt-3">
-          Max 5 images • Max 5MB each • JPG, PNG, WEBP
+          Max 5 images • Max 5MB each • JPG, PNG, WEBP, HEIC
         </p>
       </div>
 
