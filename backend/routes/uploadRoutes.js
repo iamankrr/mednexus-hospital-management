@@ -6,9 +6,27 @@ const { protect } = require('../middleware/authMiddleware');
 
 // Multer config for memory storage
 const storage = multer.memoryStorage();
+
+// ✅ UPDATED: 10MB limit and File Filter added for new formats
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, PNG, WebP, HEIC images allowed'));
+    }
+  }
 });
 
 // Upload single image
