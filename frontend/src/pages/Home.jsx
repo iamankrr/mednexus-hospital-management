@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
-import API_URL from '../config/api'; // ✅ Imported API Config
+import API_URL from '../config/api'; 
 import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
 import { hospitalAPI, labAPI } from '../services/api';
@@ -21,15 +21,25 @@ const Home = () => {
   const [filteredHospitals, setFilteredHospitals] = useState([]);
   const [filteredLabs, setFilteredLabs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('hospitals');
+  
+  // ✅ FIX 1: Initialize tab from sessionStorage, default to 'hospitals'
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('mednexus_active_tab') || 'hospitals';
+  });
   
   const [favorites, setFavorites] = useState({
     hospitals: [],
     laboratories: []
   });
 
-  const [userLocation, setUserLocation] = useState(null);
-  const [locationRequested, setLocationRequested] = useState(false);
+  // ✅ FIX 2: Initialize location from sessionStorage if available
+  const [userLocation, setUserLocation] = useState(() => {
+    const savedLocation = sessionStorage.getItem('mednexus_user_location');
+    return savedLocation ? JSON.parse(savedLocation) : null;
+  });
+  
+  // Only request location if we don't already have one
+  const [locationRequested, setLocationRequested] = useState(!!userLocation);
 
   const [filters, setFilters] = useState({
     state: '',
@@ -45,6 +55,12 @@ const Home = () => {
 
   const [quickSearchKeyword, setQuickSearchKeyword] = useState('');
 
+  // ✅ Handle Tab Changes and save to sessionStorage
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    sessionStorage.setItem('mednexus_active_tab', tab);
+  };
+
   useEffect(() => {
     if (!locationRequested && navigator.geolocation) {
       setLocationRequested(true);
@@ -56,7 +72,9 @@ const Home = () => {
             lng: position.coords.longitude
           };
           setUserLocation(location);
-          console.log('📍 User location obtained:', location);
+          // ✅ Save location to sessionStorage so it persists on back navigation
+          sessionStorage.setItem('mednexus_user_location', JSON.stringify(location));
+          console.log('📍 User location obtained & saved:', location);
         },
         (error) => {
           console.log('📍 Location permission denied or unavailable');
@@ -64,21 +82,27 @@ const Home = () => {
           setLoading(false);
         }
       );
+    } else if (!userLocation) {
+        // If no location in session and geolocation is unavailable/denied, stop loading
+        setLoading(false);
     }
-  }, [locationRequested]);
+  }, [locationRequested, userLocation]);
 
   useEffect(() => {
     fetchFavorites();
   }, []);
 
   useEffect(() => {
-    fetchHospitals();
-    fetchLabs();
-  }, [userLocation]);
+    // Only fetch if we have tried to get location (either got it or failed)
+    if (locationRequested) {
+        fetchHospitals();
+        fetchLabs();
+    }
+  }, [userLocation, locationRequested]);
 
   useEffect(() => {
     applyFilters();
-  }, [hospitals, labs, filters, quickSearchKeyword]);
+  }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
 
   const fetchFavorites = async () => {
     try {
@@ -90,7 +114,6 @@ const Home = () => {
 
       console.log('🔍 Fetching favorites...'); 
 
-      // ✅ Replaced localhost with API_URL
       const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -256,7 +279,6 @@ const Home = () => {
 
       console.log('📍 API call:', { endpoint, facilityId, facilityType, isFavorite }); 
 
-      // ✅ Replaced localhost with API_URL
       const response = await axios.post(
         `${API_URL}${endpoint}`,
         { facilityId, facilityType },
@@ -344,7 +366,7 @@ const Home = () => {
         {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-gray-200">
           <button
-            onClick={() => setActiveTab('hospitals')}
+            onClick={() => handleTabChange('hospitals')}
             className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
               activeTab === 'hospitals'
                 ? 'text-blue-600 border-b-2 border-blue-600'
@@ -355,7 +377,7 @@ const Home = () => {
             Hospitals ({displayHospitals.length})
           </button>
           <button
-            onClick={() => setActiveTab('labs')}
+            onClick={() => handleTabChange('labs')}
             className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
               activeTab === 'labs'
                 ? 'text-blue-600 border-b-2 border-blue-600'
