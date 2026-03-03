@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'; // ✅ ADDED THIS
+import BottomNav from './components/BottomNav'; 
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
@@ -132,6 +133,7 @@ function App() {
       </Routes>
       
       <CompareBar />
+      <BottomNav />
     </div>
   );
 }
