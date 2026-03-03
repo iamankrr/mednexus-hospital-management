@@ -27,8 +27,11 @@ const LabDetails = () => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
+    // 🚀 FIX: Hamesha page ko top se open karega!
+    window.scrollTo(0, 0); 
+    
     fetchLab();
-    checkIfFavorite(); // ✅ Check favorite status on mount
+    checkIfFavorite(); 
   }, [id]);
 
   const fetchLab = async () => {

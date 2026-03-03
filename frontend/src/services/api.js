@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Backend URL (✅ Updated to Render live URL)
-const API_BASE_URL = 'https://mednexus-hospital-management.onrender.com/api';
+// Environment variable se URL lo, agar na mile toh Render ka live URL use karo
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api` 
+  : 'https://mednexus-hospital-management.onrender.com/api';
 
 // Create axios instance with better error handling
 const api = axios.create({
@@ -50,30 +52,24 @@ api.interceptors.response.use(
 
 // ========== HOSPITAL APIs ==========
 export const hospitalAPI = {
-  // ✅ Updated getAll to properly accept params with async/try-catch
   getAll: async (params = {}) => {
     try {
       const response = await api.get('/hospitals', { params });
-      return response; // ⚠️ Returning full response so ManageHospitals doesn't break
+      return response; 
     } catch (error) {
       console.error('❌ API Error:', error.response?.status, error.response?.data);
       throw error;
     }
   },
-  
   search: (query, city) => {
     const params = new URLSearchParams();
     if (query) params.append('query', query);
     if (city) params.append('city', city);
     return api.get(`/hospitals/search?${params.toString()}`);
   },
-  
   getNearby: (lat, lng, distance = 5000) => 
     api.get(`/hospitals/nearby?lat=${lat}&lng=${lng}&distance=${distance}`),
-  
   getById: (id) => api.get(`/hospitals/${id}`),
-
-  // CRUD METHODS
   create: (data) => api.post('/hospitals', data),
   update: (id, data) => api.put(`/hospitals/${id}`, data),
   delete: (id) => api.delete(`/hospitals/${id}`)
@@ -81,20 +77,16 @@ export const hospitalAPI = {
 
 // ========== LABORATORY APIs ==========
 export const labAPI = {
-  // ✅ Updated getAll to properly accept params with async/try-catch
   getAll: async (params = {}) => {
     try {
       const response = await api.get('/labs', { params });
-      return response; // ⚠️ Returning full response so ManageLabs doesn't break
+      return response; 
     } catch (error) {
       console.error('❌ API Error:', error.response?.status, error.response?.data);
       throw error;
     }
   },
-
   getById: (id) => api.get(`/labs/${id}`),
-  
-  // CRUD METHODS
   create: (data) => api.post('/labs', data),
   update: (id, data) => api.put(`/labs/${id}`, data),
   delete: (id) => api.delete(`/labs/${id}`)

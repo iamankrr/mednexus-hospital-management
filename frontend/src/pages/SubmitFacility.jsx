@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHospital, FaFlask, FaMapMarkerAlt, FaPhone, FaEnvelope } from 'react-icons/fa';
 import { indianStatesAndCities, getAllStates } from '../data/indianCities';
-import axios from 'axios';
+import api from '../services/api'; // ✅ Centralized API use kiya hai
 
 const SubmitFacility = () => {
   const navigate = useNavigate();
@@ -52,15 +52,12 @@ const SubmitFacility = () => {
     try {
       setLoading(true);
 
-      const response = await axios.post(
-        'http://localhost:3000/api/submissions',
-        formData,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      // ✅ Updated to use our centralized api instance
+      // Token is automatically added by the interceptor in services/api.js
+      const response = await api.post('/submissions', formData);
 
-      if (response.data.success) {
+      // Axios returns data inside 'response.data'
+      if (response.data && response.data.success) {
         alert('✅ Facility submitted successfully!\n\nYour submission is now pending admin review. You will be notified once it is approved.');
         navigate('/my-submissions');
       }
@@ -165,7 +162,7 @@ const SubmitFacility = () => {
 
               {/* State & City */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="flex flex-col">
                   <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
                   <select
                     value={formData.address.state}
@@ -179,7 +176,7 @@ const SubmitFacility = () => {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="flex flex-col">
                   <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
                   <select
                     value={formData.address.city}

@@ -10,21 +10,50 @@ const Hospitals = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
 
+  // ✅ 1. Check Cache and Restore Scroll Position on Mount
   useEffect(() => {
-    getUserLocation();
+    const cachedHospitals = sessionStorage.getItem('hospitalsData');
+    const savedScroll = sessionStorage.getItem('hospitalsScroll');
+
+    if (cachedHospitals) {
+      // Data pehle se hai, toh instant load karo (No loading delay on Back)
+      setHospitals(JSON.parse(cachedHospitals));
+      setLoading(false);
+
+      // Scroll position restore karo DOM render hone ke thik baad
+      if (savedScroll) {
+        setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScroll, 10));
+        }, 100);
+      }
+    } else {
+      // First time visit hai, location aur data fetch karo
+      getUserLocation();
+    }
+
+    // Scroll hone par position save karte raho
+    const handleScroll = () => {
+      sessionStorage.setItem('hospitalsScroll', window.scrollY.toString());
+    };
+    window.addEventListener('scroll', handleScroll);
+
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ✅ 2. Fetch only if cache is empty
   useEffect(() => {
-    if (userLocation !== null) {
-      fetchHospitals();
-    } else {
-      // Fetch without location after 2 seconds if location not obtained
-      const timer = setTimeout(() => {
-        if (!userLocation) {
-          fetchHospitals();
-        }
-      }, 2000);
-      return () => clearTimeout(timer);
+    const cachedHospitals = sessionStorage.getItem('hospitalsData');
+    if (!cachedHospitals) {
+      if (userLocation !== null) {
+        fetchHospitals();
+      } else {
+        const timer = setTimeout(() => {
+          if (!userLocation) {
+            fetchHospitals();
+          }
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [userLocation]);
 
@@ -36,7 +65,6 @@ const Hospitals = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          console.log('📍 Location obtained:', position.coords.latitude, position.coords.longitude);
         },
         (error) => {
           console.log('📍 Location denied or unavailable');
@@ -51,8 +79,6 @@ const Hospitals = () => {
   const fetchHospitals = async () => {
     try {
       setLoading(true);
-      console.log('Fetching all hospitals...');
-      
       const params = {};
       if (userLocation) {
         params.lat = userLocation.lat;
@@ -61,15 +87,15 @@ const Hospitals = () => {
 
       const response = await axios.get('http://localhost:3000/api/hospitals', { params });
       
-      console.log('Hospitals response:', response.data);
-      
       if (response.data?.data) {
         const normalized = response.data.data.map(h => ({
           ...h,
           id: h._id || h.id
         }));
         setHospitals(normalized);
-        console.log('✅ Hospitals loaded:', normalized.length);
+        
+        // ✅ 3. Save fetched data to cache so it doesn't reload on back button
+        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized));
       }
     } catch (error) {
       console.error('Fetch hospitals error:', error);
@@ -100,7 +126,6 @@ const Hospitals = () => {
       <div className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4">
           
-          {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-2">
               <FaHospital className="text-4xl text-blue-600" />
@@ -109,7 +134,6 @@ const Hospitals = () => {
             <p className="text-gray-600">Find the best hospitals near you</p>
           </div>
 
-          {/* Search */}
           <div className="mb-6">
             <div className="relative max-w-2xl mx-auto">
               <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -123,7 +147,6 @@ const Hospitals = () => {
             </div>
           </div>
 
-          {/* Results Count */}
           <div className="mb-4">
             <p className="text-gray-600">
               Showing <strong>{filteredHospitals.length}</strong> hospital{filteredHospitals.length !== 1 ? 's' : ''}
@@ -131,7 +154,6 @@ const Hospitals = () => {
             </p>
           </div>
 
-          {/* Hospital Grid */}
           {filteredHospitals.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredHospitals.map((hospital) => (
@@ -147,8 +169,6 @@ const Hospitals = () => {
           )}
         </div>
       </div>
-
-      {/* Footer */}
       <Footer />
     </div>
   );

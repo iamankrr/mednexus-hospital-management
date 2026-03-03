@@ -10,20 +10,50 @@ const Labs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
 
+  // ✅ 1. Check Cache and Restore Scroll Position on Mount
   useEffect(() => {
-    getUserLocation();
+    const cachedLabs = sessionStorage.getItem('labsData');
+    const savedScroll = sessionStorage.getItem('labsScroll');
+
+    if (cachedLabs) {
+      // Data pehle se hai, toh instant load karo (No loading delay on Back)
+      setLabs(JSON.parse(cachedLabs));
+      setLoading(false);
+
+      // Scroll position restore karo DOM render hone ke thik baad
+      if (savedScroll) {
+        setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScroll, 10));
+        }, 100);
+      }
+    } else {
+      // First time visit hai, location aur data fetch karo
+      getUserLocation();
+    }
+
+    // Scroll hone par position save karte raho
+    const handleScroll = () => {
+      sessionStorage.setItem('labsScroll', window.scrollY.toString());
+    };
+    window.addEventListener('scroll', handleScroll);
+
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ✅ 2. Fetch only if cache is empty
   useEffect(() => {
-    if (userLocation !== null) {
-      fetchLabs();
-    } else {
-      const timer = setTimeout(() => {
-        if (!userLocation) {
-          fetchLabs();
-        }
-      }, 2000);
-      return () => clearTimeout(timer);
+    const cachedLabs = sessionStorage.getItem('labsData');
+    if (!cachedLabs) {
+      if (userLocation !== null) {
+        fetchLabs();
+      } else {
+        const timer = setTimeout(() => {
+          if (!userLocation) {
+            fetchLabs();
+          }
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [userLocation]);
 
@@ -69,6 +99,9 @@ const Labs = () => {
         }));
         setLabs(normalized);
         console.log('✅ Labs loaded:', normalized.length);
+        
+        // ✅ 3. Save fetched data to cache so it doesn't reload on back button
+        sessionStorage.setItem('labsData', JSON.stringify(normalized));
       }
     } catch (error) {
       console.error('Fetch labs error:', error);
