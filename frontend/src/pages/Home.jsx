@@ -339,12 +339,13 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto mt-6">
             <KeywordSearch
               value={quickSearchKeyword}
               onChange={setQuickSearchKeyword}
               onSearch={handleQuickSearch}
               placeholder="Search hospitals, labs, tests, specialists..."
+              data={[...hospitals, ...labs]}
             />
           </div>
         </div>
