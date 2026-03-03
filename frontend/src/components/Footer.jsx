@@ -4,7 +4,8 @@ import {
   FaFacebook, 
   FaTwitter, 
   FaInstagram, 
-  FaLinkedin, 
+  FaLinkedin,
+  FaGithub, // ✅ Added GitHub Icon
   FaEnvelope, 
   FaPhone, 
   FaMapMarkerAlt,
@@ -16,6 +17,12 @@ import {
 } from 'react-icons/fa';
 
 const Footer = () => {
+  // ✅ Function to handle empty links (Scrolls to top)
+  const handleEmptyLink = (e) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <footer className="bg-gray-900 text-white mt-16">
       <div className="max-w-7xl mx-auto px-4 py-12">
@@ -27,7 +34,7 @@ const Footer = () => {
               <img 
                 src="/logo.png" 
                 alt="MedNexus" 
-                className="h-10 w-10"
+                className="h-10 w-10 bg-white rounded-lg p-1" // Added background for better visibility if logo is dark
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.style.display = 'none';
@@ -38,23 +45,39 @@ const Footer = () => {
                 <p className="text-xs text-gray-400">The smarter way to choose your care</p>
               </div>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed">
+            <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Your trusted platform to find and book appointments at hospitals and diagnostic labs across India.
             </p>
             
             {/* Social Links */}
-            <div className="flex gap-4 mt-4">
-              <a href="#" className="text-gray-400 hover:text-white transition text-xl">
+            <div className="flex gap-4">
+              <a href="#" onClick={handleEmptyLink} className="text-gray-400 hover:text-blue-500 transition text-xl" title="Facebook">
                 <FaFacebook />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-xl">
+              <a href="#" onClick={handleEmptyLink} className="text-gray-400 hover:text-blue-400 transition text-xl" title="Twitter">
                 <FaTwitter />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-xl">
+              <a href="#" onClick={handleEmptyLink} className="text-gray-400 hover:text-pink-500 transition text-xl" title="Instagram">
                 <FaInstagram />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-xl">
+              {/* ✅ Real Links for LinkedIn and GitHub */}
+              <a 
+                href="https://www.linkedin.com/in/amankrr" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-blue-600 transition text-xl" 
+                title="LinkedIn"
+              >
                 <FaLinkedin />
+              </a>
+              <a 
+                href="https://github.com/amankrr" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition text-xl" 
+                title="GitHub"
+              >
+                <FaGithub />
               </a>
             </div>
           </div>
@@ -64,27 +87,27 @@ const Footer = () => {
             <h4 className="font-bold mb-4 text-lg">Quick Links</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+                <Link to="/" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                   <span className="text-blue-500">▸</span> Home
                 </Link>
               </li>
               <li>
-                <Link to="/hospitals" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+                <Link to="/hospitals" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                   <FaHospital className="text-blue-500" /> Find Hospitals
                 </Link>
               </li>
               <li>
-                <Link to="/labs" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+                <Link to="/labs" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                   <FaFlask className="text-purple-500" /> Find Labs
                 </Link>
               </li>
               <li>
-                <Link to="/submit-facility" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+                <Link to="/submit-facility" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                   <span className="text-green-500">▸</span> Submit Facility
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+                <Link to="/contact" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                   <span className="text-yellow-500">▸</span> Contact Us
                 </Link>
               </li>
@@ -96,27 +119,27 @@ const Footer = () => {
             <h4 className="font-bold mb-4 text-lg">For Users</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/appointments" className="text-gray-400 hover:text-white transition">
+                <Link to="/appointments" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition">
                   Book Appointments
                 </Link>
               </li>
               <li>
-                <Link to="/favorites" className="text-gray-400 hover:text-white transition">
+                <Link to="/favorites" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition">
                   My Favorites
                 </Link>
               </li>
               <li>
-                <Link to="/my-submissions" className="text-gray-400 hover:text-white transition">
+                <Link to="/my-submissions" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition">
                   My Submissions
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="text-gray-400 hover:text-white transition">
+                <Link to="/register" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition">
                   Sign Up
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="text-gray-400 hover:text-white transition">
+                <Link to="/login" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition">
                   Login
                 </Link>
               </li>
@@ -163,13 +186,13 @@ const Footer = () => {
               &copy; {new Date().getFullYear()} MedNexus. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm">
-              <Link to="/privacy" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+              <Link to="/privacy" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                 <FaShieldAlt className="text-blue-400" /> Privacy Policy
               </Link>
-              <Link to="/terms" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+              <Link to="/terms" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                 <FaFileContract className="text-green-400" /> Terms of Service
               </Link>
-              <Link to="/about" className="text-gray-400 hover:text-white transition flex items-center gap-2">
+              <Link to="/about" onClick={() => window.scrollTo(0,0)} className="text-gray-400 hover:text-white transition flex items-center gap-2">
                 <FaInfoCircle className="text-purple-400" /> About Us
               </Link>
             </div>
