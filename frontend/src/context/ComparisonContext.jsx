@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext } from 'react';
+import toast from 'react-hot-toast'; // ✅ IMPORT TOAST HERE
 
 const ComparisonContext = createContext();
 
@@ -21,13 +22,13 @@ export const ComparisonProvider = ({ children }) => {
 
     // Check max limit
     if (compareList.length >= 3) {
-      alert('Maximum 3 items can be compared at once!');
+      toast.error('Maximum 3 items can be compared at once!'); // ✅ CHANGED TO TOAST
       return false;
     }
 
     // Check same type
     if (compareType && compareType !== type) {
-      alert(`You can only compare ${compareType}s together! Clear current list first.`);
+      toast.error(`You can only compare ${compareType}s together! Clear current list first.`); // ✅ CHANGED TO TOAST
       return false;
     }
 
@@ -38,7 +39,7 @@ export const ComparisonProvider = ({ children }) => {
     });
 
     if (alreadyAdded) {
-      alert(`${item.name} is already in comparison list!`);
+      toast.error(`${item.name} is already in comparison list!`); // ✅ CHANGED TO TOAST
       return false;
     }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast'; // ✅ ADDED THIS
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
@@ -57,7 +58,19 @@ import ChangePassword from './pages/ChangePassword';
 function App() {
   return (
     <div className="App">
-      {/* ✅ ScrollManager Hata Diya! Ab browser aur React ki ladai khatam */}
+      {/* ✅ ADDED TOASTER HERE FOR GLOBAL NOTIFICATIONS */}
+      <Toaster 
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#333',
+            color: '#fff',
+            borderRadius: '10px',
+          },
+        }} 
+      />
+      
       <Navbar />
       
       <Routes>

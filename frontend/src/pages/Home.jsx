@@ -11,12 +11,12 @@ import CompareBar from '../components/CompareBar';
 import AdvancedFilterPanel from '../components/AdvancedFilterPanel';
 import KeywordSearch from '../components/KeywordSearch';
 import Footer from '../components/Footer'; 
+import toast from 'react-hot-toast'; // ✅ IMPORT TOAST
 
 const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
   
-  // ✅ 1. Initialize data from Cache to avoid loading delay
   const [hospitals, setHospitals] = useState(() => {
     const cached = sessionStorage.getItem('homeHospitalsData');
     return cached ? JSON.parse(cached) : [];
@@ -30,7 +30,6 @@ const Home = () => {
   const [filteredHospitals, setFilteredHospitals] = useState([]);
   const [filteredLabs, setFilteredLabs] = useState([]);
   
-  // Loading tabhi aayegi jab cache mein kuch na ho
   const [loading, setLoading] = useState(() => {
     return (sessionStorage.getItem('homeHospitalsData') || sessionStorage.getItem('homeLabsData')) ? false : true;
   });
@@ -58,7 +57,6 @@ const Home = () => {
 
   const [quickSearchKeyword, setQuickSearchKeyword] = useState('');
 
-  // ✅ 2. Instant Scroll Restoration (Home Page ke liye)
   useLayoutEffect(() => {
     if (!loading && (hospitals.length > 0 || labs.length > 0)) {
       const savedScroll = sessionStorage.getItem('homeScroll');
@@ -68,7 +66,6 @@ const Home = () => {
     }
   }, [loading, hospitals.length, labs.length]);
 
-  // Har scroll par position save karo
   useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('homeScroll', window.scrollY.toString());
@@ -105,7 +102,6 @@ const Home = () => {
     fetchFavorites();
   }, []);
 
-  // ✅ 3. Smart Refetch Logic based on Location changes
   useEffect(() => {
     const cachedLat = sessionStorage.getItem('mednexus_cached_lat');
     const currentLat = userLocation ? String(userLocation.lat) : null;
@@ -115,7 +111,6 @@ const Home = () => {
           fetchHospitals();
           fetchLabs();
       } else if (currentLat && cachedLat !== currentLat) {
-          // If we finally got the location, silently refetch and update list
           fetchHospitals();
           fetchLabs();
       }
@@ -259,7 +254,7 @@ const Home = () => {
   const handleToggleFavorite = async (facilityId, facilityType) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please login to add favorites');
+      toast.error('Please login to add favorites'); // ✅ CHANGED TO TOAST
       navigate('/login');
       return;
     }
@@ -284,9 +279,16 @@ const Home = () => {
       );
 
       setFavorites(response.data.data || response.data.favorites || { hospitals: [], laboratories: [] });
-      alert(isFavorite ? '✅ Removed from favorites' : '✅ Added to favorites');
+      
+      // ✅ CHANGED TO TOAST
+      if (isFavorite) {
+        toast.success('Removed from favorites');
+      } else {
+        toast.success('Added to favorites!');
+      }
+
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to update favorites');
+      toast.error(error.response?.data?.message || 'Failed to update favorites'); // ✅ CHANGED TO TOAST
     }
   };
 
@@ -388,7 +390,7 @@ const Home = () => {
           initialFilters={filters}
         />
 
-        {/* ✅ RESTORED ACTIVE FILTERS BADGES */}
+        {/* ACTIVE FILTERS BADGES */}
         {(filters.state || filters.city || filters.pincode || filters.type !== 'all' || 
           filters.minPrice || filters.maxPrice || filters.minRating || filters.emergency || quickSearchKeyword) && (
           <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
