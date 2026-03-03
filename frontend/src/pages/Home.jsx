@@ -4,7 +4,7 @@ import axios from 'axios';
 import API_URL from '../config/api'; 
 import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
-import SkeletonCard from '../components/SkeletonCard'; // ✅ IMPORTED SKELETON
+import SkeletonCard from '../components/SkeletonCard';
 import { hospitalAPI, labAPI } from '../services/api';
 import { FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, FaFilter, FaHeart } from 'react-icons/fa'; 
 import { useLocation } from '../context/LocationContext';
@@ -292,8 +292,6 @@ const Home = () => {
     }
   };
 
-  // ✅ DELETED THE OLD FULL-SCREEN SPINNER HERE
-
   const displayHospitals = filteredHospitals.length > 0 ? filteredHospitals : hospitals;
   const displayLabs = filteredLabs.length > 0 ? filteredLabs : labs;
 
@@ -348,100 +346,104 @@ const Home = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
         
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200">
-          <button
-            onClick={() => handleTabChange('hospitals')}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
-              activeTab === 'hospitals'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-blue-600'
-            }`}
-          >
-            <FaHospital />
-            Hospitals ({displayHospitals.length})
-          </button>
-          <button
-            onClick={() => handleTabChange('labs')}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
-              activeTab === 'labs'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-blue-600'
-            }`}
-          >
-            <FaFlask />
-            Laboratories ({displayLabs.length})
-          </button>
-        </div>
-
-        <AdvancedFilterPanel
-          onApplyFilters={handleAdvancedFilters}
-          initialFilters={filters}
-        />
-
-        {/* ACTIVE FILTERS BADGES */}
-        {(filters.state || filters.city || filters.pincode || filters.type !== 'all' || 
-          filters.minPrice || filters.maxPrice || filters.minRating || filters.emergency || quickSearchKeyword) && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-blue-800">🔍 Active Filters:</span>
-              <button
-                onClick={() => {
-                  setFilters({
-                    state: '', city: '', keyword: '', pincode: '', type: 'all',
-                    minPrice: '', maxPrice: '', minRating: '', emergency: false
-                  });
-                  setQuickSearchKeyword('');
-                }}
-                className="text-sm text-blue-600 hover:text-blue-800 underline"
-              >
-                Clear All
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {quickSearchKeyword && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  Keyword: {quickSearchKeyword}
-                </span>
-              )}
-              {filters.state && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  State: {filters.state}
-                </span>
-              )}
-              {filters.city && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  City: {filters.city}
-                </span>
-              )}
-              {filters.pincode && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  PIN: {filters.pincode}
-                </span>
-              )}
-              {filters.type !== 'all' && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  Type: {filters.type}
-                </span>
-              )}
-              {filters.minRating && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  Rating: {filters.minRating}+ ⭐
-                </span>
-              )}
-              {filters.emergency && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  🚨 Emergency Only
-                </span>
-              )}
-            </div>
+        {/* ✅ STICKY WRAPPER START */}
+        <div className="sticky top-0 z-40 bg-gray-50/95 backdrop-blur-md pt-2 pb-4 mb-6 border-b border-gray-200/50 shadow-sm -mx-4 px-4 sm:mx-0 sm:px-0">
+          
+          {/* Tabs */}
+          <div className="flex gap-4 mb-4 border-b border-gray-200">
+            <button
+              onClick={() => handleTabChange('hospitals')}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
+                activeTab === 'hospitals'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <FaHospital />
+              Hospitals ({displayHospitals.length})
+            </button>
+            <button
+              onClick={() => handleTabChange('labs')}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
+                activeTab === 'labs'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <FaFlask />
+              Laboratories ({displayLabs.length})
+            </button>
           </div>
-        )}
+
+          <AdvancedFilterPanel
+            onApplyFilters={handleAdvancedFilters}
+            initialFilters={filters}
+          />
+
+          {/* ACTIVE FILTERS BADGES */}
+          {(filters.state || filters.city || filters.pincode || filters.type !== 'all' || 
+            filters.minPrice || filters.maxPrice || filters.minRating || filters.emergency || quickSearchKeyword) && (
+            <div className="mt-4 p-3 bg-blue-50/80 rounded-xl border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-blue-800 text-sm">🔍 Active Filters:</span>
+                <button
+                  onClick={() => {
+                    setFilters({
+                      state: '', city: '', keyword: '', pincode: '', type: 'all',
+                      minPrice: '', maxPrice: '', minRating: '', emergency: false
+                    });
+                    setQuickSearchKeyword('');
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
+                >
+                  Clear All
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {quickSearchKeyword && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    Keyword: {quickSearchKeyword}
+                  </span>
+                )}
+                {filters.state && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    State: {filters.state}
+                  </span>
+                )}
+                {filters.city && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    City: {filters.city}
+                  </span>
+                )}
+                {filters.pincode && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    PIN: {filters.pincode}
+                  </span>
+                )}
+                {filters.type !== 'all' && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    Type: {filters.type}
+                  </span>
+                )}
+                {filters.minRating && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    Rating: {filters.minRating}+ ⭐
+                  </span>
+                )}
+                {filters.emergency && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    🚨 Emergency Only
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* ✅ STICKY WRAPPER END */}
 
         {/* ✅ GRID WITH SKELETON LOADERS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
           {loading && hospitals.length === 0 && labs.length === 0 ? (
-            // Dikhayega 6 Skeleton Cards jab tak data load nahi hota
             Array(6).fill(0).map((_, index) => <SkeletonCard key={index} />)
           ) : (
             <>
