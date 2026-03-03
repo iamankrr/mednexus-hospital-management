@@ -14,7 +14,6 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
   const hospitalId = hospital?._id || hospital?.id;
 
   useEffect(() => {
-    // Only check if showFavoriteButton is true to save API calls
     if (showFavoriteButton && hospitalId) {
       checkIfFavorite();
     }
@@ -73,7 +72,6 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
 
       setIsFavorite(!isFavorite);
       
-      // Call parent callback if provided (e.g., from Home.jsx)
       if (onFavoriteToggle) {
         onFavoriteToggle(hospitalId, 'hospital');
       }
@@ -93,7 +91,6 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
     }
   };
 
-  // Safe check for Compare
   const isInCompare = compareList?.find(h => (h._id || h.id) === hospitalId);
 
   const formatDistance = (distance) => {
@@ -109,7 +106,6 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
       onClick={handleClick}
       className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 cursor-pointer border border-gray-200 group flex flex-col h-full"
     >
-      {/* Image Section */}
       <div className="relative h-48 bg-gradient-to-br from-blue-100 to-blue-200 flex-shrink-0">
         {hospital.images && hospital.images.length > 0 ? (
           <img
@@ -123,14 +119,12 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
           </div>
         )}
 
-        {/* ✅ Distance Badge - MOVED TO BOTTOM LEFT */}
         {hospital.distance !== undefined && hospital.distance !== null && (
           <span className="absolute bottom-3 left-3 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm">
             📍 {formatDistance(hospital.distance)}
           </span>
         )}
 
-        {/* ✅ Favorite Button - MOVED TO TOP RIGHT */}
         {showFavoriteButton && (
           <button
             onClick={handleToggleFavorite}
@@ -143,10 +137,7 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
         )}
       </div>
 
-      {/* Content Section */}
       <div className="p-5 flex flex-col flex-grow">
-        
-        {/* Name and Type */}
         <div className="mb-3">
           <h3 className="font-bold text-gray-900 text-xl mb-2 line-clamp-1">
             {hospital.name}
@@ -160,7 +151,6 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
           )}
         </div>
 
-        {/* Ratings */}
         <div className="flex flex-col gap-1 mb-3">
           {hospital.googleRating > 0 && (
             <div className="flex items-center gap-2">
@@ -180,7 +170,6 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
           </div>
         </div>
 
-        {/* Location */}
         <div className="flex items-start gap-2 text-sm text-gray-600 mb-4 h-10 overflow-hidden">
           <FaMapMarkerAlt className="text-blue-500 mt-1 flex-shrink-0" />
           <span className="line-clamp-2">
@@ -192,10 +181,13 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
           </span>
         </div>
 
-        {/* Pushes action buttons to the bottom */}
         <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
+          {/* 🚀 FIX: Added e.stopPropagation() to prevent double history entries! */}
           <button
-            onClick={handleClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick();
+            }}
             className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm"
           >
             View Details

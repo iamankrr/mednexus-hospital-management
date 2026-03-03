@@ -1,20 +1,17 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom'; // ✅ No BrowserRouter here
+import React, { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom'; // ✅ Added useLocation
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
 import HospitalDetails from './pages/HospitalDetails';
 import Login from './pages/auth/Login';
 
-// ✅ Added Imports for Hospitals and Labs Pages
 import Hospitals from './pages/Hospitals';
 import Labs from './pages/Labs';
 
-// ✅ Enhanced Details Imports (Make sure these files exist in your pages folder)
 import EnhancedHospitalDetails from './pages/EnhancedHospitalDetails';
 import EnhancedLabDetails from './pages/EnhancedLabDetails';
 
-// ✅ New Registration Flow Imports
 import RegistrationChoice from './pages/RegistrationChoice';
 import RegisterUser from './pages/RegisterUser';
 import BookAppointment from './pages/BookAppointment';
@@ -42,31 +39,46 @@ import ManageOwners from './pages/admin/ManageOwners';
 import Appointments from './pages/Appointments';
 import OwnerAppointments from './pages/owner/OwnerAppointments';
 
-// ✅ Facility Submissions Imports
 import SubmitFacility from './pages/SubmitFacility';
 import MySubmissions from './pages/MySubmissions';
 import ReviewSubmissions from './pages/admin/ReviewSubmissions';
 import ViewContacts from './pages/admin/ViewContacts';
 
-// ✅ Footer Pages Imports
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AboutUs from './pages/AboutUs';
 
-// ✅ Owner & Admin Services Management Imports
 import ManageServices from './pages/owner/ManageServices';
 import AdminManageServices from './pages/admin/AdminManageServices'; 
 
-// ✅ Added User Profile Import
 import UserProfile from './pages/UserProfile'; 
-
-// ✅ Added Change Password Import
 import ChangePassword from './pages/ChangePassword'; 
+
+// ✅ FIX: SCROLL MANAGER - Browser aur React ki ladai khatam!
+const ScrollManager = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // 1. Browser ke native scroll memory ko disable karo
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    // 2. Har naye page ko TOP se kholo (Lekin list pages ko ignore karo)
+    if (pathname !== '/hospitals' && pathname !== '/labs') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [pathname]);
+
+  return null;
+};
 
 function App() {
   return (
     <div className="App">
-      {/* ✅ Navbar is perfectly placed. It will use the Router from main.jsx */}
+      {/* ✅ Add ScrollManager Here */}
+      <ScrollManager />
+      
       <Navbar />
       
       <Routes>
