@@ -83,9 +83,8 @@ const Home = () => {
   };
 
   useEffect(() => {
-    if (!locationRequested && navigator.geolocation && hospitals.length === 0) {
+    if (!locationRequested && navigator.geolocation) {
       setLocationRequested(true);
-      
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const location = { lat: position.coords.latitude, lng: position.coords.longitude };
@@ -106,11 +105,20 @@ const Home = () => {
     fetchFavorites();
   }, []);
 
-  // ✅ 3. API Call sirf tab karo jab Cache empty ho
+  // ✅ 3. Smart Refetch Logic based on Location changes
   useEffect(() => {
-    if (locationRequested && hospitals.length === 0 && labs.length === 0) {
-        fetchHospitals();
-        fetchLabs();
+    const cachedLat = sessionStorage.getItem('mednexus_cached_lat');
+    const currentLat = userLocation ? String(userLocation.lat) : null;
+
+    if (locationRequested) {
+      if (hospitals.length === 0 && labs.length === 0) {
+          fetchHospitals();
+          fetchLabs();
+      } else if (currentLat && cachedLat !== currentLat) {
+          // If we finally got the location, silently refetch and update list
+          fetchHospitals();
+          fetchLabs();
+      }
     }
   }, [userLocation, locationRequested]);
 
@@ -126,18 +134,17 @@ const Home = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setFavorites(response.data.data || { hospitals: [], laboratories: [] });
-    } catch (error) {
-      // Handle error
-    }
+    } catch (error) {}
   };
 
   const fetchHospitals = async () => {
     try {
-      setLoading(true);
+      if (hospitals.length === 0) setLoading(true);
       const params = { ...filters };
       if (userLocation) {
         params.lat = userLocation.lat;
         params.lng = userLocation.lng;
+        sessionStorage.setItem('mednexus_cached_lat', String(userLocation.lat));
       }
 
       const response = await hospitalAPI.getAll(params);
@@ -148,7 +155,6 @@ const Home = () => {
           ...hospital, id: hospital._id || hospital.id
         }));
         setHospitals(normalizedHospitals);
-        // ✅ 4. Save to Cache
         sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
       }
     } catch (error) {
@@ -173,12 +179,9 @@ const Home = () => {
           ...lab, id: lab._id || lab.id
         }));
         setLabs(normalizedLabs);
-        // ✅ 5. Save to Cache
         sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
       }
-    } catch (error) {
-      console.error('Error fetching labs:', error);
-    }
+    } catch (error) {}
   };
 
   const applyFilters = () => {
@@ -195,15 +198,21 @@ const Home = () => {
     }
 
     if (filters.state) {
-      filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
+      filtered = filtered.filter(item =>
+        item.address?.state?.toLowerCase() === filters.state.toLowerCase()
+      );
     }
 
     if (filters.city) {
-      filtered = filtered.filter(item => item.address?.city?.toLowerCase() === filters.city.toLowerCase());
+      filtered = filtered.filter(item =>
+        item.address?.city?.toLowerCase() === filters.city.toLowerCase()
+      );
     }
 
     if (filters.pincode) {
-      filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
+      filtered = filtered.filter(item =>
+        item.address?.pincode === filters.pincode
+      );
     }
 
     if (activeTab === 'hospitals' && filters.type && filters.type !== 'all') {
@@ -223,7 +232,9 @@ const Home = () => {
     }
 
     if (filters.minRating) {
-      filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
+      filtered = filtered.filter(item =>
+        (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating)
+      );
     }
 
     if (filters.emergency) {
@@ -255,8 +266,14 @@ const Home = () => {
 
     try {
       const isFavorite = facilityType === 'hospital'
-        ? favorites.hospitals?.some(h => { const id = typeof h === 'string' ? h : h._id; return id === facilityId; })
-        : favorites.laboratories?.some(l => { const id = typeof l === 'string' ? l : l._id; return id === facilityId; });
+        ? favorites.hospitals?.some(h => {
+            const id = typeof h === 'string' ? h : h._id;
+            return id === facilityId;
+          })
+        : favorites.laboratories?.some(l => {
+            const id = typeof l === 'string' ? l : l._id;
+            return id === facilityId;
+          });
 
       const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
 
@@ -291,6 +308,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      
+      {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-10">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
@@ -335,7 +354,10 @@ const Home = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
+        
+        {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-gray-200">
           <button
             onClick={() => handleTabChange('hospitals')}
@@ -366,6 +388,7 @@ const Home = () => {
           initialFilters={filters}
         />
 
+        {/* ✅ RESTORED ACTIVE FILTERS BADGES */}
         {(filters.state || filters.city || filters.pincode || filters.type !== 'all' || 
           filters.minPrice || filters.maxPrice || filters.minRating || filters.emergency || quickSearchKeyword) && (
           <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
@@ -384,12 +407,51 @@ const Home = () => {
                 Clear All
               </button>
             </div>
+            <div className="flex flex-wrap gap-2">
+              {quickSearchKeyword && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  Keyword: {quickSearchKeyword}
+                </span>
+              )}
+              {filters.state && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  State: {filters.state}
+                </span>
+              )}
+              {filters.city && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  City: {filters.city}
+                </span>
+              )}
+              {filters.pincode && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  PIN: {filters.pincode}
+                </span>
+              )}
+              {filters.type !== 'all' && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  Type: {filters.type}
+                </span>
+              )}
+              {filters.minRating && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  Rating: {filters.minRating}+ ⭐
+                </span>
+              )}
+              {filters.emergency && (
+                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  🚨 Emergency Only
+                </span>
+              )}
+            </div>
           </div>
         )}
 
+        {/* Results Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activeTab === 'hospitals' && displayHospitals.map((hospital) => {
             const id = hospital._id || hospital.id;
+            
             const isFav = favorites.hospitals?.some(h => {
               const favId = typeof h === 'string' ? h : h._id;
               return favId === id;
@@ -413,6 +475,7 @@ const Home = () => {
           
           {activeTab === 'labs' && displayLabs.map((lab) => {
             const id = lab._id || lab.id;
+            
             const isFav = favorites.laboratories?.some(l => {
               const favId = typeof l === 'string' ? l : l._id;
               return favId === id;
@@ -434,6 +497,44 @@ const Home = () => {
             );
           })}
         </div>
+
+        {/* Empty State */}
+        {activeTab === 'hospitals' && displayHospitals.length === 0 && (
+          <div className="text-center py-12">
+            <FaHospital className="text-6xl text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">No hospitals found matching your filters</p>
+            <button
+              onClick={() => {
+                setFilters({
+                  state: '', city: '', keyword: '', pincode: '', type: 'all',
+                  minPrice: '', maxPrice: '', minRating: '', emergency: false
+                });
+                setQuickSearchKeyword('');
+              }}
+              className="mt-4 text-blue-600 hover:text-blue-800 underline"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
+        {activeTab === 'labs' && displayLabs.length === 0 && (
+          <div className="text-center py-12">
+            <FaFlask className="text-6xl text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">No laboratories found matching your filters</p>
+            <button
+              onClick={() => {
+                setFilters({
+                  state: '', city: '', keyword: '', pincode: '', type: 'all',
+                  minPrice: '', maxPrice: '', minRating: '', emergency: false
+                });
+                setQuickSearchKeyword('');
+              }}
+              className="mt-4 text-blue-600 hover:text-blue-800 underline"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
       </div>
 
       <CompareBar />

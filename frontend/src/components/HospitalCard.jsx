@@ -42,7 +42,8 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
 
   const handleClick = () => {
     if (hospitalId) {
-      navigate(`/hospital/${hospitalId}`); 
+      // ✅ FIX: Passing full card data directly to the new page for Instant Loading!
+      navigate(`/hospital/${hospitalId}`, { state: { facilityData: hospital } }); 
     }
   };
 
@@ -182,7 +183,7 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
         </div>
 
         <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
-          {/* 🚀 FIX: Added e.stopPropagation() to prevent double history entries! */}
+          {/* 🚀 FIX: e.stopPropagation() is here to prevent double clicks */}
           <button
             onClick={(e) => {
               e.stopPropagation();

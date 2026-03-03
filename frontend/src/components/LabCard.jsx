@@ -66,7 +66,8 @@ const LabCard = ({ lab, showFavoriteButton = false, onFavoriteToggle }) => {
 
   const handleClick = () => {
     if (labId) {
-      navigate(`/lab/${labId}`);
+      // ✅ FIX: Passing full card data directly to the new page for Instant Loading!
+      navigate(`/lab/${labId}`, { state: { facilityData: lab } });
     } else {
       console.error('❌ Missing Lab ID!', lab);
     }
@@ -221,6 +222,7 @@ const LabCard = ({ lab, showFavoriteButton = false, onFavoriteToggle }) => {
 
         {/* Action Buttons Row */}
         <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+          {/* 🚀 FIX: Prevent Bubbling */}
           <button
             onClick={(e) => {
               e.stopPropagation();

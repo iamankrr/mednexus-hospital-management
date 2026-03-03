@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
 import axios from 'axios'; 
 import {
   FaStar, FaGoogle, FaPhone, FaEnvelope, FaMapMarkerAlt,
@@ -33,13 +33,17 @@ const calculateYearsSince = (date) => {
 const HospitalDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const locationRouter = useLocation(); // ✅ To catch data from Card
   const { addToCompare, isInCompare, compareList } = useComparison();
   const { userLocation } = useUserLocation();
 
-  const [hospital, setHospital]       = useState(null);
-  const [loading, setLoading]         = useState(true);
+  const initialData = locationRouter.state?.facilityData; // ✅ Get instant data
+
+  // ✅ Initialize states with instant data if available
+  const [hospital, setHospital]       = useState(initialData || null);
+  const [loading, setLoading]         = useState(!initialData); // ❌ No loading if data exists
   const [activeTab, setActiveTab]     = useState('overview');
-  const [distance, setDistance]       = useState(null);
+  const [distance, setDistance]       = useState(initialData?.distance || null);
   
   const [isFavorite, setIsFavorite]   = useState(false);
 
@@ -53,11 +57,15 @@ const HospitalDetails = () => {
 
   const fetchHospital = async () => {
     try {
-      setLoading(true);
+      // ✅ Only show spinner if we don't have instant data from card
+      if (!hospital) {
+        setLoading(true);
+      }
+
       const res = await hospitalAPI.getById(id);
       const data = res.data.data; 
       
-      setHospital(data);
+      setHospital(data); // Silently updates with fresh backend data
 
       if (userLocation && data.location?.coordinates) {
         const dist = calculateDistance(
@@ -405,9 +413,9 @@ const HospitalDetails = () => {
                             <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100">
                               <span className="text-sm text-gray-500 capitalize font-medium">{day}</span>
                               <span className={`text-sm font-semibold ${
-                                hospital.operatingHours[day] === 'Closed' ? 'text-red-500' : 'text-gray-800'
+                                hospital.operatingHours && hospital.operatingHours[day] === 'Closed' ? 'text-red-500' : 'text-gray-800'
                               }`}>
-                                {hospital.operatingHours[day] || 'N/A'}
+                                {(hospital.operatingHours && hospital.operatingHours[day]) || 'N/A'}
                               </span>
                             </div>
                           ))}

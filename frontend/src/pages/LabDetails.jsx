@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
 import axios from 'axios';
 import { 
   FaFlask, 
@@ -18,12 +18,16 @@ import Footer from '../components/Footer';
 const LabDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [lab, setLab] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const locationRouter = useLocation(); // ✅ To catch data from Card
+
+  const initialData = locationRouter.state?.facilityData; // ✅ Get instant data
+
+  // ✅ Initialize states with instant data if available
+  const [lab, setLab] = useState(initialData || null);
+  const [loading, setLoading] = useState(!initialData); // ❌ No loading if data exists
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // ✅ Added Favorite State
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
@@ -36,8 +40,13 @@ const LabDetails = () => {
 
   const fetchLab = async () => {
     try {
+      // ✅ Only show spinner if we don't have instant data from card
+      if (!lab) {
+        setLoading(true);
+      }
+      
       const response = await axios.get(`http://localhost:3000/api/labs/${id}`);
-      setLab(response.data.data);
+      setLab(response.data.data); // Silently updates with fresh backend data
     } catch (error) {
       console.error('Error fetching lab:', error);
     } finally {
@@ -45,7 +54,6 @@ const LabDetails = () => {
     }
   };
 
-  // ✅ Check if lab is favorite
   const checkIfFavorite = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -56,14 +64,12 @@ const LabDetails = () => {
       });
 
       const favorites = response.data.data;
-      // Backend uses 'laboratories' array
       setIsFavorite(favorites.laboratories?.includes(id));
     } catch (error) {
       console.error('Check favorite error:', error);
     }
   };
 
-  // ✅ Toggle favorite API
   const handleToggleFavorite = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -247,7 +253,6 @@ const LabDetails = () => {
                   </div>
                 )}
                 
-                {/* ✅ Added HandleToggleFavorite logic here */}
                 <button onClick={handleToggleFavorite} className={`px-6 py-3 border-2 rounded-xl font-bold flex items-center justify-center gap-2 transition ${isFavorite ? 'bg-red-50 border-red-200 text-red-600' : 'border-purple-600 text-purple-600 hover:bg-purple-50'}`}>
                   <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-purple-600'} /> {isFavorite ? 'Saved' : 'Save'}
                 </button>
