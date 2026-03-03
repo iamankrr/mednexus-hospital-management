@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
@@ -54,31 +54,10 @@ import AdminManageServices from './pages/admin/AdminManageServices';
 import UserProfile from './pages/UserProfile'; 
 import ChangePassword from './pages/ChangePassword'; 
 
-// ✅ FIX: SCROLL MANAGER - Browser aur React ki ladai khatam!
-const ScrollManager = () => {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    // 1. Browser ke native scroll memory ko disable karo
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-
-    // 2. Har naye page ko TOP se kholo (Lekin list pages ko ignore karo)
-    if (pathname !== '/hospitals' && pathname !== '/labs') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }
-  }, [pathname]);
-
-  return null;
-};
-
 function App() {
   return (
     <div className="App">
-      {/* ✅ Add ScrollManager Here */}
-      <ScrollManager />
-      
+      {/* ✅ ScrollManager Hata Diya! Ab browser aur React ki ladai khatam */}
       <Navbar />
       
       <Routes>
