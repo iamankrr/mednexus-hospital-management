@@ -62,7 +62,7 @@ const Footer = () => {
               </a>
               {/* ✅ Real Links for LinkedIn and GitHub */}
               <a 
-                href="https://www.linkedin.com/in/amankrr" 
+                href="#" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-gray-400 hover:text-blue-600 transition text-xl" 
@@ -71,7 +71,7 @@ const Footer = () => {
                 <FaLinkedin />
               </a>
               <a 
-                href="https://github.com/amankrr" 
+                href="https://github.com/iamankrr" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-gray-400 hover:text-white transition text-xl" 
