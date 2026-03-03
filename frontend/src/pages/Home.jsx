@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import API_URL from '../config/api'; 
@@ -16,13 +16,25 @@ const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
   
-  const [hospitals, setHospitals] = useState([]);
-  const [labs, setLabs] = useState([]);
+  // ✅ 1. Initialize data from Cache to avoid loading delay
+  const [hospitals, setHospitals] = useState(() => {
+    const cached = sessionStorage.getItem('homeHospitalsData');
+    return cached ? JSON.parse(cached) : [];
+  });
+  
+  const [labs, setLabs] = useState(() => {
+    const cached = sessionStorage.getItem('homeLabsData');
+    return cached ? JSON.parse(cached) : [];
+  });
+
   const [filteredHospitals, setFilteredHospitals] = useState([]);
   const [filteredLabs, setFilteredLabs] = useState([]);
-  const [loading, setLoading] = useState(true);
   
-  // ✅ FIX 1: Initialize tab from sessionStorage, default to 'hospitals'
+  // Loading tabhi aayegi jab cache mein kuch na ho
+  const [loading, setLoading] = useState(() => {
+    return (sessionStorage.getItem('homeHospitalsData') || sessionStorage.getItem('homeLabsData')) ? false : true;
+  });
+  
   const [activeTab, setActiveTab] = useState(() => {
     return sessionStorage.getItem('mednexus_active_tab') || 'hospitals';
   });
@@ -32,69 +44,71 @@ const Home = () => {
     laboratories: []
   });
 
-  // ✅ FIX 2: Initialize location from sessionStorage if available
   const [userLocation, setUserLocation] = useState(() => {
     const savedLocation = sessionStorage.getItem('mednexus_user_location');
     return savedLocation ? JSON.parse(savedLocation) : null;
   });
   
-  // Only request location if we don't already have one
   const [locationRequested, setLocationRequested] = useState(!!userLocation);
 
   const [filters, setFilters] = useState({
-    state: '',
-    city: '',
-    keyword: '',
-    pincode: '',
-    type: 'all',
-    minPrice: '',
-    maxPrice: '',
-    minRating: '',
-    emergency: false,
+    state: '', city: '', keyword: '', pincode: '', type: 'all',
+    minPrice: '', maxPrice: '', minRating: '', emergency: false,
   });
 
   const [quickSearchKeyword, setQuickSearchKeyword] = useState('');
 
-  // ✅ Handle Tab Changes and save to sessionStorage
+  // ✅ 2. Instant Scroll Restoration (Home Page ke liye)
+  useLayoutEffect(() => {
+    if (!loading && (hospitals.length > 0 || labs.length > 0)) {
+      const savedScroll = sessionStorage.getItem('homeScroll');
+      if (savedScroll) {
+        window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+      }
+    }
+  }, [loading, hospitals.length, labs.length]);
+
+  // Har scroll par position save karo
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem('homeScroll', window.scrollY.toString());
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     sessionStorage.setItem('mednexus_active_tab', tab);
   };
 
   useEffect(() => {
-    if (!locationRequested && navigator.geolocation) {
+    if (!locationRequested && navigator.geolocation && hospitals.length === 0) {
       setLocationRequested(true);
       
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
+          const location = { lat: position.coords.latitude, lng: position.coords.longitude };
           setUserLocation(location);
-          // ✅ Save location to sessionStorage so it persists on back navigation
           sessionStorage.setItem('mednexus_user_location', JSON.stringify(location));
-          console.log('📍 User location obtained & saved:', location);
         },
         (error) => {
-          console.log('📍 Location permission denied or unavailable');
           setUserLocation(null);
           setLoading(false);
         }
       );
-    } else if (!userLocation) {
-        // If no location in session and geolocation is unavailable/denied, stop loading
+    } else if (!userLocation && hospitals.length === 0) {
         setLoading(false);
     }
-  }, [locationRequested, userLocation]);
+  }, [locationRequested, userLocation, hospitals.length]);
 
   useEffect(() => {
     fetchFavorites();
   }, []);
 
+  // ✅ 3. API Call sirf tab karo jab Cache empty ho
   useEffect(() => {
-    // Only fetch if we have tried to get location (either got it or failed)
-    if (locationRequested) {
+    if (locationRequested && hospitals.length === 0 && labs.length === 0) {
         fetchHospitals();
         fetchLabs();
     }
@@ -107,47 +121,35 @@ const Home = () => {
   const fetchFavorites = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        console.log('ℹ️ Not logged in - skipping favorites');
-        return;
-      }
-
-      console.log('🔍 Fetching favorites...'); 
-
+      if (!token) return;
       const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      console.log('✅ Favorites fetched:', response.data.data); 
-
       setFavorites(response.data.data || { hospitals: [], laboratories: [] });
     } catch (error) {
-      console.log('ℹ️ Favorites fetch skipped or failed due to auth');
+      // Handle error
     }
   };
 
   const fetchHospitals = async () => {
     try {
-      console.log('Fetching hospitals from API...');
-      
+      setLoading(true);
       const params = { ...filters };
-      
       if (userLocation) {
         params.lat = userLocation.lat;
         params.lng = userLocation.lng;
       }
 
       const response = await hospitalAPI.getAll(params);
-      
       const dataArray = response?.data?.data || response?.data || [];
 
       if (dataArray) {
         const normalizedHospitals = dataArray.map(hospital => ({
-          ...hospital,
-          id: hospital._id || hospital.id
+          ...hospital, id: hospital._id || hospital.id
         }));
-        
         setHospitals(normalizedHospitals);
+        // ✅ 4. Save to Cache
+        sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
       }
     } catch (error) {
       console.error('Error fetching hospitals:', error);
@@ -159,23 +161,20 @@ const Home = () => {
   const fetchLabs = async () => {
     try {
       const params = { ...filters };
-      
       if (userLocation) {
         params.lat = userLocation.lat;
         params.lng = userLocation.lng;
       }
 
       const response = await labAPI.getAll(params);
-      
       if (response?.data) {
         const labsData = Array.isArray(response.data) ? response.data : (response.data.data || []);
-        
         const normalizedLabs = labsData.map(lab => ({
-          ...lab,
-          id: lab._id || lab.id
+          ...lab, id: lab._id || lab.id
         }));
-        
         setLabs(normalizedLabs);
+        // ✅ 5. Save to Cache
+        sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
       }
     } catch (error) {
       console.error('Error fetching labs:', error);
@@ -196,21 +195,15 @@ const Home = () => {
     }
 
     if (filters.state) {
-      filtered = filtered.filter(item =>
-        item.address?.state?.toLowerCase() === filters.state.toLowerCase()
-      );
+      filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
     }
 
     if (filters.city) {
-      filtered = filtered.filter(item =>
-        item.address?.city?.toLowerCase() === filters.city.toLowerCase()
-      );
+      filtered = filtered.filter(item => item.address?.city?.toLowerCase() === filters.city.toLowerCase());
     }
 
     if (filters.pincode) {
-      filtered = filtered.filter(item =>
-        item.address?.pincode === filters.pincode
-      );
+      filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
     }
 
     if (activeTab === 'hospitals' && filters.type && filters.type !== 'all') {
@@ -230,9 +223,7 @@ const Home = () => {
     }
 
     if (filters.minRating) {
-      filtered = filtered.filter(item =>
-        (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating)
-      );
+      filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
     }
 
     if (filters.emergency) {
@@ -263,21 +254,11 @@ const Home = () => {
     }
 
     try {
-      console.log('🔍 Toggling favorite:', { facilityId, facilityType }); 
-
       const isFavorite = facilityType === 'hospital'
-        ? favorites.hospitals?.some(h => {
-            const id = typeof h === 'string' ? h : h._id;
-            return id === facilityId;
-          })
-        : favorites.laboratories?.some(l => {
-            const id = typeof l === 'string' ? l : l._id;
-            return id === facilityId;
-          });
+        ? favorites.hospitals?.some(h => { const id = typeof h === 'string' ? h : h._id; return id === facilityId; })
+        : favorites.laboratories?.some(l => { const id = typeof l === 'string' ? l : l._id; return id === facilityId; });
 
       const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
-
-      console.log('📍 API call:', { endpoint, facilityId, facilityType, isFavorite }); 
 
       const response = await axios.post(
         `${API_URL}${endpoint}`,
@@ -285,13 +266,9 @@ const Home = () => {
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
-      console.log('✅ Response:', response.data); 
-
       setFavorites(response.data.data || response.data.favorites || { hospitals: [], laboratories: [] });
       alert(isFavorite ? '✅ Removed from favorites' : '✅ Added to favorites');
     } catch (error) {
-      console.error('❌ Toggle favorite error:', error);
-      console.error('❌ Error response:', error.response?.data); 
       alert(error.response?.data?.message || 'Failed to update favorites');
     }
   };
@@ -314,8 +291,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      
-      {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-10">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
@@ -360,10 +335,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
-        
-        {/* Tabs */}
         <div className="flex gap-4 mb-6 border-b border-gray-200">
           <button
             onClick={() => handleTabChange('hospitals')}
@@ -412,51 +384,12 @@ const Home = () => {
                 Clear All
               </button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {quickSearchKeyword && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  Keyword: {quickSearchKeyword}
-                </span>
-              )}
-              {filters.state && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  State: {filters.state}
-                </span>
-              )}
-              {filters.city && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  City: {filters.city}
-                </span>
-              )}
-              {filters.pincode && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  PIN: {filters.pincode}
-                </span>
-              )}
-              {filters.type !== 'all' && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  Type: {filters.type}
-                </span>
-              )}
-              {filters.minRating && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  Rating: {filters.minRating}+ ⭐
-                </span>
-              )}
-              {filters.emergency && (
-                <span className="px-3 py-1 bg-white text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                  🚨 Emergency Only
-                </span>
-              )}
-            </div>
           </div>
         )}
 
-        {/* Results Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activeTab === 'hospitals' && displayHospitals.map((hospital) => {
             const id = hospital._id || hospital.id;
-            
             const isFav = favorites.hospitals?.some(h => {
               const favId = typeof h === 'string' ? h : h._id;
               return favId === id;
@@ -480,7 +413,6 @@ const Home = () => {
           
           {activeTab === 'labs' && displayLabs.map((lab) => {
             const id = lab._id || lab.id;
-            
             const isFav = favorites.laboratories?.some(l => {
               const favId = typeof l === 'string' ? l : l._id;
               return favId === id;
@@ -502,44 +434,6 @@ const Home = () => {
             );
           })}
         </div>
-
-        {/* Empty State */}
-        {activeTab === 'hospitals' && displayHospitals.length === 0 && (
-          <div className="text-center py-12">
-            <FaHospital className="text-6xl text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">No hospitals found matching your filters</p>
-            <button
-              onClick={() => {
-                setFilters({
-                  state: '', city: '', keyword: '', pincode: '', type: 'all',
-                  minPrice: '', maxPrice: '', minRating: '', emergency: false
-                });
-                setQuickSearchKeyword('');
-              }}
-              className="mt-4 text-blue-600 hover:text-blue-800 underline"
-            >
-              Clear all filters
-            </button>
-          </div>
-        )}
-        {activeTab === 'labs' && displayLabs.length === 0 && (
-          <div className="text-center py-12">
-            <FaFlask className="text-6xl text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">No laboratories found matching your filters</p>
-            <button
-              onClick={() => {
-                setFilters({
-                  state: '', city: '', keyword: '', pincode: '', type: 'all',
-                  minPrice: '', maxPrice: '', minRating: '', emergency: false
-                });
-                setQuickSearchKeyword('');
-              }}
-              className="mt-4 text-blue-600 hover:text-blue-800 underline"
-            >
-              Clear all filters
-            </button>
-          </div>
-        )}
       </div>
 
       <CompareBar />
