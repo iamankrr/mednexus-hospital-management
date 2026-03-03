@@ -5,8 +5,9 @@ import API_URL from '../config/api';
 import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
 import SkeletonCard from '../components/SkeletonCard';
+import MapView from '../components/MapView'; // ✅ IMPORTED MAP VIEW
 import { hospitalAPI, labAPI } from '../services/api';
-import { FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, FaFilter, FaHeart } from 'react-icons/fa'; 
+import { FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, FaFilter, FaHeart, FaListUl, FaMap } from 'react-icons/fa'; 
 import { useLocation } from '../context/LocationContext';
 import CompareBar from '../components/CompareBar';
 import AdvancedFilterPanel from '../components/AdvancedFilterPanel';
@@ -18,6 +19,9 @@ const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
   
+  // ✅ STATE FOR MAP TOGGLE
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+
   const [hospitals, setHospitals] = useState(() => {
     const cached = sessionStorage.getItem('homeHospitalsData');
     return cached ? JSON.parse(cached) : [];
@@ -58,22 +62,25 @@ const Home = () => {
 
   const [quickSearchKeyword, setQuickSearchKeyword] = useState('');
 
+  // ✅ Updated Scroll Logic to only run on 'list' view
   useLayoutEffect(() => {
-    if (!loading && (hospitals.length > 0 || labs.length > 0)) {
+    if (!loading && (hospitals.length > 0 || labs.length > 0) && viewMode === 'list') {
       const savedScroll = sessionStorage.getItem('homeScroll');
       if (savedScroll) {
         window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
       }
     }
-  }, [loading, hospitals.length, labs.length]);
+  }, [loading, hospitals.length, labs.length, viewMode]);
 
   useEffect(() => {
     const handleScroll = () => {
-      sessionStorage.setItem('homeScroll', window.scrollY.toString());
+      if (viewMode === 'list') {
+        sessionStorage.setItem('homeScroll', window.scrollY.toString());
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [viewMode]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -349,30 +356,50 @@ const Home = () => {
         {/* ✅ STICKY WRAPPER START */}
         <div className="sticky top-0 z-40 bg-gray-50/95 backdrop-blur-md pt-2 pb-4 mb-6 border-b border-gray-200/50 shadow-sm -mx-4 px-4 sm:mx-0 sm:px-0">
           
-          {/* Tabs */}
-          <div className="flex gap-4 mb-4 border-b border-gray-200">
-            <button
-              onClick={() => handleTabChange('hospitals')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
-                activeTab === 'hospitals'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              <FaHospital />
-              Hospitals ({displayHospitals.length})
-            </button>
-            <button
-              onClick={() => handleTabChange('labs')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition ${
-                activeTab === 'labs'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              <FaFlask />
-              Laboratories ({displayLabs.length})
-            </button>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b border-gray-200 pb-2">
+            {/* Tabs */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleTabChange('hospitals')}
+                className={`flex items-center gap-2 px-4 py-2 font-semibold transition ${
+                  activeTab === 'hospitals'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                <FaHospital /> Hospitals ({displayHospitals.length})
+              </button>
+              <button
+                onClick={() => handleTabChange('labs')}
+                className={`flex items-center gap-2 px-4 py-2 font-semibold transition ${
+                  activeTab === 'labs'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                <FaFlask /> Laboratories ({displayLabs.length})
+              </button>
+            </div>
+
+            {/* ✅ MAP / LIST TOGGLE BUTTON */}
+            <div className="flex items-center bg-gray-200 p-1 rounded-xl">
+              <button 
+                onClick={() => setViewMode('list')} 
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                  viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <FaListUl /> List
+              </button>
+              <button 
+                onClick={() => setViewMode('map')} 
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                  viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <FaMap /> Map
+              </button>
+            </div>
           </div>
 
           <AdvancedFilterPanel
@@ -441,65 +468,77 @@ const Home = () => {
         </div>
         {/* ✅ STICKY WRAPPER END */}
 
-        {/* ✅ GRID WITH SKELETON LOADERS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
-          {loading && hospitals.length === 0 && labs.length === 0 ? (
-            Array(6).fill(0).map((_, index) => <SkeletonCard key={index} />)
-          ) : (
-            <>
-              {activeTab === 'hospitals' && displayHospitals.map((hospital) => {
-                const id = hospital._id || hospital.id;
+        {/* ✅ CONDITIONAL RENDERING: MAP vs LIST */}
+        {viewMode === 'map' ? (
+          <div className="animate-fadeIn">
+            {/* Render MAP VIEW */}
+            <MapView 
+              items={activeTab === 'hospitals' ? displayHospitals : displayLabs} 
+              type={activeTab === 'hospitals' ? 'hospital' : 'laboratory'}
+              userLocation={userLocation}
+            />
+          </div>
+        ) : (
+          /* Render LIST VIEW (GRID) */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10 animate-fadeIn">
+            {loading && hospitals.length === 0 && labs.length === 0 ? (
+              Array(6).fill(0).map((_, index) => <SkeletonCard key={index} />)
+            ) : (
+              <>
+                {activeTab === 'hospitals' && displayHospitals.map((hospital) => {
+                  const id = hospital._id || hospital.id;
+                  
+                  const isFav = favorites.hospitals?.some(h => {
+                    const favId = typeof h === 'string' ? h : h._id;
+                    return favId === id;
+                  });
+
+                  return (
+                    <div key={id} className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(id, 'hospital');
+                        }}
+                        className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
+                      >
+                        <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
+                      </button>
+                      <HospitalCard hospital={hospital} />
+                    </div>
+                  );
+                })}
                 
-                const isFav = favorites.hospitals?.some(h => {
-                  const favId = typeof h === 'string' ? h : h._id;
-                  return favId === id;
-                });
+                {activeTab === 'labs' && displayLabs.map((lab) => {
+                  const id = lab._id || lab.id;
+                  
+                  const isFav = favorites.laboratories?.some(l => {
+                    const favId = typeof l === 'string' ? l : l._id;
+                    return favId === id;
+                  });
 
-                return (
-                  <div key={id} className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleFavorite(id, 'hospital');
-                      }}
-                      className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
-                    >
-                      <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-                    </button>
-                    <HospitalCard hospital={hospital} />
-                  </div>
-                );
-              })}
-              
-              {activeTab === 'labs' && displayLabs.map((lab) => {
-                const id = lab._id || lab.id;
-                
-                const isFav = favorites.laboratories?.some(l => {
-                  const favId = typeof l === 'string' ? l : l._id;
-                  return favId === id;
-                });
+                  return (
+                    <div key={id} className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(id, 'laboratory');
+                        }}
+                        className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
+                      >
+                        <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
+                      </button>
+                      <LabCard lab={lab} />
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
 
-                return (
-                  <div key={id} className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleFavorite(id, 'laboratory');
-                      }}
-                      className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
-                    >
-                      <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-                    </button>
-                    <LabCard lab={lab} />
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-
-        {/* Empty State */}
-        {!loading && activeTab === 'hospitals' && displayHospitals.length === 0 && (
+        {/* Empty States (Only show when not loading, in list view, and array is empty) */}
+        {!loading && activeTab === 'hospitals' && displayHospitals.length === 0 && viewMode === 'list' && (
           <div className="text-center py-12">
             <FaHospital className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No hospitals found matching your filters</p>
@@ -517,7 +556,7 @@ const Home = () => {
             </button>
           </div>
         )}
-        {!loading && activeTab === 'labs' && displayLabs.length === 0 && (
+        {!loading && activeTab === 'labs' && displayLabs.length === 0 && viewMode === 'list' && (
           <div className="text-center py-12">
             <FaFlask className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No laboratories found matching your filters</p>
