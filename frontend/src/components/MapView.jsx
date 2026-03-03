@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
-import 'leaflet/dist/leaflet.css'; // ✅ REQUIRED FOR MAP STYLING
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 // 🎨 Custom Modern Icons for Map
 const createCustomIcon = (type) => {
+  const isHospital = type === 'hospital' || type === 'Hospitals';
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
-      background-color: ${type === 'hospital' ? '#2563eb' : '#9333ea'}; 
+      background-color: ${isHospital ? '#2563eb' : '#9333ea'}; 
       color: white; 
       padding: 5px; 
       border-radius: 50%; 
@@ -21,7 +22,7 @@ const createCustomIcon = (type) => {
       border: 3px solid white; 
       box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
       font-size: 16px;">
-      ${type === 'hospital' ? '🏥' : '🔬'}
+      ${isHospital ? '🏥' : '🔬'}
     </div>`,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
@@ -29,10 +30,12 @@ const createCustomIcon = (type) => {
   });
 };
 
-// 📍 Component to auto-center map when user location changes
+// 📍 Component to auto-center map
 const ChangeView = ({ center, zoom }) => {
   const map = useMap();
-  map.setView(center, zoom);
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
   return null;
 };
 
@@ -40,17 +43,30 @@ const MapView = ({ items, type, userLocation }) => {
   const navigate = useNavigate();
 
   // Default center: User location OR Center of India
-  const defaultCenter = userLocation 
-    ? [userLocation.lat, userLocation.lng] 
-    : [20.5937, 78.9629]; 
-    
-  const defaultZoom = userLocation ? 12 : 5;
+  let mapCenter = [20.5937, 78.9629];
+  let mapZoom = 5;
+
+  if (userLocation) {
+    mapCenter = [userLocation.lat, userLocation.lng];
+    mapZoom = 12;
+  } else if (items && items.length > 0) {
+    const firstItem = items[0];
+    const coords = firstItem.location?.coordinates || firstItem.coordinates;
+    if (coords && coords.length === 2) {
+      mapCenter = [coords[1], coords[0]]; 
+      mapZoom = 11;
+    } else if (firstItem.lat && firstItem.lng) {
+      mapCenter = [firstItem.lat, firstItem.lng];
+      mapZoom = 11;
+    }
+  }
 
   return (
-    <div className="w-full h-[600px] rounded-2xl overflow-hidden shadow-inner border border-gray-200 relative z-0">
+    // ✅ FIX: Adjusted Size! Phone me 50vh, Desktop me fixed 600px.
+    <div className="w-full h-[50vh] md:h-[600px] rounded-2xl overflow-hidden shadow-md border border-gray-200 relative z-0">
       <MapContainer 
-        center={defaultCenter} 
-        zoom={defaultZoom} 
+        center={mapCenter} 
+        zoom={mapZoom} 
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
       >
@@ -59,7 +75,7 @@ const MapView = ({ items, type, userLocation }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        <ChangeView center={defaultCenter} zoom={defaultZoom} />
+        <ChangeView center={mapCenter} zoom={mapZoom} />
 
         {/* 🔵 Blue Dot for User Location */}
         {userLocation && (
@@ -75,16 +91,25 @@ const MapView = ({ items, type, userLocation }) => {
           </Marker>
         )}
 
-        {/* 🏥/🔬 Markers for Hospitals/Labs */}
+        {/* 🏥/🔬 Markers for Facilities */}
         {items.map((item) => {
-          // Check if coordinates exist (assuming backend sends [lng, lat] or similar)
-          const coords = item.location?.coordinates || item.coordinates;
-          if (!coords || coords.length !== 2) return null;
+          let lat, lng;
+          
+          if (item.location?.coordinates?.length === 2) {
+            lng = item.location.coordinates[0];
+            lat = item.location.coordinates[1];
+          } else if (item.coordinates?.length === 2) {
+            lng = item.coordinates[0];
+            lat = item.coordinates[1];
+          } else if (item.lat && item.lng) {
+            lat = item.lat;
+            lng = item.lng;
+          } else if (item.latitude && item.longitude) {
+            lat = item.latitude;
+            lng = item.longitude;
+          }
 
-          // Leaflet expects [lat, lng]. Backend usually stores [lng, lat]. Let's handle both.
-          // Adjust this based on your backend. Usually GeoJSON is [lng, lat].
-          const lat = coords[1];
-          const lng = coords[0];
+          if (!lat || !lng) return null; 
 
           return (
             <Marker 
@@ -100,7 +125,7 @@ const MapView = ({ items, type, userLocation }) => {
                   </p>
                   <button 
                     onClick={() => navigate(`/${type}/${item._id || item.id}`, { state: { facilityData: item } })}
-                    className={`w-full py-1.5 text-white text-xs font-bold rounded-lg transition ${type === 'hospital' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+                    className={`w-full py-1.5 text-white text-xs font-bold rounded-lg transition ${type === 'hospital' || type === 'Hospitals' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'}`}
                   >
                     View Details
                   </button>
