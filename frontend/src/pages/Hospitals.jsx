@@ -1,56 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import axios from 'axios';
 import HospitalCard from '../components/HospitalCard';
 import { FaHospital, FaSearch } from 'react-icons/fa';
 import Footer from '../components/Footer';
 
 const Hospitals = () => {
-  const [hospitals, setHospitals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // ✅ FIX 1: Initial state ko direct cache se load karo (Zero Loading Time)
+  const [hospitals, setHospitals] = useState(() => {
+    const cached = sessionStorage.getItem('hospitalsData');
+    return cached ? JSON.parse(cached) : [];
+  });
+  
+  // Agar cache hai toh loading pehle se hi false rakho
+  const [loading, setLoading] = useState(() => {
+    return sessionStorage.getItem('hospitalsData') ? false : true;
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
 
-  // ✅ 1. Check Cache and Restore Scroll Position on Mount
-  useEffect(() => {
-    const cachedHospitals = sessionStorage.getItem('hospitalsData');
-    const savedScroll = sessionStorage.getItem('hospitalsScroll');
-
-    if (cachedHospitals) {
-      // Data pehle se hai, toh instant load karo (No loading delay on Back)
-      setHospitals(JSON.parse(cachedHospitals));
-      setLoading(false);
-
-      // Scroll position restore karo DOM render hone ke thik baad
+  // ✅ FIX 2: Instant Scroll Restoration
+  useLayoutEffect(() => {
+    if (!loading && hospitals.length > 0) {
+      const savedScroll = sessionStorage.getItem('hospitalsScroll');
       if (savedScroll) {
-        setTimeout(() => {
-          window.scrollTo(0, parseInt(savedScroll, 10));
-        }, 100);
+        window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
       }
-    } else {
-      // First time visit hai, location aur data fetch karo
-      getUserLocation();
     }
+  }, [loading, hospitals.length]);
 
-    // Scroll hone par position save karte raho
+  // Har scroll par position save karo
+  useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('hospitalsScroll', window.scrollY.toString());
     };
-    window.addEventListener('scroll', handleScroll);
-
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ✅ 2. Fetch only if cache is empty
+  // Sirf tab location maango jab naya user aaye (cache empty ho)
   useEffect(() => {
-    const cachedHospitals = sessionStorage.getItem('hospitalsData');
-    if (!cachedHospitals) {
+    if (hospitals.length === 0) {
+      getUserLocation();
+    }
+  }, []);
+
+  // ✅ FIX 3: API call sirf tab hogi jab Cache empty hoga
+  useEffect(() => {
+    if (hospitals.length === 0) {
       if (userLocation !== null) {
         fetchHospitals();
       } else {
         const timer = setTimeout(() => {
-          if (!userLocation) {
-            fetchHospitals();
-          }
+          if (!userLocation) fetchHospitals();
         }, 2000);
         return () => clearTimeout(timer);
       }
@@ -61,13 +63,9 @@ const Hospitals = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
+          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
         },
         (error) => {
-          console.log('📍 Location denied or unavailable');
           setUserLocation(null);
         }
       );
@@ -88,14 +86,9 @@ const Hospitals = () => {
       const response = await axios.get('http://localhost:3000/api/hospitals', { params });
       
       if (response.data?.data) {
-        const normalized = response.data.data.map(h => ({
-          ...h,
-          id: h._id || h.id
-        }));
+        const normalized = response.data.data.map(h => ({ ...h, id: h._id || h.id }));
         setHospitals(normalized);
-        
-        // ✅ 3. Save fetched data to cache so it doesn't reload on back button
-        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized));
+        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized)); // Cache data
       }
     } catch (error) {
       console.error('Fetch hospitals error:', error);
@@ -125,7 +118,6 @@ const Hospitals = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4">
-          
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-2">
               <FaHospital className="text-4xl text-blue-600" />
@@ -150,7 +142,6 @@ const Hospitals = () => {
           <div className="mb-4">
             <p className="text-gray-600">
               Showing <strong>{filteredHospitals.length}</strong> hospital{filteredHospitals.length !== 1 ? 's' : ''}
-              {filteredHospitals[0]?.distance !== undefined && ' (sorted by distance)'}
             </p>
           </div>
 
@@ -164,7 +155,6 @@ const Hospitals = () => {
             <div className="text-center py-12">
               <FaHospital className="text-6xl text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg mb-2">No hospitals found</p>
-              <p className="text-gray-400 text-sm">Try a different search term</p>
             </div>
           )}
         </div>

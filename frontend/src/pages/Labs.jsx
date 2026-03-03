@@ -1,56 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import axios from 'axios';
 import LabCard from '../components/LabCard';
 import { FaFlask, FaSearch } from 'react-icons/fa';
 import Footer from '../components/Footer';
 
 const Labs = () => {
-  const [labs, setLabs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // ✅ Initial state from Cache
+  const [labs, setLabs] = useState(() => {
+    const cached = sessionStorage.getItem('labsData');
+    return cached ? JSON.parse(cached) : [];
+  });
+
+  const [loading, setLoading] = useState(() => {
+    return sessionStorage.getItem('labsData') ? false : true;
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
 
-  // ✅ 1. Check Cache and Restore Scroll Position on Mount
-  useEffect(() => {
-    const cachedLabs = sessionStorage.getItem('labsData');
-    const savedScroll = sessionStorage.getItem('labsScroll');
-
-    if (cachedLabs) {
-      // Data pehle se hai, toh instant load karo (No loading delay on Back)
-      setLabs(JSON.parse(cachedLabs));
-      setLoading(false);
-
-      // Scroll position restore karo DOM render hone ke thik baad
+  // ✅ Instant Scroll Restoration
+  useLayoutEffect(() => {
+    if (!loading && labs.length > 0) {
+      const savedScroll = sessionStorage.getItem('labsScroll');
       if (savedScroll) {
-        setTimeout(() => {
-          window.scrollTo(0, parseInt(savedScroll, 10));
-        }, 100);
+        window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
       }
-    } else {
-      // First time visit hai, location aur data fetch karo
-      getUserLocation();
     }
+  }, [loading, labs.length]);
 
-    // Scroll hone par position save karte raho
+  useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('labsScroll', window.scrollY.toString());
     };
-    window.addEventListener('scroll', handleScroll);
-
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ✅ 2. Fetch only if cache is empty
   useEffect(() => {
-    const cachedLabs = sessionStorage.getItem('labsData');
-    if (!cachedLabs) {
+    if (labs.length === 0) {
+      getUserLocation();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (labs.length === 0) {
       if (userLocation !== null) {
         fetchLabs();
       } else {
         const timer = setTimeout(() => {
-          if (!userLocation) {
-            fetchLabs();
-          }
+          if (!userLocation) fetchLabs();
         }, 2000);
         return () => clearTimeout(timer);
       }
@@ -61,14 +59,9 @@ const Labs = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          console.log('📍 Location obtained:', position.coords.latitude, position.coords.longitude);
+          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
         },
         (error) => {
-          console.log('📍 Location denied or unavailable');
           setUserLocation(null);
         }
       );
@@ -80,8 +73,6 @@ const Labs = () => {
   const fetchLabs = async () => {
     try {
       setLoading(true);
-      console.log('Fetching all labs...');
-      
       const params = {};
       if (userLocation) {
         params.lat = userLocation.lat;
@@ -90,17 +81,9 @@ const Labs = () => {
 
       const response = await axios.get('http://localhost:3000/api/labs', { params });
       
-      console.log('Labs response:', response.data);
-      
       if (response.data?.data) {
-        const normalized = response.data.data.map(l => ({
-          ...l,
-          id: l._id || l.id
-        }));
+        const normalized = response.data.data.map(l => ({ ...l, id: l._id || l.id }));
         setLabs(normalized);
-        console.log('✅ Labs loaded:', normalized.length);
-        
-        // ✅ 3. Save fetched data to cache so it doesn't reload on back button
         sessionStorage.setItem('labsData', JSON.stringify(normalized));
       }
     } catch (error) {
@@ -131,8 +114,6 @@ const Labs = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4">
-          
-          {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-2">
               <FaFlask className="text-4xl text-purple-600" />
@@ -141,7 +122,6 @@ const Labs = () => {
             <p className="text-gray-600">Find the best diagnostic labs near you</p>
           </div>
 
-          {/* Search */}
           <div className="mb-6">
             <div className="relative max-w-2xl mx-auto">
               <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -155,15 +135,12 @@ const Labs = () => {
             </div>
           </div>
 
-          {/* Results Count */}
           <div className="mb-4">
             <p className="text-gray-600">
               Showing <strong>{filteredLabs.length}</strong> lab{filteredLabs.length !== 1 ? 's' : ''}
-              {filteredLabs[0]?.distance !== undefined && ' (sorted by distance)'}
             </p>
           </div>
 
-          {/* Lab Grid */}
           {filteredLabs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredLabs.map((lab) => (
@@ -174,13 +151,10 @@ const Labs = () => {
             <div className="text-center py-12">
               <FaFlask className="text-6xl text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg mb-2">No labs found</p>
-              <p className="text-gray-400 text-sm">Try a different search term</p>
             </div>
           )}
         </div>
       </div>
-
-      {/* Footer */}
       <Footer />
     </div>
   );
