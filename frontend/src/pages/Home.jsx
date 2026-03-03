@@ -4,6 +4,7 @@ import axios from 'axios';
 import API_URL from '../config/api'; 
 import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
+import SkeletonCard from '../components/SkeletonCard'; // ✅ IMPORTED SKELETON
 import { hospitalAPI, labAPI } from '../services/api';
 import { FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, FaFilter, FaHeart } from 'react-icons/fa'; 
 import { useLocation } from '../context/LocationContext';
@@ -11,7 +12,7 @@ import CompareBar from '../components/CompareBar';
 import AdvancedFilterPanel from '../components/AdvancedFilterPanel';
 import KeywordSearch from '../components/KeywordSearch';
 import Footer from '../components/Footer'; 
-import toast from 'react-hot-toast'; // ✅ IMPORT TOAST
+import toast from 'react-hot-toast'; 
 
 const Home = () => {
   const navigate = useNavigate();
@@ -254,7 +255,7 @@ const Home = () => {
   const handleToggleFavorite = async (facilityId, facilityType) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast.error('Please login to add favorites'); // ✅ CHANGED TO TOAST
+      toast.error('Please login to add favorites'); 
       navigate('/login');
       return;
     }
@@ -280,7 +281,6 @@ const Home = () => {
 
       setFavorites(response.data.data || response.data.favorites || { hospitals: [], laboratories: [] });
       
-      // ✅ CHANGED TO TOAST
       if (isFavorite) {
         toast.success('Removed from favorites');
       } else {
@@ -288,22 +288,11 @@ const Home = () => {
       }
 
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update favorites'); // ✅ CHANGED TO TOAST
+      toast.error(error.response?.data?.message || 'Failed to update favorites'); 
     }
   };
 
-  if (loading && hospitals.length === 0 && labs.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Finding nearest facilities...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // ✅ DELETED THE OLD FULL-SCREEN SPINNER HERE
 
   const displayHospitals = filteredHospitals.length > 0 ? filteredHospitals : hospitals;
   const displayLabs = filteredLabs.length > 0 ? filteredLabs : labs;
@@ -449,59 +438,66 @@ const Home = () => {
           </div>
         )}
 
-        {/* Results Grid */}
+        {/* ✅ GRID WITH SKELETON LOADERS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {activeTab === 'hospitals' && displayHospitals.map((hospital) => {
-            const id = hospital._id || hospital.id;
-            
-            const isFav = favorites.hospitals?.some(h => {
-              const favId = typeof h === 'string' ? h : h._id;
-              return favId === id;
-            });
+          {loading && hospitals.length === 0 && labs.length === 0 ? (
+            // Dikhayega 6 Skeleton Cards jab tak data load nahi hota
+            Array(6).fill(0).map((_, index) => <SkeletonCard key={index} />)
+          ) : (
+            <>
+              {activeTab === 'hospitals' && displayHospitals.map((hospital) => {
+                const id = hospital._id || hospital.id;
+                
+                const isFav = favorites.hospitals?.some(h => {
+                  const favId = typeof h === 'string' ? h : h._id;
+                  return favId === id;
+                });
 
-            return (
-              <div key={id} className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleFavorite(id, 'hospital');
-                  }}
-                  className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition"
-                >
-                  <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-                </button>
-                <HospitalCard hospital={hospital} />
-              </div>
-            );
-          })}
-          
-          {activeTab === 'labs' && displayLabs.map((lab) => {
-            const id = lab._id || lab.id;
-            
-            const isFav = favorites.laboratories?.some(l => {
-              const favId = typeof l === 'string' ? l : l._id;
-              return favId === id;
-            });
+                return (
+                  <div key={id} className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFavorite(id, 'hospital');
+                      }}
+                      className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
+                    >
+                      <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
+                    </button>
+                    <HospitalCard hospital={hospital} />
+                  </div>
+                );
+              })}
+              
+              {activeTab === 'labs' && displayLabs.map((lab) => {
+                const id = lab._id || lab.id;
+                
+                const isFav = favorites.laboratories?.some(l => {
+                  const favId = typeof l === 'string' ? l : l._id;
+                  return favId === id;
+                });
 
-            return (
-              <div key={id} className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleFavorite(id, 'laboratory');
-                  }}
-                  className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition"
-                >
-                  <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-                </button>
-                <LabCard lab={lab} />
-              </div>
-            );
-          })}
+                return (
+                  <div key={id} className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFavorite(id, 'laboratory');
+                      }}
+                      className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
+                    >
+                      <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
+                    </button>
+                    <LabCard lab={lab} />
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
 
         {/* Empty State */}
-        {activeTab === 'hospitals' && displayHospitals.length === 0 && (
+        {!loading && activeTab === 'hospitals' && displayHospitals.length === 0 && (
           <div className="text-center py-12">
             <FaHospital className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No hospitals found matching your filters</p>
@@ -519,7 +515,7 @@ const Home = () => {
             </button>
           </div>
         )}
-        {activeTab === 'labs' && displayLabs.length === 0 && (
+        {!loading && activeTab === 'labs' && displayLabs.length === 0 && (
           <div className="text-center py-12">
             <FaFlask className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No laboratories found matching your filters</p>
