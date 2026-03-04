@@ -293,18 +293,26 @@ const ManageLabs = () => {
                   {/* Action Buttons */}
                   <div className="flex gap-2 flex-wrap justify-end">
                     
-                    {/* Appointment Toggle */}
-                    <button
-                      onClick={() => handleToggleAppointments(lab._id, lab.appointmentsEnabled)}
-                      className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 shadow-sm ${
-                        lab.appointmentsEnabled
-                          ? 'bg-green-600 text-white hover:bg-green-700'
-                          : 'bg-gray-400 text-white hover:bg-gray-500'
-                      }`}
-                    >
-                      {lab.appointmentsEnabled ? <FaCheck /> : <FaTimes />}
-                      Appointments
-                    </button>
+                    {/* Appointment Toggle - ONLY SHOW IF HAS OWNER */}
+                    {lab.owner ? (
+                      <button
+                        onClick={() => handleToggleAppointments(lab._id, lab.appointmentsEnabled)}
+                        className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 shadow-sm ${
+                          lab.appointmentsEnabled
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-400 text-white hover:bg-gray-500'
+                        }`}
+                        title={lab.appointmentsEnabled ? 'Disable appointments' : 'Enable appointments'}
+                      >
+                        {lab.appointmentsEnabled ? <FaCheck /> : <FaTimes />}
+                        <span>Appointments {lab.appointmentsEnabled ? 'ON' : 'OFF'}</span>
+                      </button>
+                    ) : (
+                      <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium flex items-center gap-2 shadow-sm">
+                        <FaTimes />
+                        <span>No Owner - Can't Enable</span>
+                      </div>
+                    )}
 
                     {/* Owner Management */}
                     <button

@@ -296,18 +296,26 @@ const ManageHospitals = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 flex-wrap">
-                  {/* Appointment Toggle */}
-                  <button
-                    onClick={() => handleToggleAppointments(hospital._id, hospital.appointmentsEnabled)}
-                    className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
-                      hospital.appointmentsEnabled
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-gray-400 text-white hover:bg-gray-500'
-                    }`}
-                  >
-                    {hospital.appointmentsEnabled ? <FaCheck /> : <FaTimes />}
-                    Appointments
-                  </button>
+                  {/* Appointment Toggle - ONLY SHOW IF HAS OWNER */}
+                  {hospital.owner ? (
+                    <button
+                      onClick={() => handleToggleAppointments(hospital._id, hospital.appointmentsEnabled)}
+                      className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
+                        hospital.appointmentsEnabled
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-400 text-white hover:bg-gray-500'
+                      }`}
+                      title={hospital.appointmentsEnabled ? 'Disable appointments' : 'Enable appointments'}
+                    >
+                      {hospital.appointmentsEnabled ? <FaCheck /> : <FaTimes />}
+                      <span>Appointments {hospital.appointmentsEnabled ? 'ON' : 'OFF'}</span>
+                    </button>
+                  ) : (
+                    <div className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium flex items-center gap-2">
+                      <FaTimes />
+                      <span>No Owner - Can't Enable</span>
+                    </div>
+                  )}
 
                   {/* Owner Management - NEW */}
                   <button

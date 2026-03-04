@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaFlask, 
   FaMapMarkerAlt, 
   FaStar, 
+  FaPhone, 
   FaHeart,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaExchangeAlt
 } from 'react-icons/fa';
+import { useComparison } from '../context/ComparisonContext';
 
 const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
-  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  const { addToComparison, removeFromComparison, isInComparison } = useComparison();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const handlePrevImage = (e) => {
     e.stopPropagation();
@@ -27,11 +31,27 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
     );
   };
 
+  const handleCompareToggle = (e) => {
+    e.stopPropagation();
+    if (isInComparison(lab._id)) {
+      removeFromComparison(lab._id);
+    } else {
+      addToComparison(lab);
+    }
+  };
+
+  const handleCall = (e) => {
+    e.stopPropagation();
+    if (lab.phone) {
+      window.location.href = `tel:${lab.phone}`;
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
       {/* Image Section */}
       <div 
-        className="relative h-56 bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden group"
+        className="relative h-56 bg-gradient-to-br from-green-100 to-green-50 overflow-hidden group cursor-pointer"
         onClick={() => navigate(`/lab/${lab._id}`)}
       >
         {lab.images && lab.images.length > 0 ? (
@@ -75,15 +95,15 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
           </>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <FaFlask className="text-6xl text-blue-300" />
+            <FaFlask className="text-6xl text-green-300" />
           </div>
         )}
 
-        {/* Distance Badge - ADDED */}
+        {/* Distance Badge */}
         {lab.distance !== undefined && lab.distance !== null && (
-          <div className="absolute top-3 left-3 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1 shadow-lg">
+          <div className="absolute top-3 left-3 bg-green-600 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 shadow-lg">
             <FaMapMarkerAlt className="text-xs" />
-            {lab.distance.toFixed(1)} km
+            <span>{lab.distance.toFixed(1)} km</span>
           </div>
         )}
 
@@ -93,10 +113,10 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
             e.stopPropagation();
             onFavoriteToggle(lab._id);
           }}
-          className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
+          className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform"
         >
           <FaHeart 
-            className={`text-xl ${
+            className={`text-lg ${
               isFavorite ? 'text-red-500' : 'text-gray-300'
             }`} 
           />
@@ -105,39 +125,102 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
 
       {/* Content Section */}
       <div className="p-5">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition cursor-pointer"
+            onClick={() => navigate(`/lab/${lab._id}`)}>
           {lab.name}
         </h3>
 
         <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
-          <FaMapMarkerAlt className="text-blue-500 flex-shrink-0" />
+          <FaMapMarkerAlt className="text-green-500 flex-shrink-0" />
           <span className="line-clamp-1">
             {lab.address?.area}, {lab.address?.city}
           </span>
         </div>
 
-        <div className="flex items-center justify-between mb-3">
-          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-            {lab.type || 'Diagnostic Lab'}
-          </span>
+        {/* Ratings */}
+        <div className="flex items-center justify-between mb-4 pb-4 border-b">
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <FaStar className="text-yellow-400 text-sm" />
+              <span className="font-bold text-gray-900">
+                {lab.googleRating?.toFixed(1) || 'N/A'}
+              </span>
+              <span className="text-gray-500 text-xs">
+                ({lab.googleReviewCount || 0})
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">Google Reviews</p>
+          </div>
 
-          <div className="flex items-center gap-1">
-            <FaStar className="text-yellow-400" />
-            <span className="font-bold text-gray-900">
-              {lab.googleRating?.toFixed(1) || 'N/A'}
-            </span>
-            <span className="text-gray-500 text-sm">
-              ({lab.googleReviewCount || 0})
-            </span>
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <FaStar className="text-blue-400 text-sm" />
+              <span className="font-bold text-gray-900">
+                {lab.appRating?.toFixed(1) || '0.0'}
+              </span>
+              <span className="text-gray-500 text-xs">
+                ({lab.appReviewCount || 0})
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">App Reviews</p>
           </div>
         </div>
 
-        <button
-          onClick={() => navigate(`/lab/${lab._id}`)}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-        >
-          View Details
-        </button>
+        {/* Type Badge */}
+        <div className="mb-4">
+          <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+            {lab.type || 'Diagnostic Lab'}
+          </span>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* View Details */}
+          <button
+            onClick={() => navigate(`/lab/${lab._id}`)}
+            className="col-span-3 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
+          >
+            View Details
+          </button>
+
+          {/* Compare */}
+          <button
+            onClick={handleCompareToggle}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${
+              isInComparison(lab._id)
+                ? 'bg-orange-600 text-white hover:bg-orange-700'
+                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+            }`}
+          >
+            <FaExchangeAlt className="text-sm" />
+            <span className="text-xs">Compare</span>
+          </button>
+
+          {/* Call */}
+          <button
+            onClick={handleCall}
+            disabled={!lab.phone}
+            className="flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FaPhone className="text-sm" />
+            <span className="text-xs">Call</span>
+          </button>
+
+          {/* Directions */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const coords = lab.location?.coordinates;
+              if (coords) {
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`, '_blank');
+              }
+            }}
+            className="flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition"
+          >
+            <FaMapMarkerAlt className="text-sm" />
+            <span className="text-xs">Map</span>
+          </button>
+        </div>
       </div>
     </div>
   );
