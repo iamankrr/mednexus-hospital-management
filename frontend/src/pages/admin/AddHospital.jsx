@@ -4,6 +4,9 @@ import { FaSearch, FaHospital, FaMapMarkerAlt, FaStar, FaArrowLeft, FaPlus } fro
 import axios from 'axios';
 import { indianStatesAndCities, getAllStates } from '../../data/indianCities'; 
 import ImageUploadManager from '../../components/ImageUploadManager'; 
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
+import API_URL from '../../config/api';
 
 const AddHospital = () => {
   const navigate = useNavigate();
@@ -50,7 +53,7 @@ const AddHospital = () => {
     },
     location: {
       type: 'Point',
-      coordinates: [0, 0]
+      coordinates: [77.2090, 28.6139] // Default: Delhi
     },
     phone: '',
     email: '',
@@ -79,7 +82,7 @@ const AddHospital = () => {
       saturday: '9:00 AM - 2:00 PM',
       sunday: 'Closed'
     },
-    emergencyAvailable: false,
+    emergencyAvailable: true, // Set to true by default based on second code
     isActive: true
   });
 
@@ -176,7 +179,7 @@ const AddHospital = () => {
       console.log('🔍 Searching:', fullQuery);
 
       const response = await axios.post(
-        'http://localhost:3000/api/admin/search-places',
+        `${API_URL}/api/admin/search-places`,
         { 
            query: fullQuery, 
            type: 'hospital'
@@ -206,7 +209,7 @@ const AddHospital = () => {
       const token = localStorage.getItem('token');
 
       const response = await axios.post(
-        'http://localhost:3000/api/admin/fetch-place-details',
+        `${API_URL}/api/admin/fetch-place-details`,
         { placeId: place.placeId },
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -254,7 +257,9 @@ const AddHospital = () => {
   };
 
   // Submit hospital
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    
     if (!formData.name || !formData.type) {
       alert('❌ Hospital name and type are required!');
       return;
@@ -287,7 +292,7 @@ const AddHospital = () => {
       };
   
       const response = await axios.post(
-        'http://localhost:3000/api/admin/create-hospital-with-owner',
+        `${API_URL}/api/admin/create-hospital-with-owner`,
         payload,
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -316,19 +321,23 @@ const AddHospital = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar />
+
+      <div className="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
         
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => step === 1 ? navigate('/admin/hospitals') : setStep(step - 1)}
-            className="p-2 rounded-lg hover:bg-gray-200"
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium p-2 rounded-lg hover:bg-gray-200"
           >
-            <FaArrowLeft className="text-xl" />
+            <FaArrowLeft className="text-xl" /> Back
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Add New Hospital</h1>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <FaHospital className="text-blue-600" /> Add New Hospital
+            </h1>
             <p className="text-gray-600">Search and import from Google Places</p>
           </div>
         </div>
@@ -881,10 +890,10 @@ const AddHospital = () => {
                 id="emergency"
                 checked={formData.emergencyAvailable}
                 onChange={(e) => setFormData({ ...formData, emergencyAvailable: e.target.checked })}
-                className="w-5 h-5 text-blue-600"
+                className="w-5 h-5 text-blue-600 rounded"
               />
               <label htmlFor="emergency" className="font-medium text-gray-700">
-                Emergency Services Available 24/7
+                24/7 Emergency Services Available
               </label>
             </div>
 
@@ -896,7 +905,7 @@ const AddHospital = () => {
                   id="createOwner"
                   checked={createOwner}
                   onChange={(e) => setCreateOwner(e.target.checked)}
-                  className="w-5 h-5 text-blue-600"
+                  className="w-5 h-5 text-blue-600 rounded"
                 />
                 <label htmlFor="createOwner" className="font-bold text-gray-800">
                   Register Owner for this Hospital (Optional)
@@ -1093,15 +1102,24 @@ const AddHospital = () => {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? 'Submitting...' : '✅ Add Hospital'}
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>✅ Add Hospital</>
+                )}
               </button>
             </div>
           </div>
         )}
 
       </div>
+      
+      <Footer />
     </div>
   );
 };

@@ -58,12 +58,30 @@ router.get('/labs', protect, admin, async (req, res) => {
 // ========== @access  Private/Admin
 router.get('/stats', protect, admin, async (req, res) => {
   try {
-    const totalHospitals = await Hospital.countDocuments();
-    const totalLabs = await Laboratory.countDocuments();
-    const totalUsers = await User.countDocuments({ role: 'user' });
-    const totalReviews = await Review.countDocuments();
-    const pendingApprovals = await Hospital.countDocuments({ isApproved: false }) + 
-                             await Laboratory.countDocuments({ isApproved: false });
+    console.log('📊 Fetching admin stats...');
+
+    // Optimized with Promise.all for faster execution
+    const [
+      totalHospitals, 
+      totalLabs, 
+      totalUsers, 
+      totalReviews, 
+      pendingHospitals, 
+      pendingLabs, 
+      pendingOwners
+    ] = await Promise.all([
+      Hospital.countDocuments(),
+      Laboratory.countDocuments(),
+      User.countDocuments({ role: 'user' }),
+      Review.countDocuments(),
+      Hospital.countDocuments({ isApproved: false }),
+      Laboratory.countDocuments({ isApproved: false }),
+      User.countDocuments({ role: 'owner', 'ownerProfile.isVerified': false })
+    ]);
+
+    const pendingApprovals = pendingHospitals + pendingLabs;
+
+    console.log('✅ Stats fetched successfully');
 
     res.status(200).json({
       success: true,
@@ -72,10 +90,12 @@ router.get('/stats', protect, admin, async (req, res) => {
         totalLabs,
         totalUsers,
         totalReviews,
-        pendingApprovals
+        pendingApprovals,
+        pendingOwners
       }
     });
   } catch (error) {
+    console.error('❌ Stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching stats',

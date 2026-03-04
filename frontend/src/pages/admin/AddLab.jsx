@@ -4,6 +4,9 @@ import { FaSearch, FaFlask, FaMapMarkerAlt, FaStar, FaArrowLeft, FaPlus } from '
 import axios from 'axios';
 import { indianStatesAndCities, getAllStates } from '../../data/indianCities';
 import ImageUploadManager from '../../components/ImageUploadManager'; 
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
+import API_URL from '../../config/api';
 
 const AddLab = () => {
   const navigate = useNavigate();
@@ -40,6 +43,7 @@ const AddLab = () => {
   const [formData, setFormData] = useState({
     name: '',
     category: 'private', // government, public, private, charity
+    type: 'Diagnostic Lab', // Added lab type
     googlePlaceId: '',
     address: {
       street: '',
@@ -51,7 +55,7 @@ const AddLab = () => {
     },
     location: {
       type: 'Point',
-      coordinates: [0, 0]
+      coordinates: [77.2090, 28.6139] // Default: Delhi
     },
     phone: '',
     email: '',
@@ -135,6 +139,15 @@ const AddLab = () => {
     }
   }, [searchState]);
 
+  // Lab Types
+  const labTypes = [
+    'Diagnostic Lab',
+    'Pathology Lab',
+    'Radiology Center',
+    'Clinical Lab',
+    'Reference Lab'
+  ];
+
   // Lab categories
   const categories = [
     { value: 'government', label: '🏛️ Government' },
@@ -183,7 +196,7 @@ const AddLab = () => {
       console.log('🔍 Searching:', fullQuery);
 
       const response = await axios.post(
-        'http://localhost:3000/api/admin/search-places',
+        `${API_URL}/api/admin/search-places`,
         { 
            query: fullQuery, 
            type: 'laboratory'
@@ -213,7 +226,7 @@ const AddLab = () => {
       const token = localStorage.getItem('token');
 
       const response = await axios.post(
-        'http://localhost:3000/api/admin/fetch-place-details',
+        `${API_URL}/api/admin/fetch-place-details`,
         { placeId: place.placeId },
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -272,7 +285,9 @@ const AddLab = () => {
   };
 
   // Submit lab
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    
     if (!formData.name) {
       alert('❌ Laboratory name is required!');
       return;
@@ -305,7 +320,7 @@ const AddLab = () => {
       };
 
       const response = await axios.post(
-        'http://localhost:3000/api/admin/create-lab-with-owner',
+        `${API_URL}/api/admin/create-lab-with-owner`,
         payload,
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -334,19 +349,23 @@ const AddLab = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar />
+
+      <div className="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
         
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={() => step === 1 ? navigate('/admin/labs') : setStep(step - 1)}
-            className="p-2 rounded-lg hover:bg-gray-200"
+            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium p-2 rounded-lg hover:bg-gray-200"
           >
-            <FaArrowLeft className="text-xl" />
+            <FaArrowLeft className="text-xl" /> Back
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Add New Laboratory</h1>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <FaFlask className="text-purple-600" /> Add New Laboratory
+            </h1>
             <p className="text-gray-600">Search and import from Google Places</p>
           </div>
         </div>
@@ -502,6 +521,20 @@ const AddLab = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Laboratory Type *</label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500"
+              >
+                {labTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
             </div>
 
             {/* Name */}
@@ -885,10 +918,10 @@ const AddLab = () => {
                 id="homeCollection"
                 checked={formData.homeCollection}
                 onChange={(e) => setFormData({ ...formData, homeCollection: e.target.checked })}
-                className="w-5 h-5 text-purple-600"
+                className="w-5 h-5 text-purple-600 rounded"
               />
               <label htmlFor="homeCollection" className="font-medium text-gray-700">
-                Home Collection Available
+                Home Sample Collection Available
               </label>
             </div>
 
@@ -900,7 +933,7 @@ const AddLab = () => {
                   id="createOwner"
                   checked={createOwner}
                   onChange={(e) => setCreateOwner(e.target.checked)}
-                  className="w-5 h-5 text-purple-600"
+                  className="w-5 h-5 text-purple-600 rounded"
                 />
                 <label htmlFor="createOwner" className="font-bold text-gray-800">
                   Register Owner for this Laboratory (Optional)
@@ -1019,10 +1052,14 @@ const AddLab = () => {
                 <p className="font-bold text-gray-900">{formData.name}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500 uppercase font-semibold mb-1">Category</p>
                   <p className="font-bold text-gray-900 capitalize">{formData.category}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-500 uppercase font-semibold mb-1">Type</p>
+                  <p className="font-bold text-gray-900 capitalize">{formData.type}</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500 uppercase font-semibold mb-1">Report Time</p>
@@ -1081,7 +1118,7 @@ const AddLab = () => {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.homeCollection && (
                     <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">
-                      🏠 Home Collection
+                      🏠 Home Sample Collection
                     </span>
                   )}
                   {formData.accreditation && (
@@ -1117,15 +1154,24 @@ const AddLab = () => {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? 'Submitting...' : '✅ Add Laboratory'}
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>✅ Add Laboratory</>
+                )}
               </button>
             </div>
           </div>
         )}
 
       </div>
+      
+      <Footer />
     </div>
   );
 };
