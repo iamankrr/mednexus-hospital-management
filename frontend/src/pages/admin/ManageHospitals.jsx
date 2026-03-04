@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaArrowLeft, FaHospital, FaPlus, FaCheck, FaTimes } from 'react-icons/fa';
+import { 
+  FaArrowLeft, 
+  FaHospital, 
+  FaPlus, 
+  FaCheck, 
+  FaTimes, 
+  FaUser,
+  FaPhone,
+  FaEnvelope
+} from 'react-icons/fa';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import API_URL from '../../config/api';
@@ -11,6 +20,14 @@ const ManageHospitals = () => {
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  
+  // Owner Modal State
+  const [ownerModal, setOwnerModal] = useState({
+    isOpen: false,
+    hospital: null,
+    owner: null,
+    availableOwners: []
+  });
 
   useEffect(() => {
     fetchHospitals();
@@ -46,7 +63,6 @@ const ManageHospitals = () => {
         }
       );
 
-      // Update local state
       setHospitals(prev => 
         prev.map(h => 
           h._id === hospitalId 
@@ -60,6 +76,79 @@ const ManageHospitals = () => {
     } catch (error) {
       console.error('❌ Toggle error:', error);
       alert('Failed to toggle appointments');
+    }
+  };
+
+  // ✅ NEW: Open Owner Modal
+  const openOwnerModal = async (hospital) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      // Fetch available owners
+      const ownersResponse = await axios.get(`${API_URL}/api/admin/owners/available`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      setOwnerModal({
+        isOpen: true,
+        hospital: hospital,
+        owner: hospital.owner || null,
+        availableOwners: ownersResponse.data.data || []
+      });
+
+    } catch (error) {
+      console.error('❌ Fetch owners error:', error);
+      alert('Failed to load owner information');
+    }
+  };
+
+  // ✅ NEW: Assign Owner
+  const handleAssignOwner = async (ownerId) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      await axios.put(
+        `${API_URL}/api/admin/hospitals/${ownerModal.hospital._id}/assign-owner`,
+        { ownerId },
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      alert('✅ Owner assigned successfully');
+      setOwnerModal({ ...ownerModal, isOpen: false });
+      fetchHospitals();
+
+    } catch (error) {
+      console.error('❌ Assign owner error:', error);
+      alert(error.response?.data?.message || 'Failed to assign owner');
+    }
+  };
+
+  // ✅ NEW: Remove Owner
+  const handleRemoveOwner = async () => {
+    if (!window.confirm('Are you sure you want to remove this owner?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+
+      await axios.put(
+        `${API_URL}/api/admin/hospitals/${ownerModal.hospital._id}/remove-owner`,
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      alert('✅ Owner removed successfully');
+      setOwnerModal({ ...ownerModal, isOpen: false });
+      fetchHospitals();
+
+    } catch (error) {
+      console.error('❌ Remove owner error:', error);
+      alert('Failed to remove owner');
     }
   };
 
@@ -106,6 +195,7 @@ const ManageHospitals = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navbar />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
@@ -192,9 +282,13 @@ const ManageHospitals = () => {
                     <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
                       {hospital.category}
                     </span>
-                    {hospital.owner && (
+                    {hospital.owner ? (
                       <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
                         Owner: {hospital.owner.name}
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                        No Owner Assigned
                       </span>
                     )}
                   </div>
@@ -212,7 +306,16 @@ const ManageHospitals = () => {
                     }`}
                   >
                     {hospital.appointmentsEnabled ? <FaCheck /> : <FaTimes />}
-                    {hospital.appointmentsEnabled ? 'Appointments ON' : 'Appointments OFF'}
+                    Appointments
+                  </button>
+
+                  {/* Owner Management - NEW */}
+                  <button
+                    onClick={() => openOwnerModal(hospital)}
+                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition flex items-center gap-2"
+                  >
+                    <FaUser />
+                    {hospital.owner ? 'Manage Owner' : 'Assign Owner'}
                   </button>
 
                   {/* View */}
@@ -250,6 +353,101 @@ const ManageHospitals = () => {
           )}
         </div>
       </div>
+
+      {/* Owner Management Modal */}
+      {ownerModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Owner Management</h2>
+                <button
+                  onClick={() => setOwnerModal({ ...ownerModal, isOpen: false })}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-700 mb-2">Hospital</h3>
+                <p className="text-gray-600">{ownerModal.hospital?.name}</p>
+              </div>
+
+              {/* Current Owner */}
+              {ownerModal.owner ? (
+                <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                  <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
+                    <FaUser /> Current Owner
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FaUser className="text-purple-600" />
+                      <span className="font-medium">{ownerModal.owner.name}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <FaEnvelope className="text-purple-600" />
+                      <span className="text-sm">{ownerModal.owner.email}</span>
+                    </div>
+                    
+                    {ownerModal.owner.phone && (
+                      <div className="flex items-center gap-2">
+                        <FaPhone className="text-purple-600" />
+                        <span className="text-sm">{ownerModal.owner.phone}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleRemoveOwner}
+                    className="mt-4 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition"
+                  >
+                    Remove Owner
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                  <p className="text-orange-700">No owner assigned to this hospital</p>
+                </div>
+              )}
+
+              {/* Available Owners */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-700 mb-3">
+                  {ownerModal.owner ? 'Change Owner' : 'Assign Owner'}
+                </h3>
+
+                {ownerModal.availableOwners.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {ownerModal.availableOwners.map(owner => (
+                      <button
+                        key={owner._id}
+                        onClick={() => handleAssignOwner(owner._id)}
+                        className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-xl text-left transition border border-gray-200 hover:border-blue-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{owner.name}</p>
+                            <p className="text-sm text-gray-600">{owner.email}</p>
+                            {owner.phone && (
+                              <p className="text-sm text-gray-600">{owner.phone}</p>
+                            )}
+                          </div>
+                          <FaUser className="text-blue-600" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No available owners found</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

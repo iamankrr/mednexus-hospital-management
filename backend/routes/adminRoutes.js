@@ -457,6 +457,27 @@ router.post('/trigger-update', protect, admin, async (req, res) => {
 //          OWNER MANAGEMENT ROUTES 
 // ==========================================
 
+// ===== GET AVAILABLE OWNERS =====
+// Get available owners (verified owners without facility or with this facility)
+router.get('/owners/available', protect, admin, async (req, res) => {
+  try {
+    const owners = await User.find({
+      role: 'owner',
+      'ownerProfile.isVerified': true
+    }).select('name email phone ownerProfile');
+
+    res.status(200).json({
+      success: true,
+      data: owners
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // GET /api/admin/owners - Get all owners
 router.get('/owners', protect, admin, async (req, res) => {
   try {
@@ -705,6 +726,123 @@ router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message 
+    });
+  }
+});
+
+// ===== REMOVE OWNER FROM HOSPITAL =====
+router.put('/hospitals/:id/remove-owner', protect, admin, async (req, res) => {
+  try {
+    const hospital = await Hospital.findById(req.params.id);
+    
+    if (hospital.owner) {
+      // Clear user's owner profile
+      await User.findByIdAndUpdate(hospital.owner, {
+        'ownerProfile.facilityType': null,
+        'ownerProfile.facilityId': null
+      });
+    }
+
+    hospital.owner = null;
+    await hospital.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Owner removed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// ===== ASSIGN OWNER TO HOSPITAL =====
+router.put('/hospitals/:id/assign-owner', protect, admin, async (req, res) => {
+  try {
+    const { ownerId } = req.body;
+
+    const hospital = await Hospital.findByIdAndUpdate(
+      req.params.id,
+      { owner: ownerId },
+      { new: true }
+    ).populate('owner', 'name email phone');
+
+    // Update user's owner profile
+    await User.findByIdAndUpdate(ownerId, {
+      'ownerProfile.facilityType': 'hospital',
+      'ownerProfile.facilityId': req.params.id
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Owner assigned successfully',
+      data: hospital
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// ===== LAB OWNER MANAGEMENT ROUTES ======
+// Assign owner to lab
+router.put('/labs/:id/assign-owner', protect, admin, async (req, res) => {
+  try {
+    const { ownerId } = req.body;
+    
+    const lab = await Laboratory.findByIdAndUpdate(
+      req.params.id,
+      { owner: ownerId },
+      { new: true }
+    ).populate('owner', 'name email phone');
+    
+    // Update user's owner profile
+    await User.findByIdAndUpdate(ownerId, {
+      'ownerProfile.facilityType': 'laboratory',
+      'ownerProfile.facilityId': req.params.id
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Owner assigned successfully',
+      data: lab
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Remove owner from lab
+router.put('/labs/:id/remove-owner', protect, admin, async (req, res) => {
+  try {
+    const lab = await Laboratory.findById(req.params.id);
+    
+    if (lab.owner) {
+      // Clear user's owner profile
+      await User.findByIdAndUpdate(lab.owner, {
+        'ownerProfile.facilityType': null,
+        'ownerProfile.facilityId': null
+      });
+    }
+    
+    lab.owner = null;
+    await lab.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Owner removed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 });

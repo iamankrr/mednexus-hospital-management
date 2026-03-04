@@ -54,7 +54,6 @@ const Home = () => {
   
   const [locationRequested, setLocationRequested] = useState(!!userLocation);
 
-  // Added distance to initial filters
   const [filters, setFilters] = useState({
     state: '', city: '', keyword: '', pincode: '', type: 'all',
     minPrice: '', maxPrice: '', minRating: '', emergency: false, distance: ''
@@ -122,11 +121,7 @@ const Home = () => {
           fetchLabs();
       }
     }
-  }, [userLocation, locationRequested, filters.distance]); // Added distance dependency
-
-  useEffect(() => {
-    applyFilters();
-  }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
+  }, [userLocation, locationRequested, filters.distance]); 
 
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
@@ -155,14 +150,13 @@ const Home = () => {
       setLoading(true);
       const params = {};
       
-      // Only filter by location if distance is explicitly set
       if (filters.distance && userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
         params.maxDistance = filters.distance * 1000;
       }
       
-      if (filters.city) {
+      if (filters.city && filters.city !== 'All Cities') {
         params.city = filters.city;
       }
       
@@ -177,13 +171,11 @@ const Home = () => {
       }));
 
       setHospitals(normalizedHospitals);
-      setFilteredHospitals(normalizedHospitals);
       sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
       
     } catch (error) {
       console.error('❌ Fetch hospitals error:', error);
       setHospitals([]);
-      setFilteredHospitals([]);
     } finally {
       setLoading(false);
     }
@@ -194,14 +186,13 @@ const Home = () => {
       setLoading(true);
       const params = {};
       
-      // Only filter by location if distance is explicitly set
       if (filters.distance && userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
         params.maxDistance = filters.distance * 1000;
       }
       
-      if (filters.city) {
+      if (filters.city && filters.city !== 'All Cities') {
         params.city = filters.city;
       }
       
@@ -216,103 +207,138 @@ const Home = () => {
       }));
 
       setLabs(normalizedLabs);
-      setFilteredLabs(normalizedLabs);
       sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
       
     } catch (error) {
       console.error('❌ Fetch labs error:', error);
       setLabs([]);
-      setFilteredLabs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = () => {
-    let filtered = activeTab === 'hospitals' ? [...hospitals] : [...labs];
-
-    // Search Keyword
+  // ✅ UPDATED FILTERING AND SORTING LOGIC
+  useEffect(() => {
     const searchKeyword = quickSearchKeyword || filters.keyword;
-    if (searchKeyword) {
-      filtered = filtered.filter(item =>
-        item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        item.facilities?.some(f => f.toLowerCase().includes(searchKeyword.toLowerCase())) ||
-        item.type?.toLowerCase().includes(searchKeyword.toLowerCase())
-      );
-    }
 
-    // State & City
-    if (filters.state) {
-      filtered = filtered.filter(item =>
-        item.address?.state?.toLowerCase() === filters.state.toLowerCase()
-      );
-    }
-
-    if (filters.city) {
-      filtered = filtered.filter(item =>
-        item.address?.city?.toLowerCase() === filters.city.toLowerCase()
-      );
-    }
-
-    if (filters.pincode) {
-      filtered = filtered.filter(item =>
-        item.address?.pincode === filters.pincode
-      );
-    }
-
-    // Type
-    if (activeTab === 'hospitals' && filters.type && filters.type !== 'all') {
-      filtered = filtered.filter(item => item.type === filters.type);
-    }
-
-    // Price
-    if (filters.minPrice || filters.maxPrice) {
-      filtered = filtered.filter(item => {
-        const prices = item.services?.map(s => s.price) || [];
-        if (prices.length === 0) return false;
-        const minServicePrice = Math.min(...prices);
-        
-        if (filters.minPrice && minServicePrice < parseFloat(filters.minPrice)) return false;
-        if (filters.maxPrice && minServicePrice > parseFloat(filters.maxPrice)) return false;
-        return true;
-      });
-    }
-
-    // Rating
-    if (filters.minRating) {
-      filtered = filtered.filter(item =>
-        (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating)
-      );
-    }
-
-    // Emergency
-    if (filters.emergency) {
-      filtered = filtered.filter(item => item.emergencyAvailable === true);
-    }
-
-    // ✅ NEW: Sort by distance if available (Nearest first)
-    filtered.sort((a, b) => {
-      if (a.distance !== undefined && b.distance !== undefined) {
-        return a.distance - b.distance;
-      }
-      return 0; // Keep original order if no distance data
-    });
-
-    // Update state based on active tab
     if (activeTab === 'hospitals') {
+      let filtered = [...hospitals];
+
+      // Keyword Search
+      if (searchKeyword) {
+        filtered = filtered.filter(item =>
+          item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          item.description?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          item.facilities?.some(f => f.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+          item.type?.toLowerCase().includes(searchKeyword.toLowerCase())
+        );
+      }
+      
+      // City Filter
+      if (filters.city && filters.city !== 'All Cities') {
+        filtered = filtered.filter(h => h.address?.city?.toLowerCase() === filters.city.toLowerCase());
+      }
+      
+      // Type Filter
+      if (filters.type && filters.type !== 'all' && filters.type !== 'All Types') {
+        filtered = filtered.filter(h => h.type === filters.type);
+      }
+
+      // State Filter
+      if (filters.state) {
+        filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
+      }
+
+      // Pincode
+      if (filters.pincode) {
+        filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
+      }
+
+      // Emergency
+      if (filters.emergency) {
+        filtered = filtered.filter(item => item.emergencyAvailable === true);
+      }
+
+      // Rating
+      if (filters.minRating) {
+        filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
+      }
+
+      // Sort by distance if available
+      filtered.sort((a, b) => {
+        // If both have distance, sort by distance
+        if (a.distance !== undefined && b.distance !== undefined) {
+          return a.distance - b.distance;
+        }
+        // If only one has distance, prioritize it
+        if (a.distance !== undefined) return -1;
+        if (b.distance !== undefined) return 1;
+        // Otherwise maintain original order
+        return 0;
+      });
+      
+      console.log('🏥 Filtered & sorted hospitals:', filtered.length);
       setFilteredHospitals(filtered);
+      
     } else {
+      let filtered = [...labs];
+
+      // Keyword Search
+      if (searchKeyword) {
+        filtered = filtered.filter(item =>
+          item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          item.description?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          item.facilities?.some(f => f.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+          item.type?.toLowerCase().includes(searchKeyword.toLowerCase())
+        );
+      }
+      
+      // City Filter
+      if (filters.city && filters.city !== 'All Cities') {
+        filtered = filtered.filter(l => l.address?.city?.toLowerCase() === filters.city.toLowerCase());
+      }
+
+      // Type Filter
+      if (filters.type && filters.type !== 'all' && filters.type !== 'All Types') {
+        filtered = filtered.filter(l => l.type === filters.type);
+      }
+
+      // State Filter
+      if (filters.state) {
+        filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
+      }
+
+      // Pincode
+      if (filters.pincode) {
+        filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
+      }
+
+      // Rating
+      if (filters.minRating) {
+        filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
+      }
+      
+      // Sort labs by distance
+      filtered.sort((a, b) => {
+        if (a.distance !== undefined && b.distance !== undefined) {
+          return a.distance - b.distance;
+        }
+        if (a.distance !== undefined) return -1;
+        if (b.distance !== undefined) return 1;
+        return 0;
+      });
+      
+      console.log('🔬 Filtered & sorted labs:', filtered.length);
       setFilteredLabs(filtered);
     }
-  };
+  }, [activeTab, hospitals, labs, filters, quickSearchKeyword]);
 
   const handleAdvancedFilters = (newFilters) => {
     setFilters(newFilters);
   };
 
   const handleQuickSearch = () => {
-    applyFilters();
+    // The useEffect hook already handles filtering when quickSearchKeyword changes
   };
 
   const handleToggleFavorite = async (facilityId, facilityType) => {
