@@ -14,36 +14,39 @@ const {
 // GET /api/hospitals - Get all hospitals with location-based sorting
 router.get('/', async (req, res) => {
   try {
-    // Note: To match your implementation, we use the base route `/`
-    // which matches `/api/hospitals` when mounted in server.js
-    const { latitude, longitude, city, maxDistance = 50000, type, state, pincode, lat, lng } = req.query;
-
-    const userLat = latitude || lat ? parseFloat(latitude || lat) : null;
-    const userLng = longitude || lng ? parseFloat(longitude || lng) : null;
-
-    let query = { isActive: true }; // ✅ Only active hospitals
-    let hospitals;
-
-    // Apply filters
-    if (type && type !== 'all') query.type = type;
-    if (city && city !== 'All Cities') query['address.city'] = new RegExp(city, 'i');
-    if (state) query['address.state'] = new RegExp(state, 'i');
-    if (pincode) query['address.pincode'] = pincode;
-
-    // Location-based search with manual distance calculation
-    if (userLat && userLng) {
-      hospitals = await Hospital.find(query)
-        .populate('owner', 'name email phone')
-        .select('-__v')
-        .lean();
-
-      // Calculate distance for each hospital
+    const { latitude, longitude, city, type, maxDistance = 50 } = req.query;
+    console.log('📍 Request params:', { latitude, longitude, city, type, maxDistance });
+    
+    let query = { isActive: true };
+    
+    // City filter
+    if (city && city !== 'All Cities') {
+      query['address.city'] = city;
+    }
+    
+    // Type filter (handling both formats just in case)
+    if (type && type !== 'All Types' && type !== 'all') {
+      query.type = type;
+    }
+    
+    // Fetch all hospitals
+    let hospitals = await Hospital.find(query)
+      .populate('owner', 'name email phone')
+      .select('-__v')
+      .lean();
+      
+    // Calculate distance if user location provided
+    if (latitude && longitude) {
+      const userLat = parseFloat(latitude);
+      const userLng = parseFloat(longitude);
+      console.log('📍 User location:', { userLat, userLng });
+      
       hospitals = hospitals.map(hospital => {
         if (hospital.location && hospital.location.coordinates) {
           const [hospLng, hospLat] = hospital.location.coordinates;
           
           // Haversine formula
-          const R = 6371; // Earth's radius in km
+          const R = 6371; // Earth radius in km
           const dLat = (hospLat - userLat) * Math.PI / 180;
           const dLon = (hospLng - userLng) * Math.PI / 180;
           const a = 
@@ -52,44 +55,43 @@ router.get('/', async (req, res) => {
             Math.sin(dLon/2) * Math.sin(dLon/2);
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
           const distance = R * c;
-
+          
           return {
             ...hospital,
-            distance: distance
+            distance: Math.round(distance * 10) / 10 // Round to 1 decimal
           };
         }
         return hospital;
       });
-
-      // Filter by max distance (maxDistance is in meters, converting to km)
+      
+      // Filter by max distance
+      const maxDistanceKm = parseFloat(maxDistance);
       hospitals = hospitals.filter(h => 
-        !h.distance || h.distance <= maxDistance / 1000
+        !h.distance || h.distance <= maxDistanceKm
       );
-
-      // Sort by distance
-      hospitals.sort((a, b) => (a.distance || 999) - (b.distance || 999));
-
+      
+      // Sort by distance (nearest first)
+      hospitals.sort((a, b) => {
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      });
+      
+      console.log(`✅ Calculated distances for ${hospitals.length} hospitals`);
     } else {
-      hospitals = await Hospital.find(query)
-        .populate('owner', 'name email phone')
-        .select('-__v')
-        .limit(100)
-        .lean();
+      console.log('⚠️ No user location - showing all hospitals');
     }
-
-    console.log(`✅ Found ${hospitals.length} hospitals`);
-
+    
     res.status(200).json({
       success: true,
       count: hospitals.length,
       data: hospitals
     });
-
   } catch (error) {
     console.error('❌ Get hospitals error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 });

@@ -7,29 +7,39 @@ const { protect } = require('../middleware/authMiddleware');
 // GET /api/labs - Get all labs with location-based sorting
 router.get('/', async (req, res) => {
   try {
-    const { latitude, longitude, city, maxDistance = 50000, type, state, pincode, lat, lng } = req.query;
+    const { latitude, longitude, city, type, state, pincode, lat, lng, maxDistance = 50 } = req.query;
+    console.log('📍 Lab request params:', { latitude, longitude, city, type, maxDistance });
 
     // Support both naming conventions (lat/lng vs latitude/longitude)
     const userLat = latitude || lat ? parseFloat(latitude || lat) : null;
     const userLng = longitude || lng ? parseFloat(longitude || lng) : null;
     
     let query = { isActive: true }; // ✅ Only active labs
-    let labs;
     
     // Apply filters
-    if (type && type !== 'all') query.type = type;
-    if (city && city !== 'All Cities') query['address.city'] = new RegExp(city, 'i');
-    if (state) query['address.state'] = new RegExp(state, 'i');
-    if (pincode) query['address.pincode'] = pincode;
+    if (city && city !== 'All Cities') {
+      query['address.city'] = new RegExp(city, 'i');
+    }
+    if (type && type !== 'all' && type !== 'All Types') {
+      query.type = type;
+    }
+    if (state) {
+      query['address.state'] = new RegExp(state, 'i');
+    }
+    if (pincode) {
+      query['address.pincode'] = pincode;
+    }
 
-    // Location-based search with manual distance calculation
+    // Fetch all labs
+    let labs = await Laboratory.find(query)
+      .populate('owner', 'name email phone')
+      .select('-__v')
+      .lean(); // ✅ Faster queries by returning plain JS objects
+
+    // Calculate distance if user location provided
     if (userLat && userLng) {
-      labs = await Laboratory.find(query)
-        .populate('owner', 'name email phone')
-        .select('-__v')
-        .lean(); // ✅ Faster queries by returning plain JS objects
+      console.log('📍 User location:', { userLat, userLng });
 
-      // Calculate distance for each lab
       labs = labs.map(lab => {
         if (lab.location && lab.location.coordinates) {
           const [labLng, labLat] = lab.location.coordinates;
@@ -47,30 +57,27 @@ router.get('/', async (req, res) => {
 
           return {
             ...lab,
-            distance: distance
+            distance: Math.round(distance * 10) / 10 // Round to 1 decimal
           };
         }
         return lab;
       });
 
-      // Filter by max distance (maxDistance is in meters, converting to km)
-      labs = labs.filter(l => 
-        !l.distance || l.distance <= maxDistance / 1000
-      );
+      // Filter by max distance
+      const maxDistanceKm = parseFloat(maxDistance);
+      labs = labs.filter(l => !l.distance || l.distance <= maxDistanceKm);
 
-      // Sort by distance
-      labs.sort((a, b) => (a.distance || 999) - (b.distance || 999));
+      // Sort by distance (nearest first)
+      labs.sort((a, b) => {
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      });
 
+      console.log(`✅ Calculated distances for ${labs.length} labs`);
     } else {
-      // Default query without location
-      labs = await Laboratory.find(query)
-        .populate('owner', 'name email phone')
-        .select('-__v')
-        .limit(100)
-        .lean();
+      console.log('⚠️ No user location - showing all labs');
     }
-
-    console.log(`✅ Found ${labs.length} labs`);
 
     res.status(200).json({
       success: true,

@@ -157,14 +157,17 @@ const Compare = () => {
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-blue-600 font-medium">
             <FaArrowLeft /> Back
           </button>
+          
           <div className="text-center">
+            {/* ✅ FIXED: Simplified dynamic title */}
             <h1 className="text-3xl font-bold text-gray-800">
-              {type === 'hospital' ? '🏥' : '🔬'} Compare {type === 'hospital' ? 'Hospitals' : 'Labs'}
+              ⚖️ Compare Facilities
             </h1>
             {lastUpdated && (
               <p className="text-xs text-gray-500">Updated: {lastUpdated.toLocaleTimeString()}</p>
             )}
           </div>
+          
           <div className="flex gap-2">
             <button onClick={handleRefresh}
               className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 font-semibold text-sm">

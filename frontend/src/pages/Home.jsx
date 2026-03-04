@@ -7,8 +7,12 @@ import LabCard from '../components/LabCard';
 import SkeletonCard from '../components/SkeletonCard';
 import MapView from '../components/MapView';
 import { hospitalAPI, labAPI } from '../services/api';
-import { FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, FaFilter, FaHeart, FaListUl, FaMap } from 'react-icons/fa'; 
+import { 
+  FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, 
+  FaFilter, FaHeart, FaListUl, FaMap, FaExchangeAlt 
+} from 'react-icons/fa'; 
 import { useLocation } from '../context/LocationContext';
+import { useComparison } from '../context/ComparisonContext'; // ✅ IMPORTED
 import CompareBar from '../components/CompareBar';
 import AdvancedFilterPanel from '../components/AdvancedFilterPanel';
 import KeywordSearch from '../components/KeywordSearch';
@@ -18,6 +22,7 @@ import toast from 'react-hot-toast';
 const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
+  const { comparisonList, compareType } = useComparison(); // ✅ EXTRACTED
   
   const [viewMode, setViewMode] = useState('list');
 
@@ -124,6 +129,10 @@ const Home = () => {
   }, [userLocation, locationRequested, filters.distance]); 
 
   useEffect(() => {
+    applyFilters();
+  }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
+
+  useEffect(() => {
     const loadingTimeout = setTimeout(() => {
       if (loading) {
         console.log('⏰ Loading timeout - forcing stop');
@@ -150,10 +159,17 @@ const Home = () => {
       setLoading(true);
       const params = {};
       
-      if (filters.distance && userLocation) {
+      // ✅ FIX: ALWAYS send location if available so backend calculates distance
+      if (userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
-        params.maxDistance = filters.distance * 1000;
+        console.log('📍 Sending location to backend:', params); 
+        
+        if (filters.distance) {
+          params.maxDistance = filters.distance * 1000;
+        }
+      } else {
+        console.log('⚠️ No user location available'); 
       }
       
       if (filters.city && filters.city !== 'All Cities') {
@@ -164,7 +180,10 @@ const Home = () => {
       const response = await axios.get(`${API_URL}/api/hospitals`, { params });
       
       const dataArray = response.data.data || [];
-      console.log(`✅ Loaded ${dataArray.length} hospitals`);
+      console.log('✅ Response:', dataArray.length, 'hospitals');
+      if (dataArray.length > 0) {
+        console.log('📊 First hospital data:', dataArray[0]); // Check if distance exists
+      }
       
       const normalizedHospitals = dataArray.map(hospital => ({
         ...hospital, id: hospital._id || hospital.id
@@ -186,10 +205,14 @@ const Home = () => {
       setLoading(true);
       const params = {};
       
-      if (filters.distance && userLocation) {
+      // ✅ FIX: ALWAYS send location if available so backend calculates distance
+      if (userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
-        params.maxDistance = filters.distance * 1000;
+        
+        if (filters.distance) {
+          params.maxDistance = filters.distance * 1000;
+        }
       }
       
       if (filters.city && filters.city !== 'All Cities') {
@@ -217,8 +240,7 @@ const Home = () => {
     }
   };
 
-  // ✅ UPDATED FILTERING AND SORTING LOGIC
-  useEffect(() => {
+  const applyFilters = () => {
     const searchKeyword = quickSearchKeyword || filters.keyword;
 
     if (activeTab === 'hospitals') {
@@ -266,18 +288,14 @@ const Home = () => {
 
       // Sort by distance if available
       filtered.sort((a, b) => {
-        // If both have distance, sort by distance
         if (a.distance !== undefined && b.distance !== undefined) {
           return a.distance - b.distance;
         }
-        // If only one has distance, prioritize it
         if (a.distance !== undefined) return -1;
         if (b.distance !== undefined) return 1;
-        // Otherwise maintain original order
         return 0;
       });
       
-      console.log('🏥 Filtered & sorted hospitals:', filtered.length);
       setFilteredHospitals(filtered);
       
     } else {
@@ -328,17 +346,16 @@ const Home = () => {
         return 0;
       });
       
-      console.log('🔬 Filtered & sorted labs:', filtered.length);
       setFilteredLabs(filtered);
     }
-  }, [activeTab, hospitals, labs, filters, quickSearchKeyword]);
+  };
 
   const handleAdvancedFilters = (newFilters) => {
     setFilters(newFilters);
   };
 
   const handleQuickSearch = () => {
-    // The useEffect hook already handles filtering when quickSearchKeyword changes
+    // handled by useEffect
   };
 
   const handleToggleFavorite = async (facilityId, facilityType) => {
@@ -393,7 +410,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col relative pb-20 md:pb-0">
       
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-10">
@@ -577,16 +594,11 @@ const Home = () => {
 
                   return (
                     <div key={id} className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleFavorite(id, 'hospital');
-                        }}
-                        className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
-                      >
-                        <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-                      </button>
-                      <HospitalCard hospital={hospital} />
+                      <HospitalCard 
+                        hospital={hospital} 
+                        isFavorite={isFav} 
+                        onFavoriteToggle={(fid) => handleToggleFavorite(fid, 'hospital')} 
+                      />
                     </div>
                   );
                 })}
@@ -601,16 +613,11 @@ const Home = () => {
 
                   return (
                     <div key={id} className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleFavorite(id, 'laboratory');
-                        }}
-                        className="absolute top-4 right-4 z-30 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition"
-                      >
-                        <FaHeart className={`text-xl ${isFav ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-                      </button>
-                      <LabCard lab={lab} />
+                      <LabCard 
+                        lab={lab} 
+                        isFavorite={isFav} 
+                        onFavoriteToggle={(fid) => handleToggleFavorite(fid, 'laboratory')} 
+                      />
                     </div>
                   );
                 })}
@@ -644,6 +651,25 @@ const Home = () => {
           </div>
         )}
       </div>
+
+      {/* ✅ NEW: Floating Compare Button - Mobile Only */}
+      {comparisonList?.length > 0 && (
+        <button
+          onClick={() => {
+            if (comparisonList.length >= 2) {
+              navigate('/compare', { state: { items: comparisonList, type: compareType || 'hospital' } });
+            } else {
+              toast.error('Select at least 2 items to compare!');
+            }
+          }}
+          className="fixed bottom-20 right-4 bg-orange-600 text-white p-4 rounded-full shadow-2xl hover:bg-orange-700 transition z-40 md:hidden"
+        >
+          <div className="flex items-center gap-2">
+            <FaExchangeAlt className="text-xl" />
+            <span className="font-bold">Compare ({comparisonList.length})</span>
+          </div>
+        </button>
+      )}
 
       <CompareBar />
       <Footer />
