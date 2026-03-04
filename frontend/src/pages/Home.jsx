@@ -231,6 +231,7 @@ const Home = () => {
   const applyFilters = () => {
     let filtered = activeTab === 'hospitals' ? [...hospitals] : [...labs];
 
+    // Search Keyword
     const searchKeyword = quickSearchKeyword || filters.keyword;
     if (searchKeyword) {
       filtered = filtered.filter(item =>
@@ -241,6 +242,7 @@ const Home = () => {
       );
     }
 
+    // State & City
     if (filters.state) {
       filtered = filtered.filter(item =>
         item.address?.state?.toLowerCase() === filters.state.toLowerCase()
@@ -259,10 +261,12 @@ const Home = () => {
       );
     }
 
+    // Type
     if (activeTab === 'hospitals' && filters.type && filters.type !== 'all') {
       filtered = filtered.filter(item => item.type === filters.type);
     }
 
+    // Price
     if (filters.minPrice || filters.maxPrice) {
       filtered = filtered.filter(item => {
         const prices = item.services?.map(s => s.price) || [];
@@ -275,16 +279,27 @@ const Home = () => {
       });
     }
 
+    // Rating
     if (filters.minRating) {
       filtered = filtered.filter(item =>
         (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating)
       );
     }
 
+    // Emergency
     if (filters.emergency) {
       filtered = filtered.filter(item => item.emergencyAvailable === true);
     }
 
+    // ✅ NEW: Sort by distance if available (Nearest first)
+    filtered.sort((a, b) => {
+      if (a.distance !== undefined && b.distance !== undefined) {
+        return a.distance - b.distance;
+      }
+      return 0; // Keep original order if no distance data
+    });
+
+    // Update state based on active tab
     if (activeTab === 'hospitals') {
       setFilteredHospitals(filtered);
     } else {

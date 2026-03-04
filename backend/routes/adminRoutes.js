@@ -505,6 +505,43 @@ router.get('/owners', protect, admin, async (req, res) => {
   }
 });
 
+// ===== GET OWNER DETAILS FOR A FACILITY =====
+router.get('/facilities/:id/owner', protect, admin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check in Hospital first
+    let facility = await Hospital.findById(id).populate('owner', 'name email phone');
+    
+    // If not found, check in Laboratory
+    if (!facility) {
+      facility = await Laboratory.findById(id).populate('owner', 'name email phone');
+    }
+
+    if (!facility) {
+      return res.status(404).json({
+        success: false,
+        message: 'Facility not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        owner: facility.owner,
+        facilityName: facility.name,
+        facilityType: facility.type // Note: lab model might not have a generic 'type' field, consider facilityType instead if you use that
+      }
+    });
+  } catch (error) {
+    console.error('Get owner error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // ===== GET OWNER DETAILS (Admin) =====
 router.get('/owners/:id', protect, admin, async (req, res) => {
   try {

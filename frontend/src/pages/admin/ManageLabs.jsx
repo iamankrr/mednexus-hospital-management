@@ -2,17 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FaFlask, 
-  FaEdit, 
-  FaTrash, 
   FaArrowLeft,
   FaPlus,
-  FaHome,
-  FaUserTie
+  FaHome
 } from 'react-icons/fa';
 import axios from 'axios';
-import { labAPI } from '../../services/api'; // ✅ Using our structured API
-import OwnerDetailsModal from '../../components/OwnerDetailsModal'; // ✅ Imported Modal
-import AssignOwnerModal from '../../components/AssignOwnerModal'; // ✅ Imported Assign Owner Modal
+import { labAPI } from '../../services/api'; 
+import OwnerDetailsModal from '../../components/OwnerDetailsModal'; 
+import AssignOwnerModal from '../../components/AssignOwnerModal'; 
 
 const ManageLabs = () => {
   const navigate = useNavigate();
@@ -24,7 +21,7 @@ const ManageLabs = () => {
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [showOwnerModal, setShowOwnerModal] = useState(false);
 
-  // ✅ Added State for Assign Owner Modal
+  // State for Assign Owner Modal
   const [showAssignOwnerModal, setShowAssignOwnerModal] = useState(false);
   const [selectedFacility, setSelectedFacility] = useState(null);
 
@@ -45,12 +42,43 @@ const ManageLabs = () => {
     }
   };
 
+  // ✅ NEW: Toggle Appointments Function
+  const handleToggleAppointments = async (labId, currentStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.put(
+        `http://localhost:3000/api/admin/labs/${labId}/toggle-appointments`,
+        { appointmentsEnabled: !currentStatus },
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      console.log('✅ Appointments toggled:', response.data);
+      
+      // Update local state
+      setLabs(prev => 
+        prev.map(l => 
+          l._id === labId 
+            ? { ...l, appointmentsEnabled: !currentStatus } 
+            : l
+        )
+      );
+      
+      alert(`✅ Appointments ${!currentStatus ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('❌ Toggle error:', error);
+      alert(error.response?.data?.message || '❌ Failed to toggle appointments');
+    }
+  };
+
   const handleApprove = async (id) => {
     if (!window.confirm('Approve this laboratory?')) return;
     try {
       await axios.put(
         `http://localhost:3000/api/admin/labs/${id}/approve`,
-        { isApproved: true }, // Send true since this is an "Approve" specific button now
+        { isApproved: true },
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -59,7 +87,7 @@ const ManageLabs = () => {
       );
       
       alert('✅ Laboratory approved successfully!');
-      fetchLabs(); // ✅ Refresh
+      fetchLabs();
     } catch (error) {
       console.error('Approve error:', error);
       alert('Failed to approve laboratory');
@@ -81,30 +109,28 @@ const ManageLabs = () => {
     }
   };
 
-  // Function to toggle appointments
-  const handleToggleAppointments = async (id, currentStatus) => {
-    const action = currentStatus ? 'disable' : 'enable';
-    if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} appointments for this lab?`)) return;
+  const handleToggleActive = async (id, currentStatus) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${action} this laboratory?`)) return;
     
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:3000/api/admin/labs/${id}/toggle-appointments`,
-        {},
+        `http://localhost:3000/api/admin/labs/${id}/approve`,
+        { isApproved: !currentStatus }, 
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
       
-      alert(`✅ Appointments ${action}d successfully!`);
+      alert(`✅ Laboratory ${action}d successfully!`);
       fetchLabs();
     } catch (error) {
       console.error('Toggle error:', error);
-      alert(error.response?.data?.message || 'Failed to toggle appointments');
+      alert('Failed to toggle status');
     }
   };
 
-  // Function to handle View Owner logic
   const handleViewOwner = async (ownerId) => {
     const idToFetch = typeof ownerId === 'object' ? ownerId._id : ownerId;
     
@@ -124,7 +150,6 @@ const ManageLabs = () => {
     }
   };
 
-  // ✅ New function to handle Remove Owner
   const handleRemoveOwner = async (labId) => {
     if (!window.confirm('Remove owner from this laboratory? The owner account will be converted to a regular user.')) return;
     
@@ -146,7 +171,12 @@ const ManageLabs = () => {
     }
   };
 
-  // Filter labs based on active tab
+  const handleAssignOwner = (labId) => {
+    const lab = labs.find(l => l._id === labId);
+    setSelectedFacility(lab);
+    setShowAssignOwnerModal(true);
+  };
+
   const filteredLabs = labs.filter(lab => {
     if (activeTab === 'pending') {
       return lab.owner && !lab.isVerified;
@@ -177,7 +207,7 @@ const ManageLabs = () => {
             </div>
             <button
               onClick={() => navigate('/admin/labs/add')}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700"
+              className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-400 border border-green-400"
             >
               <FaPlus /> Add Laboratory
             </button>
@@ -257,84 +287,133 @@ const ManageLabs = () => {
                           Admin Created
                         </span>
                       )}
+
+                      {/* Status Badge */}
+                      {lab.isApproved ? (
+                         <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                           ✓ Approved
+                         </span>
+                      ) : (
+                         <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold">
+                           Pending
+                         </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Right Side: Actions */}
-                  <div className="flex items-center gap-3">
+                  {/* Right Side: Actions - MERGED WITH APPOINTMENT TOGGLE */}
+                  <div className="flex gap-2 flex-wrap justify-end items-center">
                     
-                    {/* Toggle Appointments Button */}
-                    {lab.owner && (
-                      <button
-                        onClick={() => handleToggleAppointments(lab._id, lab.appointmentsEnabled)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-2 ${
-                          lab.appointmentsEnabled
-                            ? 'bg-green-500 text-white hover:bg-green-600'
-                            : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                        }`}
-                        title={lab.appointmentsEnabled ? 'Appointments Enabled' : 'Appointments Disabled'}
-                      >
-                        📅 {lab.appointmentsEnabled ? 'ON' : 'OFF'}
-                      </button>
-                    )}
+                    {/* 1. ON/OFF Toggle */}
+                    <button
+                      onClick={() => handleToggleActive(lab._id, lab.isActive)}
+                      className={`px-4 py-2 rounded-lg font-bold ${
+                        lab.isActive 
+                          ? 'bg-green-600 text-white hover:bg-green-700' 
+                          : 'bg-gray-400 text-white hover:bg-gray-500'
+                      }`}
+                    >
+                      {lab.isActive ? 'ON' : 'OFF'}
+                    </button>
 
-                    {/* Status Badge / Approve Button */}
-                    {lab.isVerified ? (
-                      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold border border-green-200">
-                        ✓ Verified
-                      </span>
-                    ) : lab.owner ? (
+                    {/* 2. ✅ NEW: Appointment Toggle Button */}
+                    <button
+                      onClick={() => handleToggleAppointments(lab._id, lab.appointmentsEnabled)}
+                      className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
+                        lab.appointmentsEnabled
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-400 text-white hover:bg-gray-500'
+                      }`}
+                      title={lab.appointmentsEnabled ? 'Click to disable appointments' : 'Click to enable appointments'}
+                    >
+                      {lab.appointmentsEnabled ? (
+                        <>
+                          <span className="text-lg">✓</span>
+                          <span>Appointments ON</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-lg">✗</span>
+                          <span>Appointments OFF</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* 3. Approve/Status */}
+                    {lab.status === 'pending' && lab.submittedBy !== 'admin' ? (
                       <button
                         onClick={() => handleApprove(lab._id)}
-                        className="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-bold hover:bg-yellow-600 transition shadow-sm"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition"
                       >
                         Approve
                       </button>
-                    ) : null}
+                    ) : lab.status === 'approved' ? (
+                      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
+                        ✓ Approved
+                      </span>
+                    ) : (
+                      <span className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium">
+                        Admin Created
+                      </span>
+                    )}
 
-                    {/* ✅ Updated Owner Actions (View / Remove / Assign) */}
+                    {/* 4. View */}
+                    <button
+                      onClick={() => navigate(`/lab/${lab._id}`)}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700"
+                    >
+                      View
+                    </button>
+
+                    {/* 5. Owner (View/Assign) */}
                     {lab.owner ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleViewOwner(lab.owner)}
-                          className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-600 flex items-center gap-2"
-                          title="View Owner Details"
-                        >
-                          <FaUserTie /> View
-                        </button>
-                        <button
-                          onClick={() => handleRemoveOwner(lab._id)}
-                          className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600"
-                        >
-                          Remove Owner
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleViewOwner(lab.owner)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+                      >
+                        Owner
+                      </button>
                     ) : (
                       <button
-                        onClick={() => {
-                          setSelectedFacility(lab);
-                          setShowAssignOwnerModal(true);
-                        }}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-600"
+                        onClick={() => handleAssignOwner(lab._id)}
+                        className="px-4 py-2 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700"
                       >
                         Assign Owner
                       </button>
                     )}
 
-                    {/* Edit Button */}
+                    {/* 6. Remove Owner */}
+                    {lab.owner && (
+                      <button
+                        onClick={() => handleRemoveOwner(lab._id)}
+                        className="px-4 py-2 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-700"
+                      >
+                        Remove Owner
+                      </button>
+                    )}
+
+                    {/* 7. Services */}
                     <button
-                      onClick={() => navigate(`/admin/labs/edit/${lab._id}`)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-bold hover:bg-blue-600 transition shadow-sm flex items-center gap-2"
+                      onClick={() => navigate(`/admin/lab/${lab._id}/manage-services`)}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700"
                     >
-                      <FaEdit /> Edit
+                      Services
                     </button>
 
-                    {/* Delete Button */}
+                    {/* 8. Edit */}
+                    <button
+                      onClick={() => navigate(`/admin/labs/edit/${lab._id}`)}
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-bold hover:bg-yellow-700"
+                    >
+                      Edit
+                    </button>
+
+                    {/* 9. Delete */}
                     <button
                       onClick={() => handleDelete(lab._id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-bold hover:bg-red-600 transition shadow-sm flex items-center gap-2"
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700"
                     >
-                      <FaTrash /> Delete
+                      Delete
                     </button>
                     
                   </div>
@@ -363,7 +442,7 @@ const ManageLabs = () => {
         />
       )}
 
-      {/* ✅ Added Assign Owner Modal */}
+      {/* Assign Owner Modal */}
       {showAssignOwnerModal && (
         <AssignOwnerModal
           facility={selectedFacility}

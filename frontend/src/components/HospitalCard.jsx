@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   FaHospital, FaMapMarkerAlt, FaStar, FaHeart, 
-  FaBalanceScale, FaPhone, FaChevronLeft, FaChevronRight // ✅ ADDED CHEVRONS
+  FaBalanceScale, FaPhone, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 import { HOSPITAL_TYPES } from './HospitalTypeFilter';
 import { useComparison } from '../context/ComparisonContext';
@@ -144,7 +144,7 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
           </div>
         )}
 
-        {/* Distance Badge */}
+        {/* Distance Badge (Top left over image) */}
         {hospital.distance !== undefined && hospital.distance !== null && (
           <span className="absolute top-3 left-3 px-2 py-1 bg-green-100/90 backdrop-blur-sm text-green-700 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm z-20">
             📍 {formatDistance(hospital.distance)}
@@ -166,6 +166,15 @@ const HospitalCard = ({ hospital, showFavoriteButton = false, onFavoriteToggle }
       <div className="p-5 flex flex-col flex-grow z-20 bg-white">
         <div className="mb-3">
           <h3 className="font-bold text-gray-900 text-xl mb-2 line-clamp-1">{hospital.name}</h3>
+          
+          {/* ✅ NEW: Distance display under hospital name */}
+          {hospital.distance !== undefined && hospital.distance !== null && (
+            <div className="flex items-center gap-1 text-green-600 text-sm font-medium mt-1 mb-2">
+              <FaMapMarkerAlt />
+              <span>{hospital.distance.toFixed(1)} km away</span>
+            </div>
+          )}
+
           {hospital.type && (
             <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-medium border border-blue-100">
               {HOSPITAL_TYPES?.find(t => t.value === hospital.type)?.icon || '🏥'} {HOSPITAL_TYPES?.find(t => t.value === hospital.type)?.label || hospital.type}
