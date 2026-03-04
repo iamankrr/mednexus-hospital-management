@@ -58,39 +58,25 @@ router.get('/labs', protect, admin, async (req, res) => {
 // ========== @access  Private/Admin
 router.get('/stats', protect, admin, async (req, res) => {
   try {
-    console.log('📊 Fetching admin stats...');
-
-    // Optimized with Promise.all for faster execution
-    const [
-      totalHospitals, 
-      totalLabs, 
-      totalUsers, 
-      totalReviews, 
-      pendingHospitals, 
-      pendingLabs, 
-      pendingOwners
-    ] = await Promise.all([
-      Hospital.countDocuments(),
-      Laboratory.countDocuments(),
-      User.countDocuments({ role: 'user' }),
-      Review.countDocuments(),
-      Hospital.countDocuments({ isApproved: false }),
-      Laboratory.countDocuments({ isApproved: false }),
-      User.countDocuments({ role: 'owner', 'ownerProfile.isVerified': false })
-    ]);
-
-    const pendingApprovals = pendingHospitals + pendingLabs;
-
-    console.log('✅ Stats fetched successfully');
-
+    console.log('📊 Fetching stats...');
+    
+    const hospitals = await Hospital.countDocuments();
+    const laboratories = await Laboratory.countDocuments();
+    const users = await User.countDocuments();
+    const pendingOwners = await User.countDocuments({ 
+      role: 'owner', 
+      'ownerProfile.isVerified': false 
+    });
+    
+    console.log('✅ Stats:', { hospitals, laboratories, users, pendingOwners });
+    
     res.status(200).json({
       success: true,
       data: {
-        totalHospitals,
-        totalLabs,
-        totalUsers,
-        totalReviews,
-        pendingApprovals,
+        hospitals,
+        laboratories,
+        users,
+        reviews: 0,
         pendingOwners
       }
     });
@@ -98,8 +84,7 @@ router.get('/stats', protect, admin, async (req, res) => {
     console.error('❌ Stats error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching stats',
-      error: error.message
+      message: error.message
     });
   }
 });
@@ -1373,5 +1358,6 @@ router.post('/remove-owner', protect, admin, async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;

@@ -54,7 +54,6 @@ const ChangePassword = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar />
       
       <div className="flex-1 py-12">
         <div className="max-w-md mx-auto px-4">

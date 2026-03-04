@@ -14,49 +14,70 @@ const {
 // GET /api/hospitals - Get all hospitals with location-based sorting
 router.get('/', async (req, res) => {
   try {
-    const { type, city, state, pincode, lat, lng } = req.query;
+    // Support both naming conventions (lat/lng vs latitude/longitude)
+    const { type, city, state, pincode, lat, lng, latitude, longitude, maxDistance = 50000 } = req.query;
     
-    let query = { isActive: true };
+    const userLat = latitude || lat;
+    const userLng = longitude || lng;
+
+    let query = { isActive: true }; // ✅ Only active hospitals
     
+    // ✅ Optimized Location-based search using MongoDB $near
+    if (userLat && userLng) {
+      query.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(userLng), parseFloat(userLat)]
+          },
+          $maxDistance: parseInt(maxDistance)
+        }
+      };
+    }
+
     // Apply filters
     if (type && type !== 'all') query.type = type;
-    if (city) query['address.city'] = new RegExp(city, 'i');
+    if (city && city !== 'All Cities') query['address.city'] = new RegExp(city, 'i');
     if (state) query['address.state'] = new RegExp(state, 'i');
     if (pincode) query['address.pincode'] = pincode;
 
+    // ✅ Highly optimized query execution
     let hospitals = await Hospital.find(query)
       .populate('owner', 'name email phone')
-      .select('-tests -services'); // Hiding prices/tests from list view
+      .select('-tests -services -__v') // ✅ Exclude version field, tests, and services
+      .limit(100)                      // ✅ Limit results
+      .lean();                         // ✅ Faster queries by returning plain JS objects
 
-    // Sort by distance if lat/lng provided
-    if (lat && lng) {
-      const userLat = parseFloat(lat);
-      const userLng = parseFloat(lng);
-
-      console.log('📍 User location received:', userLat, userLng);
+    // If frontend needs the exact 'distance' property to display "X km away"
+    // We calculate it only for the limited 100 results (virtually instant)
+    if (userLat && userLng && hospitals.length > 0) {
+      const uLat = parseFloat(userLat);
+      const uLng = parseFloat(userLng);
 
       hospitals = hospitals.map(hospital => {
+        if (!hospital.location || !hospital.location.coordinates) return hospital;
+        
         const [hospLng, hospLat] = hospital.location.coordinates;
         
-        // Haversine formula for distance
+        // Haversine formula for distance display
         const R = 6371; // Earth radius in km
-        const dLat = (hospLat - userLat) * Math.PI / 180;
-        const dLng = (hospLng - userLng) * Math.PI / 180;
+        const dLat = (hospLat - uLat) * Math.PI / 180;
+        const dLng = (hospLng - uLng) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(userLat * Math.PI / 180) * Math.cos(hospLat * Math.PI / 180) *
+                  Math.cos(uLat * Math.PI / 180) * Math.cos(hospLat * Math.PI / 180) *
                   Math.sin(dLng/2) * Math.sin(dLng/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distance = R * c;
 
         return {
-          ...hospital.toObject(),
+          ...hospital,
           distance: parseFloat(distance.toFixed(2))
         };
-      }).sort((a, b) => a.distance - b.distance);
-      
-      console.log('📍 Sorted hospitals by distance');
-      console.log('🎯 Nearest:', hospitals[0]?.name, '-', hospitals[0]?.distance, 'km');
+      });
+      // Note: MongoDB $near already sorted them perfectly by distance, no need to re-sort!
     }
+
+    console.log(`✅ Found ${hospitals.length} hospitals`);
 
     res.status(200).json({
       success: true,
@@ -65,7 +86,7 @@ router.get('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get hospitals error:', error);
+    console.error('❌ Get hospitals error:', error);
     res.status(500).json({ 
       success: false, 
       message: error.message 

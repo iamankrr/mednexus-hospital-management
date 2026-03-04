@@ -129,6 +129,19 @@ const Home = () => {
     applyFilters();
   }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
 
+  // ✅ NEW: Loading Timeout added to prevent infinite loading
+  useEffect(() => {
+    // Set maximum loading time
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.log('⏰ Loading timeout - forcing stop');
+        setLoading(false);
+      }
+    }, 5000); // 5 second max
+
+    return () => clearTimeout(loadingTimeout);
+  }, [loading]);
+
   const fetchFavorites = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -140,51 +153,85 @@ const Home = () => {
     } catch (error) {}
   };
 
+  // ✅ REPLACED: Updated fetchHospitals with exact params and axios logic
   const fetchHospitals = async () => {
     try {
-      if (hospitals.length === 0) setLoading(true);
-      const params = { ...filters };
+      setLoading(true);
+      const params = {};
+      
+      // Add location if available
       if (userLocation) {
-        params.lat = userLocation.lat;
-        params.lng = userLocation.lng;
-        sessionStorage.setItem('mednexus_cached_lat', String(userLocation.lat));
+        // Fallback checks just in case geolocation saved it as lat/lng instead of latitude/longitude
+        params.latitude = userLocation.latitude || userLocation.lat;
+        params.longitude = userLocation.longitude || userLocation.lng;
       }
-
-      const response = await hospitalAPI.getAll(params);
-      const dataArray = response?.data?.data || response?.data || [];
-
-      if (dataArray) {
-        const normalizedHospitals = dataArray.map(hospital => ({
-          ...hospital, id: hospital._id || hospital.id
-        }));
-        setHospitals(normalizedHospitals);
-        sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
+      
+      // Add city filter if set
+      if (filters.city) {
+        params.city = filters.city;
       }
+      
+      console.log('🏥 Fetching hospitals with params:', params);
+      const response = await axios.get(`${API_URL}/api/hospitals`, { params });
+      
+      const dataArray = response.data.data || [];
+      console.log('✅ Hospitals loaded:', dataArray.length);
+      
+      // Normalize IDs so rendering maps don't break
+      const normalizedHospitals = dataArray.map(hospital => ({
+        ...hospital, id: hospital._id || hospital.id
+      }));
+
+      setHospitals(normalizedHospitals);
+      setFilteredHospitals(normalizedHospitals);
+      sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
+      
     } catch (error) {
-      console.error('Error fetching hospitals:', error);
+      console.error('❌ Fetch hospitals error:', error);
+      setHospitals([]);
+      setFilteredHospitals([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ REPLACED: Updated fetchLabs with exact params and axios logic
   const fetchLabs = async () => {
     try {
-      const params = { ...filters };
+      setLoading(true);
+      const params = {};
+      
       if (userLocation) {
-        params.lat = userLocation.lat;
-        params.lng = userLocation.lng;
+        params.latitude = userLocation.latitude || userLocation.lat;
+        params.longitude = userLocation.longitude || userLocation.lng;
       }
+      
+      if (filters.city) {
+        params.city = filters.city;
+      }
+      
+      console.log('🔬 Fetching labs with params:', params);
+      const response = await axios.get(`${API_URL}/api/labs`, { params });
+      
+      const dataArray = response.data.data || [];
+      console.log('✅ Labs loaded:', dataArray.length);
+      
+      // Normalize IDs
+      const normalizedLabs = dataArray.map(lab => ({
+        ...lab, id: lab._id || lab.id
+      }));
 
-      const response = await labAPI.getAll(params);
-      if (response?.data) {
-        const labsData = Array.isArray(response.data) ? response.data : (response.data.data || []);
-        const normalizedLabs = labsData.map(lab => ({
-          ...lab, id: lab._id || lab.id
-        }));
-        setLabs(normalizedLabs);
-        sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
-      }
-    } catch (error) {}
+      setLabs(normalizedLabs);
+      setFilteredLabs(normalizedLabs);
+      sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
+      
+    } catch (error) {
+      console.error('❌ Fetch labs error:', error);
+      setLabs([]);
+      setFilteredLabs([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const applyFilters = () => {

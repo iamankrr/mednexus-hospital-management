@@ -108,6 +108,7 @@ app.use('/api/search-history', searchHistoryRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/submissions', submissionRoutes);
+app.use('/api', adminRoutes);  
 
 // ========== 404 Handler ==========
 app.use((req, res) => {
