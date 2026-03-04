@@ -269,13 +269,15 @@ const AddHospital = () => {
         return;
       }
     }
+
+    // ✅ Added the logs you requested
+    console.log('📤 Submitting hospital data:', formData);  
+    console.log('📤 Type value:', formData.type);          
   
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      console.log('📤 Submitting hospital:', formData);
-  
       // Prepare payload
       const payload = {
         hospitalData: formData,
@@ -302,11 +304,9 @@ const AddHospital = () => {
         navigate('/admin/hospitals');
       }
     } catch (error) {
-      console.error('❌ Submit error:', error);
-      console.error('❌ Error response:', error.response?.data);
-      
-      const errorMessage = error.response?.data?.message || 'Failed to add hospital. Please try again.';
-      alert(`❌ ${errorMessage}`);
+      // ✅ Better error logging here
+      console.error('❌ Submit error:', error.response?.data);  
+      alert(error.response?.data?.message || 'Failed to add hospital. Please try again.');
     } finally {
       setLoading(false);
     }
