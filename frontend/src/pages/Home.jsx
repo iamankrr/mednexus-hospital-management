@@ -5,7 +5,7 @@ import API_URL from '../config/api';
 import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
 import SkeletonCard from '../components/SkeletonCard';
-import MapView from '../components/MapView'; // ✅ IMPORTED MAP VIEW
+import MapView from '../components/MapView';
 import { hospitalAPI, labAPI } from '../services/api';
 import { FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, FaFilter, FaHeart, FaListUl, FaMap } from 'react-icons/fa'; 
 import { useLocation } from '../context/LocationContext';
@@ -19,8 +19,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
   
-  // ✅ STATE FOR MAP TOGGLE
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const [viewMode, setViewMode] = useState('list');
 
   const [hospitals, setHospitals] = useState(() => {
     const cached = sessionStorage.getItem('homeHospitalsData');
@@ -55,14 +54,14 @@ const Home = () => {
   
   const [locationRequested, setLocationRequested] = useState(!!userLocation);
 
+  // Added distance to initial filters
   const [filters, setFilters] = useState({
     state: '', city: '', keyword: '', pincode: '', type: 'all',
-    minPrice: '', maxPrice: '', minRating: '', emergency: false,
+    minPrice: '', maxPrice: '', minRating: '', emergency: false, distance: ''
   });
 
   const [quickSearchKeyword, setQuickSearchKeyword] = useState('');
 
-  // ✅ Updated Scroll Logic to only run on 'list' view
   useLayoutEffect(() => {
     if (!loading && (hospitals.length > 0 || labs.length > 0) && viewMode === 'list') {
       const savedScroll = sessionStorage.getItem('homeScroll');
@@ -123,21 +122,19 @@ const Home = () => {
           fetchLabs();
       }
     }
-  }, [userLocation, locationRequested]);
+  }, [userLocation, locationRequested, filters.distance]); // Added distance dependency
 
   useEffect(() => {
     applyFilters();
   }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
 
-  // ✅ NEW: Loading Timeout added to prevent infinite loading
   useEffect(() => {
-    // Set maximum loading time
     const loadingTimeout = setTimeout(() => {
       if (loading) {
         console.log('⏰ Loading timeout - forcing stop');
         setLoading(false);
       }
-    }, 5000); // 5 second max
+    }, 5000);
 
     return () => clearTimeout(loadingTimeout);
   }, [loading]);
@@ -153,20 +150,18 @@ const Home = () => {
     } catch (error) {}
   };
 
-  // ✅ REPLACED: Updated fetchHospitals with exact params and axios logic
   const fetchHospitals = async () => {
     try {
       setLoading(true);
       const params = {};
       
-      // Add location if available
-      if (userLocation) {
-        // Fallback checks just in case geolocation saved it as lat/lng instead of latitude/longitude
+      // Only filter by location if distance is explicitly set
+      if (filters.distance && userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
+        params.maxDistance = filters.distance * 1000;
       }
       
-      // Add city filter if set
       if (filters.city) {
         params.city = filters.city;
       }
@@ -175,9 +170,8 @@ const Home = () => {
       const response = await axios.get(`${API_URL}/api/hospitals`, { params });
       
       const dataArray = response.data.data || [];
-      console.log('✅ Hospitals loaded:', dataArray.length);
+      console.log(`✅ Loaded ${dataArray.length} hospitals`);
       
-      // Normalize IDs so rendering maps don't break
       const normalizedHospitals = dataArray.map(hospital => ({
         ...hospital, id: hospital._id || hospital.id
       }));
@@ -195,15 +189,16 @@ const Home = () => {
     }
   };
 
-  // ✅ REPLACED: Updated fetchLabs with exact params and axios logic
   const fetchLabs = async () => {
     try {
       setLoading(true);
       const params = {};
       
-      if (userLocation) {
+      // Only filter by location if distance is explicitly set
+      if (filters.distance && userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
+        params.maxDistance = filters.distance * 1000;
       }
       
       if (filters.city) {
@@ -214,9 +209,8 @@ const Home = () => {
       const response = await axios.get(`${API_URL}/api/labs`, { params });
       
       const dataArray = response.data.data || [];
-      console.log('✅ Labs loaded:', dataArray.length);
+      console.log(`✅ Loaded ${dataArray.length} labs`);
       
-      // Normalize IDs
       const normalizedLabs = dataArray.map(lab => ({
         ...lab, id: lab._id || lab.id
       }));
@@ -349,6 +343,14 @@ const Home = () => {
   const displayHospitals = filteredHospitals.length > 0 ? filteredHospitals : hospitals;
   const displayLabs = filteredLabs.length > 0 ? filteredLabs : labs;
 
+  const resetAllFilters = () => {
+    setFilters({
+      state: '', city: '', keyword: '', pincode: '', type: 'all',
+      minPrice: '', maxPrice: '', minRating: '', emergency: false, distance: ''
+    });
+    setQuickSearchKeyword('');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       
@@ -401,11 +403,9 @@ const Home = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
         
-        {/* ✅ STICKY WRAPPER START */}
         <div className="sticky top-0 z-40 bg-gray-50/95 backdrop-blur-md pt-2 pb-4 mb-6 border-b border-gray-200/50 shadow-sm -mx-4 px-4 sm:mx-0 sm:px-0">
           
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b border-gray-200 pb-2">
-            {/* Tabs */}
             <div className="flex gap-4">
               <button
                 onClick={() => handleTabChange('hospitals')}
@@ -429,7 +429,6 @@ const Home = () => {
               </button>
             </div>
 
-            {/* ✅ MAP / LIST TOGGLE BUTTON */}
             <div className="flex items-center bg-gray-200 p-1 rounded-xl">
               <button 
                 onClick={() => setViewMode('list')} 
@@ -455,20 +454,13 @@ const Home = () => {
             initialFilters={filters}
           />
 
-          {/* ACTIVE FILTERS BADGES */}
           {(filters.state || filters.city || filters.pincode || filters.type !== 'all' || 
-            filters.minPrice || filters.maxPrice || filters.minRating || filters.emergency || quickSearchKeyword) && (
+            filters.minPrice || filters.maxPrice || filters.minRating || filters.emergency || filters.distance || quickSearchKeyword) && (
             <div className="mt-4 p-3 bg-blue-50/80 rounded-xl border border-blue-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-blue-800 text-sm">🔍 Active Filters:</span>
                 <button
-                  onClick={() => {
-                    setFilters({
-                      state: '', city: '', keyword: '', pincode: '', type: 'all',
-                      minPrice: '', maxPrice: '', minRating: '', emergency: false
-                    });
-                    setQuickSearchKeyword('');
-                  }}
+                  onClick={resetAllFilters}
                   className="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
                 >
                   Clear All
@@ -478,6 +470,11 @@ const Home = () => {
                 {quickSearchKeyword && (
                   <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
                     Keyword: {quickSearchKeyword}
+                  </span>
+                )}
+                {filters.distance && (
+                  <span className="px-2 py-1 bg-white text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                    Within: {filters.distance} km
                   </span>
                 )}
                 {filters.state && (
@@ -514,12 +511,9 @@ const Home = () => {
             </div>
           )}
         </div>
-        {/* ✅ STICKY WRAPPER END */}
 
-        {/* ✅ CONDITIONAL RENDERING: MAP vs LIST */}
         {viewMode === 'map' ? (
           <div className="animate-fadeIn">
-            {/* Render MAP VIEW */}
             <MapView 
               items={activeTab === 'hospitals' ? displayHospitals : displayLabs} 
               type={activeTab === 'hospitals' ? 'hospital' : 'laboratory'}
@@ -527,7 +521,6 @@ const Home = () => {
             />
           </div>
         ) : (
-          /* Render LIST VIEW (GRID) */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10 animate-fadeIn">
             {loading && hospitals.length === 0 && labs.length === 0 ? (
               Array(6).fill(0).map((_, index) => <SkeletonCard key={index} />)
@@ -585,19 +578,12 @@ const Home = () => {
           </div>
         )}
 
-        {/* Empty States (Only show when not loading, in list view, and array is empty) */}
         {!loading && activeTab === 'hospitals' && displayHospitals.length === 0 && viewMode === 'list' && (
           <div className="text-center py-12">
             <FaHospital className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No hospitals found matching your filters</p>
             <button
-              onClick={() => {
-                setFilters({
-                  state: '', city: '', keyword: '', pincode: '', type: 'all',
-                  minPrice: '', maxPrice: '', minRating: '', emergency: false
-                });
-                setQuickSearchKeyword('');
-              }}
+              onClick={resetAllFilters}
               className="mt-4 text-blue-600 hover:text-blue-800 underline"
             >
               Clear all filters
@@ -609,13 +595,7 @@ const Home = () => {
             <FaFlask className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No laboratories found matching your filters</p>
             <button
-              onClick={() => {
-                setFilters({
-                  state: '', city: '', keyword: '', pincode: '', type: 'all',
-                  minPrice: '', maxPrice: '', minRating: '', emergency: false
-                });
-                setQuickSearchKeyword('');
-              }}
+              onClick={resetAllFilters}
               className="mt-4 text-blue-600 hover:text-blue-800 underline"
             >
               Clear all filters

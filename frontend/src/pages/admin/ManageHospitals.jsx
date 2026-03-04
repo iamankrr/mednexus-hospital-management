@@ -41,6 +41,37 @@ const ManageHospitals = () => {
     }
   };
 
+  // ✅ NEW: Toggle Appointments Function
+  const handleToggleAppointments = async (hospitalId, currentStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.put(
+        `http://localhost:3000/api/admin/hospitals/${hospitalId}/toggle-appointments`,
+        { appointmentsEnabled: !currentStatus },
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      console.log('✅ Appointments toggled:', response.data);
+      
+      // Update local state
+      setHospitals(prev => 
+        prev.map(h => 
+          h._id === hospitalId 
+            ? { ...h, appointmentsEnabled: !currentStatus } 
+            : h
+        )
+      );
+      
+      alert(`✅ Appointments ${!currentStatus ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('❌ Toggle error:', error);
+      alert(error.response?.data?.message || '❌ Failed to toggle appointments');
+    }
+  };
+
   const handleApprove = async (id) => {
     if (!window.confirm('Approve this hospital?')) return;
     try {
@@ -267,8 +298,8 @@ const ManageHospitals = () => {
                     </div>
                   </div>
 
-                  {/* Right Side: Actions - EXACT ORDER */}
-                  <div className="flex flex-wrap gap-2 justify-end">
+                  {/* Right Side: Actions - MERGED WITH APPOINTMENT TOGGLE */}
+                  <div className="flex gap-2 flex-wrap justify-end items-center">
                     
                     {/* 1. ON/OFF Toggle */}
                     <button
@@ -282,17 +313,48 @@ const ManageHospitals = () => {
                       {hospital.isActive ? 'ON' : 'OFF'}
                     </button>
 
-                    {/* 2. Approve (if not approved) */}
-                    {!hospital.isApproved && (
+                    {/* 2. ✅ NEW: Appointment Toggle Button */}
+                    <button
+                      onClick={() => handleToggleAppointments(hospital._id, hospital.appointmentsEnabled)}
+                      className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
+                        hospital.appointmentsEnabled
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-400 text-white hover:bg-gray-500'
+                      }`}
+                      title={hospital.appointmentsEnabled ? 'Click to disable appointments' : 'Click to enable appointments'}
+                    >
+                      {hospital.appointmentsEnabled ? (
+                        <>
+                          <span className="text-lg">✓</span>
+                          <span>Appointments ON</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-lg">✗</span>
+                          <span>Appointments OFF</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* 3. Approve/Status */}
+                    {hospital.status === 'pending' && hospital.submittedBy !== 'admin' ? (
                       <button
                         onClick={() => handleApprove(hospital._id)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition"
                       >
                         Approve
                       </button>
+                    ) : hospital.status === 'approved' ? (
+                      <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
+                        ✓ Approved
+                      </span>
+                    ) : (
+                      <span className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium">
+                        Admin Created
+                      </span>
                     )}
 
-                    {/* 3. View */}
+                    {/* 4. View */}
                     <button
                       onClick={() => navigate(`/hospital/${hospital._id}`)}
                       className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700"
@@ -300,7 +362,7 @@ const ManageHospitals = () => {
                       View
                     </button>
 
-                    {/* 4. Owner (View/Assign) */}
+                    {/* 5. Owner (View/Assign) */}
                     {hospital.owner ? (
                       <button
                         onClick={() => handleViewOwner(hospital.owner)}
@@ -311,13 +373,13 @@ const ManageHospitals = () => {
                     ) : (
                       <button
                         onClick={() => handleAssignOwner(hospital._id)}
-                        className="px-4 py-2 bg-purple-400 text-white rounded-lg font-bold hover:bg-purple-500"
+                        className="px-4 py-2 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700"
                       >
                         Assign Owner
                       </button>
                     )}
 
-                    {/* 5. Remove Owner */}
+                    {/* 6. Remove Owner */}
                     {hospital.owner && (
                       <button
                         onClick={() => handleRemoveOwner(hospital._id)}
@@ -327,7 +389,7 @@ const ManageHospitals = () => {
                       </button>
                     )}
 
-                    {/* 6. Services */}
+                    {/* 7. Services */}
                     <button
                       onClick={() => navigate(`/admin/hospital/${hospital._id}/manage-services`)}
                       className="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700"
@@ -335,7 +397,7 @@ const ManageHospitals = () => {
                       Services
                     </button>
 
-                    {/* 7. Edit */}
+                    {/* 8. Edit */}
                     <button
                       onClick={() => navigate(`/admin/hospitals/edit/${hospital._id}`)}
                       className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-bold hover:bg-yellow-700"
@@ -343,7 +405,7 @@ const ManageHospitals = () => {
                       Edit
                     </button>
 
-                    {/* 8. Delete */}
+                    {/* 9. Delete */}
                     <button
                       onClick={() => handleDelete(hospital._id)}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700"

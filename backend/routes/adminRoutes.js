@@ -94,43 +94,36 @@ router.get('/stats', protect, admin, async (req, res) => {
 // ========== @access  Private/Admin
 router.put('/hospitals/:id/approve', protect, admin, async (req, res) => {
   try {
-    // Determine if we are approving (true) or rejecting/revoking (false)
-    const { isApproved } = req.body; 
+    const hospital = await Hospital.findById(req.params.id);
 
-    const hospital = await Hospital.findByIdAndUpdate(
-      req.params.id,
-      { 
-        isApproved: isApproved, // Map to existing frontend field
-        isVerified: isApproved, // ✅ Mark as verified based on payload
-        isActive: isApproved    // ✅ Make it active/visible based on payload
-      },
-      { new: true }
-    );
-    
     if (!hospital) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Hospital not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Hospital not found'
       });
     }
 
-    console.log(`✅ Hospital ${isApproved ? 'approved' : 'rejected'}:`, hospital.name);
+    // ✅ Update regardless of who created it
+    hospital.status = 'approved';
+    hospital.isActive = true;
     
+    await hospital.save();
+
     res.status(200).json({
       success: true,
-      message: `Hospital ${isApproved ? 'approved and activated' : 'rejected and deactivated'}`,
+      message: 'Hospital approved successfully',
       data: hospital
     });
   } catch (error) {
     console.error('❌ Approve error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 });
 
-// ========== @desc    Approve/Reject Laboratory (UPDATED FIX)
+// ========== @desc    Approve/Reject Laboratory
 // ========== @route   PUT /api/admin/labs/:id/approve
 // ========== @access  Private/Admin
 router.put('/labs/:id/approve', protect, admin, async (req, res) => {
@@ -759,38 +752,30 @@ router.put('/facilities/:type/:id/change-owner', protect, admin, async (req, res
 // ===== TOGGLE APPOINTMENTS FOR HOSPITAL =====
 router.put('/hospitals/:id/toggle-appointments', protect, admin, async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.params.id);
+    const { appointmentsEnabled } = req.body;
     
+    const hospital = await Hospital.findByIdAndUpdate(
+      req.params.id,
+      { appointmentsEnabled },
+      { new: true }
+    );
+
     if (!hospital) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Hospital not found' 
-      });
-    }
-    
-    if (!hospital.owner) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cannot enable appointments - no owner assigned' 
+      return res.status(404).json({
+        success: false,
+        message: 'Hospital not found'
       });
     }
 
-    // Toggle
-    hospital.appointmentsEnabled = !hospital.appointmentsEnabled;
-    await hospital.save();
-    
-    console.log('✅ Appointments', hospital.appointmentsEnabled ? 'enabled' : 'disabled', 'for:', hospital.name);
-    
     res.status(200).json({
       success: true,
-      message: `Appointments ${hospital.appointmentsEnabled ? 'enabled' : 'disabled'}`,
+      message: `Appointments ${appointmentsEnabled ? 'enabled' : 'disabled'}`,
       data: hospital
     });
   } catch (error) {
-    console.error('❌ Toggle appointments error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 });
@@ -1358,6 +1343,5 @@ router.post('/remove-owner', protect, admin, async (req, res) => {
     });
   }
 });
-
 
 module.exports = router;
