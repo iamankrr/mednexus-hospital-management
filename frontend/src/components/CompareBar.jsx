@@ -5,18 +5,26 @@ import { useComparison } from '../context/ComparisonContext';
 
 const CompareBar = () => {
   const navigate = useNavigate();
-  const { compareList, compareType, removeFromCompare, clearCompare } = useComparison();
+  const { compareList, removeFromCompare, clearCompare } = useComparison();
 
-  // Don't show if empty
   if (!compareList || compareList.length === 0) return null;
 
   const getItemId = (item) => item._id || item.id || null;
 
-  const handleCompareNow = () => {
-    console.log('Compare Now clicked!');
-    console.log('compareList:', compareList);
-    console.log('compareType:', compareType);
+  // ✅ SUPER SMART TYPE CHECKER
+  const isLabItem = (item) => {
+    const name = (item.name || '').toLowerCase();
+    const type = (item.type || '').toLowerCase();
+    return name.includes('lab') || name.includes('diagnostic') || name.includes('path') ||
+           type.includes('lab') || type.includes('diagnostic') ||
+           item.homeCollection !== undefined; // Labs always have homeCollection field
+  };
+  
+  const isLab = compareList.length > 0 && isLabItem(compareList[0]);
+  const displayType = isLab ? 'Labs' : 'Hospitals';
+  const navType = isLab ? 'laboratory' : 'hospital';
 
+  const handleCompareNow = () => {
     if (compareList.length < 2) {
       alert('Please add at least 2 items to compare!');
       return;
@@ -25,7 +33,7 @@ const CompareBar = () => {
     navigate('/compare', {
       state: {
         items: compareList,
-        type: compareType || 'hospital'
+        type: navType
       }
     });
   };
@@ -36,14 +44,13 @@ const CompareBar = () => {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
 
-            {/* Left: Icon + Title */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <div className="bg-white text-orange-600 p-2 rounded-full">
                 <FaBalanceScale className="text-xl" />
               </div>
               <div className="hidden md:block">
                 <p className="font-bold text-sm">
-                  Compare {compareType === 'hospital' ? 'Hospitals' : 'Labs'}
+                  Compare {displayType}
                 </p>
                 <p className="text-xs text-orange-100">
                   {compareList.length}/3 selected
@@ -51,7 +58,6 @@ const CompareBar = () => {
               </div>
             </div>
 
-            {/* Middle: Selected Items */}
             <div className="flex items-center gap-2 flex-1 overflow-x-auto py-1">
               {compareList.map((item, index) => {
                 const itemId = getItemId(item);
@@ -73,7 +79,6 @@ const CompareBar = () => {
                 );
               })}
 
-              {/* Empty slots */}
               {compareList.length < 2 && (
                 <div className="flex items-center gap-2 border-2 border-dashed border-white border-opacity-40 px-3 py-2 rounded-lg whitespace-nowrap flex-shrink-0">
                   <span className="text-sm text-orange-100">
@@ -83,7 +88,6 @@ const CompareBar = () => {
               )}
             </div>
 
-            {/* Right: Buttons */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={clearCompare}

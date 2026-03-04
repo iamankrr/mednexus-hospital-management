@@ -7,7 +7,8 @@ const { protect } = require('../middleware/authMiddleware');
 // GET /api/labs - Get all labs with location-based sorting
 router.get('/', async (req, res) => {
   try {
-    const { latitude, longitude, city, type, state, pincode, lat, lng, maxDistance = 50 } = req.query;
+    // 🔥 FIX: Removed default maxDistance=50 parameter
+    const { latitude, longitude, city, type, state, pincode, lat, lng, maxDistance } = req.query;
     console.log('📍 Lab request params:', { latitude, longitude, city, type, maxDistance });
 
     // Support both naming conventions (lat/lng vs latitude/longitude)
@@ -63,9 +64,11 @@ router.get('/', async (req, res) => {
         return lab;
       });
 
-      // Filter by max distance
-      const maxDistanceKm = parseFloat(maxDistance);
-      labs = labs.filter(l => !l.distance || l.distance <= maxDistanceKm);
+      // 🔥 FIX: Only filter by distance IF maxDistance was explicitly provided in the query
+      if (maxDistance) {
+        const maxDistanceKm = parseFloat(maxDistance);
+        labs = labs.filter(l => !l.distance || l.distance <= maxDistanceKm);
+      }
 
       // Sort by distance (nearest first)
       labs.sort((a, b) => {

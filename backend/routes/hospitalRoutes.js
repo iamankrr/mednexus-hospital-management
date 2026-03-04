@@ -14,7 +14,8 @@ const {
 // GET /api/hospitals - Get all hospitals with location-based sorting
 router.get('/', async (req, res) => {
   try {
-    const { latitude, longitude, city, type, maxDistance = 50 } = req.query;
+    // 🔥 FIX: Removed default maxDistance=50 parameter
+    const { latitude, longitude, city, type, maxDistance } = req.query;
     console.log('📍 Request params:', { latitude, longitude, city, type, maxDistance });
     
     let query = { isActive: true };
@@ -64,11 +65,13 @@ router.get('/', async (req, res) => {
         return hospital;
       });
       
-      // Filter by max distance
-      const maxDistanceKm = parseFloat(maxDistance);
-      hospitals = hospitals.filter(h => 
-        !h.distance || h.distance <= maxDistanceKm
-      );
+      // 🔥 FIX: Only filter by distance IF maxDistance was explicitly provided in the query
+      if (maxDistance) {
+        const maxDistanceKm = parseFloat(maxDistance);
+        hospitals = hospitals.filter(h => 
+          !h.distance || h.distance <= maxDistanceKm
+        );
+      }
       
       // Sort by distance (nearest first)
       hospitals.sort((a, b) => {

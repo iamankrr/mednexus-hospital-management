@@ -18,7 +18,9 @@ const { searchPlaces, getPlaceDetails } = require('../services/googlePlaces');
 // ========== @access  Private/Admin
 router.get('/hospitals', protect, admin, async (req, res) => {
   try {
-    const hospitals = await Hospital.find().sort({ createdAt: -1 });
+    const hospitals = await Hospital.find()
+    .populate('owner', 'name email phone')
+    .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -38,7 +40,9 @@ router.get('/hospitals', protect, admin, async (req, res) => {
 // ========== @access  Private/Admin
 router.get('/labs', protect, admin, async (req, res) => {
   try {
-    const labs = await Laboratory.find().sort({ createdAt: -1 });
+    const labs = await Laboratory.find()
+    .populate('owner', 'name email phone')
+    .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,

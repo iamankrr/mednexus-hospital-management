@@ -14,6 +14,7 @@ import {
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import API_URL from '../../config/api';
+import toast from 'react-hot-toast';
 
 const ManageHospitals = () => {
   const navigate = useNavigate();
@@ -26,7 +27,15 @@ const ManageHospitals = () => {
     isOpen: false,
     hospital: null,
     owner: null,
-    availableOwners: []
+    mode: 'view' // 'view', 'list', 'create'
+  });
+
+  // State for new owner form
+  const [newOwnerData, setNewOwnerData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: ''
   });
 
   useEffect(() => {
@@ -38,7 +47,7 @@ const ManageHospitals = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      const response = await axios.get(`${API_URL}/api/hospitals`, {
+      const response = await axios.get(`${API_URL}/api/admin/hospitals`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -46,6 +55,7 @@ const ManageHospitals = () => {
       setHospitals(response.data.data || []);
     } catch (error) {
       console.error('❌ Fetch error:', error);
+      toast.error('Failed to load hospitals');
     } finally {
       setLoading(false);
     }
@@ -56,7 +66,7 @@ const ManageHospitals = () => {
       const token = localStorage.getItem('token');
       
       await axios.put(
-        `${API_URL}/api/hospitals/${hospitalId}`,
+        `${API_URL}/api/admin/hospitals/${hospitalId}/toggle-appointments`,
         { appointmentsEnabled: !currentStatus },
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -71,61 +81,58 @@ const ManageHospitals = () => {
         )
       );
 
-      alert(`✅ Appointments ${!currentStatus ? 'enabled' : 'disabled'}`);
+      toast.success(`Appointments ${!currentStatus ? 'enabled' : 'disabled'}`);
       
     } catch (error) {
       console.error('❌ Toggle error:', error);
-      alert('Failed to toggle appointments');
+      toast.error('Failed to toggle appointments');
     }
   };
 
-  // ✅ NEW: Open Owner Modal
-  const openOwnerModal = async (hospital) => {
-    try {
-      const token = localStorage.getItem('token');
-
-      // Fetch available owners
-      const ownersResponse = await axios.get(`${API_URL}/api/admin/owners/available`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      setOwnerModal({
-        isOpen: true,
-        hospital: hospital,
-        owner: hospital.owner || null,
-        availableOwners: ownersResponse.data.data || []
-      });
-
-    } catch (error) {
-      console.error('❌ Fetch owners error:', error);
-      alert('Failed to load owner information');
-    }
+  const openOwnerModal = (hospital) => {
+    setOwnerModal({
+      isOpen: true,
+      hospital: hospital,
+      owner: hospital.owner || null,
+      mode: hospital.owner ? 'view' : 'create' // Default to 'create' if no owner
+    });
+    setNewOwnerData({ name: '', email: '', phone: '', password: '' });
   };
 
-  // ✅ NEW: Assign Owner
-  const handleAssignOwner = async (ownerId) => {
+  // ✅ CREATE NEW OWNER & ASSIGN
+  const handleCreateAndAssignOwner = async (e) => {
+    e.preventDefault();
     try {
       const token = localStorage.getItem('token');
+      
+      if (!newOwnerData.name || !newOwnerData.email || !newOwnerData.phone || !newOwnerData.password) {
+        toast.error('Please fill all owner details');
+        return;
+      }
 
-      await axios.put(
-        `${API_URL}/api/admin/hospitals/${ownerModal.hospital._id}/assign-owner`,
-        { ownerId },
+      // Use the existing admin assignment route
+      await axios.post(
+        `${API_URL}/api/admin/assign-owner`,
+        { 
+          facilityId: ownerModal.hospital._id,
+          facilityType: 'hospital',
+          ownerData: newOwnerData
+        },
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
 
-      alert('✅ Owner assigned successfully');
+      toast.success('Owner created and assigned successfully!');
       setOwnerModal({ ...ownerModal, isOpen: false });
       fetchHospitals();
 
     } catch (error) {
-      console.error('❌ Assign owner error:', error);
-      alert(error.response?.data?.message || 'Failed to assign owner');
+      console.error('❌ Create owner error:', error);
+      toast.error(error.response?.data?.message || 'Failed to create owner');
     }
   };
 
-  // ✅ NEW: Remove Owner
   const handleRemoveOwner = async () => {
     if (!window.confirm('Are you sure you want to remove this owner?')) {
       return;
@@ -142,13 +149,13 @@ const ManageHospitals = () => {
         }
       );
 
-      alert('✅ Owner removed successfully');
+      toast.success('Owner removed successfully');
       setOwnerModal({ ...ownerModal, isOpen: false });
       fetchHospitals();
 
     } catch (error) {
       console.error('❌ Remove owner error:', error);
-      alert('Failed to remove owner');
+      toast.error('Failed to remove owner');
     }
   };
 
@@ -160,15 +167,15 @@ const ManageHospitals = () => {
     try {
       const token = localStorage.getItem('token');
       
-      await axios.delete(`${API_URL}/api/hospitals/${hospitalId}`, {
+      await axios.delete(`${API_URL}/api/admin/hospitals/${hospitalId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      alert('✅ Hospital deleted successfully');
+      toast.success('Hospital deleted successfully');
       fetchHospitals();
     } catch (error) {
       console.error('❌ Delete error:', error);
-      alert('Failed to delete hospital');
+      toast.error('Failed to delete hospital');
     }
   };
 
@@ -317,13 +324,13 @@ const ManageHospitals = () => {
                     </div>
                   )}
 
-                  {/* Owner Management - NEW */}
+                  {/* Owner Management */}
                   <button
                     onClick={() => openOwnerModal(hospital)}
                     className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition flex items-center gap-2"
                   >
                     <FaUser />
-                    {hospital.owner ? 'Manage Owner' : 'Assign Owner'}
+                    {hospital.owner ? 'Manage Owner' : 'Add Owner'}
                   </button>
 
                   {/* View */}
@@ -382,8 +389,8 @@ const ManageHospitals = () => {
                 <p className="text-gray-600">{ownerModal.hospital?.name}</p>
               </div>
 
-              {/* Current Owner */}
-              {ownerModal.owner ? (
+              {/* View Current Owner */}
+              {ownerModal.mode === 'view' && ownerModal.owner && (
                 <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
                   <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center gap-2">
                     <FaUser /> Current Owner
@@ -415,43 +422,68 @@ const ManageHospitals = () => {
                     Remove Owner
                   </button>
                 </div>
-              ) : (
-                <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
-                  <p className="text-orange-700">No owner assigned to this hospital</p>
+              )}
+
+              {/* Add New Owner Form */}
+              {ownerModal.mode === 'create' && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-700 mb-4">Add New Owner</h3>
+                  <form onSubmit={handleCreateAndAssignOwner} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Owner Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full p-2 border rounded-lg"
+                        placeholder="John Doe"
+                        value={newOwnerData.name}
+                        onChange={(e) => setNewOwnerData({...newOwnerData, name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <input 
+                        type="email" 
+                        required
+                        className="w-full p-2 border rounded-lg"
+                        placeholder="owner@hospital.com"
+                        value={newOwnerData.email}
+                        onChange={(e) => setNewOwnerData({...newOwnerData, email: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                      <input 
+                        type="tel" 
+                        required
+                        className="w-full p-2 border rounded-lg"
+                        placeholder="9876543210"
+                        value={newOwnerData.phone}
+                        onChange={(e) => setNewOwnerData({...newOwnerData, phone: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                      <input 
+                        type="password" 
+                        required
+                        className="w-full p-2 border rounded-lg"
+                        placeholder="Set owner password"
+                        value={newOwnerData.password}
+                        onChange={(e) => setNewOwnerData({...newOwnerData, password: e.target.value})}
+                      />
+                    </div>
+                    
+                    <button 
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition mt-4"
+                    >
+                      Create & Assign Owner
+                    </button>
+                  </form>
                 </div>
               )}
 
-              {/* Available Owners */}
-              <div>
-                <h3 className="text-lg font-bold text-gray-700 mb-3">
-                  {ownerModal.owner ? 'Change Owner' : 'Assign Owner'}
-                </h3>
-
-                {ownerModal.availableOwners.length > 0 ? (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {ownerModal.availableOwners.map(owner => (
-                      <button
-                        key={owner._id}
-                        onClick={() => handleAssignOwner(owner._id)}
-                        className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-xl text-left transition border border-gray-200 hover:border-blue-300"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{owner.name}</p>
-                            <p className="text-sm text-gray-600">{owner.email}</p>
-                            {owner.phone && (
-                              <p className="text-sm text-gray-600">{owner.phone}</p>
-                            )}
-                          </div>
-                          <FaUser className="text-blue-600" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No available owners found</p>
-                )}
-              </div>
             </div>
           </div>
         </div>
