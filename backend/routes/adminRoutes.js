@@ -19,8 +19,8 @@ const { searchPlaces, getPlaceDetails } = require('../services/googlePlaces');
 router.get('/hospitals', protect, admin, async (req, res) => {
   try {
     const hospitals = await Hospital.find()
-    .populate('owner', 'name email phone')
-    .sort({ createdAt: -1 });
+      .populate('owner', 'name email phone')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -41,8 +41,8 @@ router.get('/hospitals', protect, admin, async (req, res) => {
 router.get('/labs', protect, admin, async (req, res) => {
   try {
     const labs = await Laboratory.find()
-    .populate('owner', 'name email phone')
-    .sort({ createdAt: -1 });
+      .populate('owner', 'name email phone')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -54,6 +54,62 @@ router.get('/labs', protect, admin, async (req, res) => {
       success: false,
       message: error.message
     });
+  }
+});
+
+// ========== @desc    Delete Hospital (Admin) ✅ FIX: ADDED MISSING ROUTE
+// ========== @route   DELETE /api/admin/hospitals/:id
+// ========== @access  Private/Admin
+router.delete('/hospitals/:id', protect, admin, async (req, res) => {
+  try {
+    const hospital = await Hospital.findById(req.params.id);
+    if (!hospital) {
+      return res.status(404).json({ success: false, message: 'Hospital not found' });
+    }
+
+    // If hospital has an owner, unlink them
+    if (hospital.owner) {
+      await User.findByIdAndUpdate(hospital.owner, {
+        'ownerProfile.facilityType': null,
+        'ownerProfile.facilityId': null
+      });
+    }
+
+    await hospital.deleteOne();
+    
+    console.log(`✅ Hospital deleted: ${hospital.name}`);
+    res.status(200).json({ success: true, message: 'Hospital deleted successfully' });
+  } catch (error) {
+    console.error('❌ Delete hospital error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ========== @desc    Delete Lab (Admin) ✅ FIX: ADDED MISSING ROUTE
+// ========== @route   DELETE /api/admin/labs/:id
+// ========== @access  Private/Admin
+router.delete('/labs/:id', protect, admin, async (req, res) => {
+  try {
+    const lab = await Laboratory.findById(req.params.id);
+    if (!lab) {
+      return res.status(404).json({ success: false, message: 'Laboratory not found' });
+    }
+
+    // If lab has an owner, unlink them
+    if (lab.owner) {
+      await User.findByIdAndUpdate(lab.owner, {
+        'ownerProfile.facilityType': null,
+        'ownerProfile.facilityId': null
+      });
+    }
+
+    await lab.deleteOne();
+    
+    console.log(`✅ Laboratory deleted: ${lab.name}`);
+    res.status(200).json({ success: true, message: 'Laboratory deleted successfully' });
+  } catch (error) {
+    console.error('❌ Delete lab error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
