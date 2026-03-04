@@ -41,7 +41,7 @@ const AddHospital = () => {
   const [formData, setFormData] = useState({
     name: '',
     category: 'private', // government, public, private, charity
-    type: 'general',
+    type: 'General Hospital',
     googlePlaceId: '',
     address: {
       street: '',
@@ -82,7 +82,7 @@ const AddHospital = () => {
       saturday: '9:00 AM - 2:00 PM',
       sunday: 'Closed'
     },
-    emergencyAvailable: true, // Set to true by default based on second code
+    emergencyAvailable: true, 
     isActive: true
   });
 
@@ -143,14 +143,6 @@ const AddHospital = () => {
     { value: 'public', label: '🏥 Public' },
     { value: 'private', label: '💼 Private' },
     { value: 'charity', label: '❤️ Charity/NGO' }
-  ];
-
-  // Hospital types (16 types)
-  const hospitalTypes = [
-    'general', 'dental', 'eye', 'maternity', 'children', 
-    'orthopedic', 'cardiac', 'cancer', 'neuro', 'ent',
-    'dermatology', 'psychiatry', 'rehabilitation', 'veterinary',
-    'ayurvedic', 'homeopathic'
   ];
 
   // Common facilities
@@ -494,19 +486,38 @@ const AddHospital = () => {
               </div>
             </div>
 
-            {/* Type */}
+            {/* ======================= EXPLICIT TYPE SECTION ======================= */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Hospital Type *</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 capitalize"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+                required
               >
-                {hospitalTypes.map(type => (
-                  <option key={type} value={type} className="capitalize">{type}</option>
-                ))}
+                <option value="">Select Type</option>
+                <option value="General Hospital">General Hospital</option>
+                <option value="Multi Specialty Hospital">Multi Specialty Hospital</option>
+                <option value="Super Specialty Hospital">Super Specialty Hospital</option>
+                <option value="Government Hospital">Government Hospital</option>
+                <option value="Dental Hospital">Dental Hospital</option>
+                <option value="Eye Hospital">Eye Hospital</option>
+                <option value="Maternity Hospital">Maternity Hospital</option>
+                <option value="Children Hospital">Children Hospital</option>
+                <option value="Orthopedic Hospital">Orthopedic Hospital</option>
+                <option value="Cardiac Hospital">Cardiac Hospital</option>
+                <option value="Cancer Hospital">Cancer Hospital</option>
+                <option value="Neuro Hospital">Neuro Hospital</option>
+                <option value="Ent Hospital">Ent Hospital</option>
+                <option value="Dermatology Hospital">Dermatology Hospital</option>
+                <option value="Psychiatry Hospital">Psychiatry Hospital</option>
+                <option value="Rehabilitation Hospital">Rehabilitation Hospital</option>
+                <option value="Veterinary Hospital">Veterinary Hospital</option>
+                <option value="Ayurvedic Hospital">Ayurvedic Hospital</option>
+                <option value="Homeopathic Hospital">Homeopathic Hospital</option>
               </select>
             </div>
+            {/* =================================================================== */}
 
             {/* Name (pre-filled from Google) */}
             <div>

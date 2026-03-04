@@ -3,33 +3,40 @@ const mongoose = require('mongoose');
 const hospitalSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'Please provide hospital name'],
     trim: true
   },
   type: {
     type: String,
-    required: true,
-    enum: [
-      'General Hospital',
-      'Specialty Hospital',
-      'Super Specialty Hospital',
-      'Multi Specialty Hospital',
-      'Cardiac Hospital',
-      'Cancer Hospital',
-      'Eye Hospital',
-      'Orthopedic Hospital',
-      'Pediatric Hospital',
-      'Maternity Hospital',
-      'Dental Hospital',
-      'ENT Hospital',
-      'Rehabilitation Hospital',
-      'Psychiatric Hospital',
-      'Government Hospital'
-    ]
+    required: [true, 'Please provide hospital type'],
+    enum: {
+      values: [
+        'General Hospital',
+        'Dental Hospital',
+        'Eye Hospital',
+        'Maternity Hospital',
+        'Children Hospital',
+        'Orthopedic Hospital',
+        'Cardiac Hospital',
+        'Cancer Hospital',
+        'Neuro Hospital',
+        'Ent Hospital',
+        'Dermatology Hospital',
+        'Psychiatry Hospital',
+        'Rehabilitation Hospital',
+        'Veterinary Hospital',
+        'Ayurvedic Hospital',
+        'Homeopathic Hospital',
+        'Government Hospital',
+        'Multi Specialty Hospital',
+        'Super Specialty Hospital'
+      ],
+      message: '{VALUE} is not a valid hospital type'
+    }
   },
   category: {
     type: String,
-    enum: ['government', 'public', 'private', 'charity'],
+    enum: ['private', 'government', 'charity', 'public'],
     default: 'private'
   },
   description: {
@@ -67,12 +74,16 @@ const hospitalSchema = new mongoose.Schema({
   email: {
     type: String,
     required: false
-    // REMOVED: unique: true
   },
   website: String,
   operatingHours: {
-    open: String,
-    close: String
+    monday: { type: String, default: '9:00 AM - 6:00 PM' },
+    tuesday: { type: String, default: '9:00 AM - 6:00 PM' },
+    wednesday: { type: String, default: '9:00 AM - 6:00 PM' },
+    thursday: { type: String, default: '9:00 AM - 6:00 PM' },
+    friday: { type: String, default: '9:00 AM - 6:00 PM' },
+    saturday: { type: String, default: '9:00 AM - 2:00 PM' },
+    sunday: { type: String, default: 'Closed' }
   },
   emergencyAvailable: {
     type: Boolean,
@@ -111,7 +122,6 @@ const hospitalSchema = new mongoose.Schema({
     type: Date,
     required: false
   },
-  // NEW FIELDS - ALL SIMPLE STRING ARRAYS
   tests: [{ type: String }],
   treatments: [{ type: String }],
   surgeries: [{ type: String }],
