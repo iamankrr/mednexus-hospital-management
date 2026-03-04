@@ -202,7 +202,6 @@ const ManageHospitals = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
