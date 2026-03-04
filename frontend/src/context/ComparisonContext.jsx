@@ -1,88 +1,97 @@
 import React, { createContext, useState, useContext } from 'react';
-import toast from 'react-hot-toast'; // ✅ IMPORT TOAST HERE
+import toast from 'react-hot-toast';
 
 const ComparisonContext = createContext();
 
 export const ComparisonProvider = ({ children }) => {
-  const [compareList, setCompareList] = useState([]);
+  const [comparisonList, setComparisonList] = useState([]);
   const [compareType, setCompareType] = useState(null);
 
-  // Get consistent ID from item
+  // Get consistent ID from item (handles both _id and id)
   const getItemId = (item) => {
     return item._id || item.id || null;
   };
 
-  const addToCompare = (item, type) => {
-    const itemId = getItemId(item);
+  const isInComparison = (itemId) => {
+    // Also handles passing a full object instead of just an ID
+    const idToCheck = typeof itemId === 'object' ? getItemId(itemId) : itemId;
+    return comparisonList.some((i) => getItemId(i) === idToCheck);
+  };
 
-    if (!itemId) {
-      console.error('Item has no ID:', item);
+  const addToComparison = (facility, type = 'facility') => {
+    const facilityId = getItemId(facility);
+
+    if (!facilityId) {
+      console.error('Facility has no ID:', facility);
       return false;
     }
 
     // Check max limit
-    if (compareList.length >= 3) {
-      toast.error('Maximum 3 items can be compared at once!'); // ✅ CHANGED TO TOAST
+    if (comparisonList.length >= 3) {
+      toast.error('⚠️ You can only compare up to 3 facilities at once!');
       return false;
     }
 
-    // Check same type
+    // Check same type (Prevents comparing a hospital with a lab)
     if (compareType && compareType !== type) {
-      toast.error(`You can only compare ${compareType}s together! Clear current list first.`); // ✅ CHANGED TO TOAST
+      toast.error(`You can only compare ${compareType}s together! Clear current list first.`);
       return false;
     }
 
-    // Check already added - using consistent ID check
-    const alreadyAdded = compareList.find((i) => {
-      const existingId = getItemId(i);
-      return existingId === itemId;
-    });
-
-    if (alreadyAdded) {
-      toast.error(`${item.name} is already in comparison list!`); // ✅ CHANGED TO TOAST
+    // Check if already added
+    if (isInComparison(facilityId)) {
+      toast.error(`${facility.name} is already in comparison list!`);
       return false;
     }
 
-    // Add item with normalized _id
-    const normalizedItem = { ...item, _id: itemId };
-    setCompareList((prev) => [...prev, normalizedItem]);
+    // Add facility with normalized _id
+    const normalizedFacility = { ...facility, _id: facilityId };
+    setComparisonList((prev) => [...prev, normalizedFacility]);
     setCompareType(type);
 
-    console.log('✅ Added to compare:', item.name, 'ID:', itemId);
-    console.log('Current list:', [...compareList, normalizedItem].map(i => i.name));
+    console.log('✅ Added to compare:', facility.name, 'ID:', facilityId);
+    toast.success('✅ Added to comparison');
     return true;
   };
 
-  const removeFromCompare = (itemId) => {
-    console.log('Removing item:', itemId);
-    const updated = compareList.filter((i) => {
-      const id = getItemId(i);
-      return id !== itemId;
-    });
-    setCompareList(updated);
+  const removeFromComparison = (facilityId) => {
+    const idToRemove = typeof facilityId === 'object' ? getItemId(facilityId) : facilityId;
+    console.log('Removing facility:', idToRemove);
+    
+    const updated = comparisonList.filter((f) => getItemId(f) !== idToRemove);
+    setComparisonList(updated);
+    
     if (updated.length === 0) {
       setCompareType(null);
     }
+    
+    toast.success('✅ Removed from comparison');
   };
 
-  const clearCompare = () => {
-    setCompareList([]);
+  const clearComparison = () => {
+    setComparisonList([]);
     setCompareType(null);
-  };
-
-  const isInCompare = (itemId) => {
-    return compareList.some((i) => getItemId(i) === itemId);
   };
 
   return (
     <ComparisonContext.Provider
       value={{
-        compareList,
+        // ✅ NEW REQUESTED NAMES
+        comparisonList,
+        addToComparison,
+        removeFromComparison,
+        isInComparison,
+        clearComparison,
+        
+        // ✅ ALIASES FOR BACKWARD COMPATIBILITY
+        // (Ensures existing components like HospitalCard don't break)
+        compareList: comparisonList,
+        addToCompare: addToComparison,
+        removeFromCompare: removeFromComparison,
+        clearCompare: clearComparison,
+        
+        // Extra utility states
         compareType,
-        addToCompare,
-        removeFromCompare,
-        clearCompare,
-        isInCompare,
         getItemId
       }}
     >

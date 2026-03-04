@@ -14,8 +14,19 @@ import { useComparison } from '../context/ComparisonContext';
 
 const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
-  const { addToComparison, removeFromComparison, isInComparison } = useComparison();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // ✅ SAFE COMPARISON CONTEXT - WITH FALLBACK
+  let comparison = null;
+  try {
+    comparison = useComparison();
+  } catch (error) {
+    console.warn('Comparison context not available');
+  }
+
+  const addToComparison = comparison?.addToComparison || (() => {});
+  const removeFromComparison = comparison?.removeFromComparison || (() => {});
+  const isInComparison = comparison?.isInComparison || (() => false);
 
   const handlePrevImage = (e) => {
     e.stopPropagation();
@@ -111,9 +122,9 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onFavoriteToggle(hospital._id);
+            onFavoriteToggle?.(hospital._id);
           }}
-          className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform"
+          className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
         >
           <FaHeart 
             className={`text-lg ${
@@ -183,24 +194,28 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
             View Details
           </button>
 
-          {/* Compare */}
-          <button
-            onClick={handleCompareToggle}
-            className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${
-              isInComparison(hospital._id)
-                ? 'bg-orange-600 text-white hover:bg-orange-700'
-                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-            }`}
-          >
-            <FaExchangeAlt className="text-sm" />
-            <span className="text-xs">Compare</span>
-          </button>
+          {/* Compare - Only show if comparison context available */}
+          {comparison && (
+            <button
+              onClick={handleCompareToggle}
+              className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${
+                isInComparison(hospital._id)
+                  ? 'bg-orange-600 text-white hover:bg-orange-700'
+                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              <FaExchangeAlt className="text-sm" />
+              <span className="text-xs">Compare</span>
+            </button>
+          )}
 
           {/* Call */}
           <button
             onClick={handleCall}
             disabled={!hospital.phone}
-            className="flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${
+              comparison ? '' : 'col-span-1'
+            }`}
           >
             <FaPhone className="text-sm" />
             <span className="text-xs">Call</span>
@@ -212,10 +227,17 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
               e.stopPropagation();
               const coords = hospital.location?.coordinates;
               if (coords) {
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`, '_blank');
+                // Note: coordinates are usually [longitude, latitude] in MongoDB GeoJSON
+                window.open(`https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[0]}`, '_blank');
+              } else if (hospital.address) {
+                // Fallback to address search if coords are missing
+                const query = `${hospital.name}, ${hospital.address.area}, ${hospital.address.city}`.replace(/ /g, '+');
+                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
               }
             }}
-            className="flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition"
+            className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${
+              comparison ? '' : 'col-span-2'
+            }`}
           >
             <FaMapMarkerAlt className="text-sm" />
             <span className="text-xs">Map</span>
