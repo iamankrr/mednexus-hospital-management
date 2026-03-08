@@ -12,7 +12,7 @@ import {
   FaFilter, FaHeart, FaListUl, FaMap, FaExchangeAlt 
 } from 'react-icons/fa'; 
 import { useLocation } from '../context/LocationContext';
-import { useComparison } from '../context/ComparisonContext'; // ✅ IMPORTED
+import { useComparison } from '../context/ComparisonContext'; 
 import CompareBar from '../components/CompareBar';
 import AdvancedFilterPanel from '../components/AdvancedFilterPanel';
 import KeywordSearch from '../components/KeywordSearch';
@@ -22,7 +22,7 @@ import toast from 'react-hot-toast';
 const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
-  const { comparisonList, compareType } = useComparison(); // ✅ EXTRACTED
+  const { comparisonList, compareType } = useComparison(); 
   
   const [viewMode, setViewMode] = useState('list');
 
@@ -132,16 +132,7 @@ const Home = () => {
     applyFilters();
   }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
 
-  useEffect(() => {
-    const loadingTimeout = setTimeout(() => {
-      if (loading) {
-        console.log('⏰ Loading timeout - forcing stop');
-        setLoading(false);
-      }
-    }, 5000);
-
-    return () => clearTimeout(loadingTimeout);
-  }, [loading]);
+  // 🔥 YAHAN SE TIMEOUT REMOVE KAR DIYA HAI TAALI SKELETON PROPER KAAM KARE 🔥
 
   const fetchFavorites = async () => {
     try {
@@ -159,7 +150,6 @@ const Home = () => {
       setLoading(true);
       const params = {};
       
-      // ✅ FIX: ALWAYS send location if available so backend calculates distance
       if (userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
@@ -181,9 +171,6 @@ const Home = () => {
       
       const dataArray = response.data.data || [];
       console.log('✅ Response:', dataArray.length, 'hospitals');
-      if (dataArray.length > 0) {
-        console.log('📊 First hospital data:', dataArray[0]); // Check if distance exists
-      }
       
       const normalizedHospitals = dataArray.map(hospital => ({
         ...hospital, id: hospital._id || hospital.id
@@ -196,7 +183,7 @@ const Home = () => {
       console.error('❌ Fetch hospitals error:', error);
       setHospitals([]);
     } finally {
-      setLoading(false);
+      setLoading(false); // 🔥 DATA AANE KE BAAD YAHAN LOADING FALSE HOGI
     }
   };
 
@@ -205,7 +192,6 @@ const Home = () => {
       setLoading(true);
       const params = {};
       
-      // ✅ FIX: ALWAYS send location if available so backend calculates distance
       if (userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
@@ -236,7 +222,7 @@ const Home = () => {
       console.error('❌ Fetch labs error:', error);
       setLabs([]);
     } finally {
-      setLoading(false);
+      setLoading(false); // 🔥 DATA AANE KE BAAD YAHAN LOADING FALSE HOGI
     }
   };
 
@@ -412,7 +398,6 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col relative pb-20 md:pb-0">
       
-      {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-10">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
@@ -458,7 +443,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
         
         <div className="sticky top-0 z-40 bg-gray-50/95 backdrop-blur-md pt-2 pb-4 mb-6 border-b border-gray-200/50 shadow-sm -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -652,7 +636,6 @@ const Home = () => {
         )}
       </div>
 
-      {/* ✅ NEW: Floating Compare Button - Mobile Only */}
       {comparisonList?.length > 0 && (
         <button
           onClick={() => {

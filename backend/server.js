@@ -10,19 +10,19 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { startSchedulers } = require('./services/scheduler'); 
+const http = require('http'); // 🔥 ADDED FOR PING
+const https = require('https'); // 🔥 ADDED FOR PING
 
 // ========== Initialize Express App ==========
 const app = express();
 
 // ========== Connect Database ==========
-// Connect to DB and then start schedulers
 connectDB().then(() => {
   console.log('⏰ Starting Schedulers...');
   startSchedulers();
 });
 
 // ========== Middleware ==========
-// ✅ UPDATED CORS CONFIGURATION
 const corsOptions = {
   origin: [
     'http://localhost:5173',
@@ -30,7 +30,7 @@ const corsOptions = {
     'http://localhost:5175',
     'http://localhost:3000',
     'https://mednexus-hospital-management.vercel.app',
-    /\.vercel\.app$/ // ✅ Allow all Vercel preview URLs dynamically
+    /\.vercel\.app$/ 
   ],
   credentials: true,
   optionsSuccessStatus: 200
@@ -135,10 +135,21 @@ app.listen(PORT, () => {
   console.log(`\n🚀 Server is running on port ${PORT}`);
   console.log(`📍 http://localhost:${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+  
+  // 🔥 ANTI-SLEEP PING LOGIC 🔥
+  const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`; 
+  
+  setInterval(() => {
+    const protocol = BACKEND_URL.startsWith('https') ? https : http;
+    protocol.get(`${BACKEND_URL}/api/health`, (res) => {
+      console.log(`⏰ Anti-Sleep Ping: Server is awake! (Status: ${res.statusCode})`);
+    }).on('error', (err) => {
+      console.error(`❌ Anti-Sleep Ping failed:`, err.message);
+    });
+  }, 14 * 60 * 1000); // Har 14 minute mein ping karega
+  
   console.log(`\n📚 Available Routes:`);
   console.log(`   GET    http://localhost:${PORT}/api/hospitals`);
   console.log(`   GET    http://localhost:${PORT}/api/tests`);
-  console.log(`   POST   http://localhost:${PORT}/api/users/register`);
-  console.log(`   POST   http://localhost:${PORT}/api/users/login`);
   console.log(`✅ Ready to accept requests!\n`);
 });
