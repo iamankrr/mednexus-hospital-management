@@ -132,8 +132,6 @@ const Home = () => {
     applyFilters();
   }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
 
-  // 🔥 YAHAN SE TIMEOUT REMOVE KAR DIYA HAI TAALI SKELETON PROPER KAAM KARE 🔥
-
   const fetchFavorites = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -183,7 +181,7 @@ const Home = () => {
       console.error('❌ Fetch hospitals error:', error);
       setHospitals([]);
     } finally {
-      setLoading(false); // 🔥 DATA AANE KE BAAD YAHAN LOADING FALSE HOGI
+      setLoading(false); 
     }
   };
 
@@ -222,7 +220,7 @@ const Home = () => {
       console.error('❌ Fetch labs error:', error);
       setLabs([]);
     } finally {
-      setLoading(false); // 🔥 DATA AANE KE BAAD YAHAN LOADING FALSE HOGI
+      setLoading(false); 
     }
   };
 
@@ -418,17 +416,22 @@ const Home = () => {
               <p className="text-2xl font-bold">{labs.length}</p>
               <p className="text-sm text-blue-100">Diagnostic Labs</p>
             </div>
-            <div className="flex items-center gap-2">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/320px-Flag_of_India.svg.png" 
-                alt="India" 
-                className="h-6 w-8 object-cover rounded"
-              />
-              <div>
-                <p className="text-2xl font-bold">Covered</p>
-                <p className="text-sm text-blue-100">Pan-India</p>
+            
+            {/* 🔥 NEW PREMIUM LIVE STATUS BADGE 🔥 */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex items-center justify-center h-12 w-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-xl">
+                <span className="text-2xl drop-shadow-md">🇮🇳</span>
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-blue-600"></span>
+                </span>
+              </div>
+              <div className="text-left">
+                <p className="text-2xl font-extrabold tracking-tight drop-shadow-sm">Pan-India</p>
+                <p className="text-sm text-blue-100 font-medium">100% Active Coverage</p>
               </div>
             </div>
+
           </div>
 
           <div className="max-w-2xl mx-auto mt-6">
