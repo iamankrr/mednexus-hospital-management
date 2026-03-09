@@ -6,7 +6,6 @@ import HospitalCard from '../components/HospitalCard';
 import LabCard from '../components/LabCard';
 import SkeletonCard from '../components/SkeletonCard';
 import MapView from '../components/MapView';
-import { hospitalAPI, labAPI } from '../services/api';
 import { 
   FaSearch, FaMapMarkerAlt, FaHospital, FaFlask, 
   FaFilter, FaHeart, FaListUl, FaMap, FaExchangeAlt 
@@ -113,18 +112,14 @@ const Home = () => {
     fetchFavorites();
   }, []);
 
+  // ✅ FIX: ALWAYS fetch fresh data in background to override stale cache
   useEffect(() => {
-    const cachedLat = sessionStorage.getItem('mednexus_cached_lat');
     const currentLat = userLocation ? String(userLocation.lat || userLocation.latitude) : null;
 
     if (locationRequested) {
-      if (hospitals.length === 0 && labs.length === 0) {
-          fetchAllData();
-      } else if (currentLat && cachedLat !== currentLat) {
-          fetchAllData();
-          if (currentLat) {
-            sessionStorage.setItem('mednexus_cached_lat', currentLat);
-          }
+      fetchAllData(); // 🔥 Now this runs every time Home page is visited, replacing stale cache instantly
+      if (currentLat) {
+        sessionStorage.setItem('mednexus_cached_lat', currentLat);
       }
     }
   }, [userLocation, locationRequested, filters.distance]); 
@@ -144,10 +139,9 @@ const Home = () => {
     } catch (error) {}
   };
 
-  // ✅ NEW PROGRESSIVE FETCH FUNCTION
   const fetchAllData = async () => {
     try {
-      setLoading(true);
+      if (hospitals.length === 0 && labs.length === 0) setLoading(true);
       
       const token = localStorage.getItem('token');
       const params = {};
@@ -155,60 +149,48 @@ const Home = () => {
       if (userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
-        console.log('📍 Sending location to backend:', params); 
         
         if (filters.distance) {
           params.maxDistance = filters.distance * 1000;
         }
-      } else {
-        console.log('⚠️ No user location available'); 
       }
       
       if (filters.city && filters.city !== 'All Cities') {
         params.city = filters.city;
       }
 
-      console.log('🚀 Fetching data progressively with params:', params);
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      // ✅ Fetch hospitals first (updates UI immediately)
+      // ✅ Fetch hospitals 
       axios.get(`${API_URL}/api/hospitals`, { params, headers })
         .then(response => {
           const hospitalsDataArray = response.data.data || [];
-          console.log('✅ Hospitals loaded first:', hospitalsDataArray.length);
-
           const normalizedHospitals = hospitalsDataArray.map(hospital => ({
             ...hospital, id: hospital._id || hospital.id
           }));
 
-          setHospitals(normalizedHospitals);
+          setHospitals(normalizedHospitals); // Updates UI with fresh data instantly
           sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
-          
-          // Stop loading skeleton as soon as hospitals arrive
           setLoading(false); 
         })
         .catch(error => {
           console.error('❌ Hospitals fetch error:', error);
-          setHospitals([]);
-          setLoading(false); // Stop loading even if it fails
+          setLoading(false); 
         });
 
-      // ✅ Fetch labs in background
+      // ✅ Fetch labs 
       axios.get(`${API_URL}/api/labs`, { params, headers })
         .then(response => {
           const labsDataArray = response.data.data || [];
-          console.log('✅ Labs loaded:', labsDataArray.length);
-
           const normalizedLabs = labsDataArray.map(lab => ({
             ...lab, id: lab._id || lab.id
           }));
 
-          setLabs(normalizedLabs);
+          setLabs(normalizedLabs); // Updates UI with fresh data instantly
           sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
         })
         .catch(error => {
           console.error('❌ Labs fetch error:', error);
-          setLabs([]);
         });
       
     } catch (error) {
@@ -223,7 +205,6 @@ const Home = () => {
     if (activeTab === 'hospitals') {
       let filtered = [...hospitals];
 
-      // Keyword Search
       if (searchKeyword) {
         filtered = filtered.filter(item =>
           item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
@@ -233,37 +214,30 @@ const Home = () => {
         );
       }
       
-      // City Filter
       if (filters.city && filters.city !== 'All Cities') {
         filtered = filtered.filter(h => h.address?.city?.toLowerCase() === filters.city.toLowerCase());
       }
       
-      // Type Filter
       if (filters.type && filters.type !== 'all' && filters.type !== 'All Types') {
         filtered = filtered.filter(h => h.type === filters.type);
       }
 
-      // State Filter
       if (filters.state) {
         filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
       }
 
-      // Pincode
       if (filters.pincode) {
         filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
       }
 
-      // Emergency
       if (filters.emergency) {
         filtered = filtered.filter(item => item.emergencyAvailable === true);
       }
 
-      // Rating
       if (filters.minRating) {
         filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
       }
 
-      // Sort by distance if available
       filtered.sort((a, b) => {
         if (a.distance !== undefined && b.distance !== undefined) {
           return a.distance - b.distance;
@@ -278,7 +252,6 @@ const Home = () => {
     } else {
       let filtered = [...labs];
 
-      // Keyword Search
       if (searchKeyword) {
         filtered = filtered.filter(item =>
           item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
@@ -288,32 +261,26 @@ const Home = () => {
         );
       }
       
-      // City Filter
       if (filters.city && filters.city !== 'All Cities') {
         filtered = filtered.filter(l => l.address?.city?.toLowerCase() === filters.city.toLowerCase());
       }
 
-      // Type Filter
       if (filters.type && filters.type !== 'all' && filters.type !== 'All Types') {
         filtered = filtered.filter(l => l.type === filters.type);
       }
 
-      // State Filter
       if (filters.state) {
         filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
       }
 
-      // Pincode
       if (filters.pincode) {
         filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
       }
 
-      // Rating
       if (filters.minRating) {
         filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
       }
       
-      // Sort labs by distance
       filtered.sort((a, b) => {
         if (a.distance !== undefined && b.distance !== undefined) {
           return a.distance - b.distance;
@@ -410,7 +377,6 @@ const Home = () => {
               <p className="text-sm text-blue-100">Diagnostic Labs</p>
             </div>
             
-            {/* 🔥 NEW PREMIUM LIVE STATUS BADGE 🔥 */}
             <div className="flex items-center gap-3">
               <div className="relative flex items-center justify-center h-12 w-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-xl">
                 <span className="text-2xl drop-shadow-md">🇮🇳</span>

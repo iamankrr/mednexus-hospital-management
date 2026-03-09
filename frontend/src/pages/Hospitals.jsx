@@ -3,15 +3,14 @@ import axios from 'axios';
 import HospitalCard from '../components/HospitalCard';
 import { FaHospital, FaSearch } from 'react-icons/fa';
 import Footer from '../components/Footer';
+import API_URL from '../config/api'; 
 
 const Hospitals = () => {
-  // ✅ FIX 1: Initial state ko direct cache se load karo (Zero Loading Time)
   const [hospitals, setHospitals] = useState(() => {
     const cached = sessionStorage.getItem('hospitalsData');
     return cached ? JSON.parse(cached) : [];
   });
   
-  // Agar cache hai toh loading pehle se hi false rakho
   const [loading, setLoading] = useState(() => {
     return sessionStorage.getItem('hospitalsData') ? false : true;
   });
@@ -19,7 +18,6 @@ const Hospitals = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
 
-  // ✅ FIX 2: Instant Scroll Restoration
   useLayoutEffect(() => {
     if (!loading && hospitals.length > 0) {
       const savedScroll = sessionStorage.getItem('hospitalsScroll');
@@ -29,7 +27,6 @@ const Hospitals = () => {
     }
   }, [loading, hospitals.length]);
 
-  // Har scroll par position save karo
   useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('hospitalsScroll', window.scrollY.toString());
@@ -38,24 +35,21 @@ const Hospitals = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Sirf tab location maango jab naya user aaye (cache empty ho)
   useEffect(() => {
     if (hospitals.length === 0) {
       getUserLocation();
     }
   }, []);
 
-  // ✅ FIX 3: API call sirf tab hogi jab Cache empty hoga
+  // ✅ FIX: ALWAYS fetch fresh data in background to override stale cache
   useEffect(() => {
-    if (hospitals.length === 0) {
-      if (userLocation !== null) {
-        fetchHospitals();
-      } else {
-        const timer = setTimeout(() => {
-          if (!userLocation) fetchHospitals();
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
+    if (userLocation !== null) {
+      fetchHospitals();
+    } else {
+      const timer = setTimeout(() => {
+        if (!userLocation) fetchHospitals();
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [userLocation]);
 
@@ -76,19 +70,19 @@ const Hospitals = () => {
 
   const fetchHospitals = async () => {
     try {
-      setLoading(true);
+      if (hospitals.length === 0) setLoading(true);
       const params = {};
       if (userLocation) {
-        params.lat = userLocation.lat;
-        params.lng = userLocation.lng;
+        params.latitude = userLocation.lat || userLocation.latitude;
+        params.longitude = userLocation.lng || userLocation.longitude;
       }
 
-      const response = await axios.get('http://localhost:3000/api/hospitals', { params });
+      const response = await axios.get(`${API_URL}/api/hospitals`, { params });
       
       if (response.data?.data) {
         const normalized = response.data.data.map(h => ({ ...h, id: h._id || h.id }));
-        setHospitals(normalized);
-        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized)); // Cache data
+        setHospitals(normalized); // UI instantly updates to fresh data
+        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized)); 
       }
     } catch (error) {
       console.error('Fetch hospitals error:', error);

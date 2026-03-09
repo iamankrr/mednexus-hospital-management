@@ -13,13 +13,6 @@ const {
 } = require('../controllers/hospitalController');
 
 // ============================================
-// CACHE VARIABLES
-// ============================================
-let hospitalsCache = null;
-let cacheTimestamp = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// ============================================
 // ROUTES
 // ============================================
 
@@ -30,24 +23,7 @@ router.get('/', async (req, res) => {
     const { latitude, longitude, city, type, maxDistance } = req.query;
     console.log('📍 Request params:', { latitude, longitude, city, type, maxDistance });
     
-    // Check cache (only if no filters are applied)
-    // Checking against actual filter values to ensure cache triggers on default loads
-    const isDefaultQuery = !latitude && 
-                           (!city || city === 'All Cities') && 
-                           (!type || type === 'All Types' || type === 'all');
-
-    if (isDefaultQuery && hospitalsCache && cacheTimestamp) {
-      const cacheAge = Date.now() - cacheTimestamp;
-      if (cacheAge < CACHE_DURATION) {
-        console.log('✅ Returning cached hospitals');
-        return res.status(200).json({
-          success: true,
-          count: hospitalsCache.length,
-          data: hospitalsCache,
-          cached: true
-        });
-      }
-    }
+    // 🔥 CACHE COMPLETELY REMOVED: Database se hamesha fresh data aayega
 
     let query = { isActive: true };
     
@@ -117,13 +93,7 @@ router.get('/', async (req, res) => {
       console.log('⚠️ No user location - showing all hospitals');
     }
     
-    // Cache results for future requests (only if it was a default, unfiltered query)
-    if (isDefaultQuery) {
-      hospitalsCache = hospitals;
-      cacheTimestamp = Date.now();
-      console.log('✅ Cached hospitals for future requests');
-    }
-    
+    // Send response
     res.status(200).json({
       success: true,
       count: hospitals.length,
@@ -175,9 +145,6 @@ router.post('/', protect, async (req, res) => {
     // Create hospital
     const hospital = await Hospital.create(req.body);
     console.log('✅ Hospital created:', hospital.name);
-
-    // Invalidate cache when a new hospital is added
-    hospitalsCache = null;
 
     res.status(201).json({
       success: true,
@@ -256,9 +223,6 @@ router.put('/:id', protect, async (req, res) => {
 
     console.log('✅ Hospital updated successfully');
 
-    // Invalidate cache when a hospital is updated
-    hospitalsCache = null;
-
     res.status(200).json({ 
       success: true, 
       message: 'Hospital updated successfully',
@@ -274,8 +238,7 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// DELETE - Using controller but cache should be invalidated there too 
-// (Make sure to set hospitalsCache = null inside your deleteHospital controller!)
+// DELETE - Using controller
 router.delete('/:id', protect, deleteHospital);
 
 // ============================================
