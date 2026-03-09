@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // ✅ ADDED: useRef
 import { 
   FaBars, 
   FaTimes, 
@@ -13,7 +13,7 @@ import {
   FaPlus 
 } from 'react-icons/fa';
 import axios from 'axios';
-import API_URL from '../config/api'; // ✅ ADDED: Dynamic API URL import
+import API_URL from '../config/api'; 
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -21,6 +21,9 @@ const Navbar = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // ✅ ADDED: Ref to track the dropdown container
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (user && user.role === 'user') {
@@ -31,7 +34,6 @@ const Navbar = () => {
   const fetchUnreadAppointments = async () => {
     try {
       const token = localStorage.getItem('token');
-      // ✅ UPDATED: Replaced localhost with dynamic API_URL
       const response = await axios.get(`${API_URL}/api/appointments/my-appointments`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -45,6 +47,24 @@ const Navbar = () => {
       console.error('Fetch appointments error:', error);
     }
   };
+
+  // ✅ ADDED: Logic to handle clicking outside the dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click happened outside the dropdownRef element
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    // Bind the event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Unbind the event listener on cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -147,7 +167,8 @@ const Navbar = () => {
                 )}
                 
                 {/* User Menu */}
-                <div className="relative ml-4 pl-4 border-l">
+                {/* ✅ ADDED ref={dropdownRef} HERE to track clicks outside this div */}
+                <div className="relative ml-4 pl-4 border-l" ref={dropdownRef}>
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition"
@@ -167,7 +188,7 @@ const Navbar = () => {
                         </span>
                       </div>
 
-                      {/* ✅ Profile Button (Accessible to ALL logged in users) */}
+                      {/* Profile Button */}
                       <button
                         onClick={() => {
                           navigate('/profile');
@@ -252,19 +273,19 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden pb-4 border-t mt-2 pt-4">
             <div className="flex flex-col gap-3">
-              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+              <Link to="/" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                 Home
               </Link>
-              <Link to="/hospitals" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+              <Link to="/hospitals" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                 Hospitals
               </Link>
-              <Link to="/labs" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+              <Link to="/labs" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                 Labs
               </Link>
               
               {/* Contact - Hidden for Admin (Mobile) */}
               {(!user || user.role !== 'admin') && (
-                <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+                <Link to="/contact" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                   Contact
                 </Link>
               )}
@@ -278,7 +299,7 @@ const Navbar = () => {
                     </p>
                   </div>
 
-                  {/* ✅ Profile link (Accessible to ALL logged in users on mobile) */}
+                  {/* Profile link */}
                   <button 
                     onClick={() => {
                       navigate('/profile');
@@ -290,20 +311,20 @@ const Navbar = () => {
                   </button>
 
                   {user.role === 'admin' && (
-                    <Link to="/admin/dashboard" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+                    <Link to="/admin/dashboard" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                       Admin Dashboard
                     </Link>
                   )}
                   
                   {user.role === 'owner' && (
-                    <Link to="/owner/dashboard" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+                    <Link to="/owner/dashboard" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                       Owner Dashboard
                     </Link>
                   )}
 
                   {user.role === 'user' && (
                     <>
-                      <Link to="/appointments" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1 flex items-center justify-between">
+                      <Link to="/appointments" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1 flex items-center justify-between">
                         <span><FaCalendarCheck className="inline mr-2" /> My Appointments</span>
                         {unreadCount > 0 && (
                           <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1">
@@ -311,13 +332,13 @@ const Navbar = () => {
                           </span>
                         )}
                       </Link>
-                      <Link to="/favorites" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+                      <Link to="/favorites" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                         <FaHeart className="inline mr-2" /> Favorites
                       </Link>
-                      <Link to="/submit-facility" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+                      <Link to="/submit-facility" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                         <FaPlus className="inline mr-2" /> Submit Facility
                       </Link>
-                      <Link to="/my-submissions" className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
+                      <Link to="/my-submissions" onClick={() => setIsOpen(false)} className="text-gray-700 hover:text-blue-600 font-medium px-2 py-1">
                         <FaEnvelope className="inline mr-2" /> My Submissions
                       </Link>
                     </>
@@ -334,12 +355,14 @@ const Navbar = () => {
                 <div className="flex flex-col gap-2 pt-3 border-t">
                   <Link
                     to="/login"
+                    onClick={() => setIsOpen(false)}
                     className="px-4 py-2 text-center text-blue-600 border border-blue-600 rounded-lg font-medium"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
+                    onClick={() => setIsOpen(false)}
                     className="px-4 py-2 text-center bg-blue-600 text-white rounded-lg font-medium"
                   >
                     Sign Up
