@@ -16,7 +16,7 @@ const DEFAULT_ADMIN_EMAIL = 'admin@hospital.com';
 const { protect, admin } = require('../middleware/authMiddleware');
 const { searchPlaces, getPlaceDetails } = require('../services/googlePlaces');
 
-// ========== @desc    Get all hospitals for admin (Missing Route added)
+// ========== @desc    Get all hospitals for admin
 // ========== @route   GET /api/admin/hospitals
 // ========== @access  Private/Admin
 router.get('/hospitals', protect, admin, async (req, res) => {
@@ -38,7 +38,7 @@ router.get('/hospitals', protect, admin, async (req, res) => {
   }
 });
 
-// ========== @desc    Get all labs for admin (Missing Route added)
+// ========== @desc    Get all labs for admin
 // ========== @route   GET /api/admin/labs
 // ========== @access  Private/Admin
 router.get('/labs', protect, admin, async (req, res) => {
@@ -60,7 +60,7 @@ router.get('/labs', protect, admin, async (req, res) => {
   }
 });
 
-// ========== @desc    Delete Hospital (Admin) ✅ FIX: ADDED MISSING ROUTE
+// ========== @desc    Delete Hospital (Admin)
 // ========== @route   DELETE /api/admin/hospitals/:id
 // ========== @access  Private/Admin
 router.delete('/hospitals/:id', protect, admin, async (req, res) => {
@@ -88,7 +88,7 @@ router.delete('/hospitals/:id', protect, admin, async (req, res) => {
   }
 });
 
-// ========== @desc    Delete Lab (Admin) ✅ FIX: ADDED MISSING ROUTE
+// ========== @desc    Delete Lab (Admin)
 // ========== @route   DELETE /api/admin/labs/:id
 // ========== @access  Private/Admin
 router.delete('/labs/:id', protect, admin, async (req, res) => {
@@ -152,7 +152,7 @@ router.get('/stats', protect, admin, async (req, res) => {
   }
 });
 
-// ========== @desc    Approve/Reject Hospital (UPDATED FIX)
+// ========== @desc    Approve/Reject Hospital
 // ========== @route   PUT /api/admin/hospitals/:id/approve
 // ========== @access  Private/Admin
 router.put('/hospitals/:id/approve', protect, admin, async (req, res) => {
@@ -227,86 +227,92 @@ router.put('/labs/:id/approve', protect, admin, async (req, res) => {
   }
 });
 
-// ========== @desc    Get all users (Missing Route Added for Admin Dashboard)
+// ========== 1. GET ALL USERS (With Auto-Cleanup for stuck owners) ==========
 // ========== @route   GET /api/admin/users
 // ========== @access  Private/Admin
 router.get('/users', protect, admin, async (req, res) => {
   try {
     const query = {};
-    
-    // Check if frontend sent a role filter
     if (req.query.role && req.query.role !== 'all') {
       query.role = req.query.role;
     }
 
-    const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+    let users = await User.find(query).select('-password').sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users
-    });
+    // ✅ AUTO-FIX: Agar koi owner bina facility ke DB mein fasa hai, toh usko normal 'user' bana do
+    for (let user of users) {
+      if (user.role === 'owner' && (!user.ownerProfile || !user.ownerProfile.facilityId)) {
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { role: 'user' }, $unset: { ownerProfile: 1 } }
+        );
+        user.role = 'user'; // Frontend list ke liye locally update
+      }
+    }
+
+    res.status(200).json({ success: true, count: users.length, data: users });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching users',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// ========== @desc    Activate/Deactivate User
+// ========== 2. ACTIVATE / DEACTIVATE USER (Fixed 500 Save Error) ==========
 // ========== @route   PUT /api/admin/users/:id/status
 // ========== @access  Private/Admin
 router.put('/users/:id/status', protect, admin, async (req, res) => {
   try {
     const { isActive } = req.body;
-    
     const user = await User.findById(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // ✅ FIX: Protect default admin
+    // ✅ FIX: Default admin ko koi deactivate nahi kar sakta
     if (user.email === DEFAULT_ADMIN_EMAIL) {
-      return res.status(403).json({ success: false, message: 'Cannot modify the default admin' });
+      return res.status(403).json({ success: false, message: 'Cannot deactivate the default admin' });
     }
 
-    user.isActive = isActive;
-    await user.save();
+    // ✅ FIX: `updateOne` use kiya taaki MongoDB strict validation ki wajah se error na de
+    await User.updateOne({ _id: req.params.id }, { $set: { isActive: isActive } });
 
     res.status(200).json({
       success: true,
-      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
-      data: user
+      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error updating user status', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error updating user status'
+    });
   }
 });
 
-// ========== @desc    Delete User
+// ========== 3. DELETE USER (Only Default Admin can delete Admins) ==========
 // ========== @route   DELETE /api/admin/users/:id
 // ========== @access  Private/Admin
 router.delete('/users/:id', protect, admin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // ✅ FIX: Protect default admin
     if (user.email === DEFAULT_ADMIN_EMAIL) {
       return res.status(403).json({ success: false, message: 'Cannot delete the default admin' });
     }
 
-    await user.deleteOne();
+    // ✅ FIX: Dusre admins ko sirf Default Admin (admin@hospital.com) delete kar sakta hai
+    if (user.role === 'admin' && req.user.email !== DEFAULT_ADMIN_EMAIL) {
+      return res.status(403).json({ success: false, message: 'Only the default admin can delete other admin users' });
+    }
+
+    await User.deleteOne({ _id: req.params.id });
 
     res.status(200).json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error deleting user', error: error.message });
+    res.status(500).json({ success: false, message: error.message || 'Error deleting user' });
   }
 });
 
@@ -528,7 +534,6 @@ router.post('/trigger-update', protect, admin, async (req, res) => {
 // ==========================================
 
 // ===== GET AVAILABLE OWNERS =====
-// Get available owners (verified owners without facility or with this facility)
 router.get('/owners/available', protect, admin, async (req, res) => {
   try {
     const owners = await User.find({
@@ -548,7 +553,7 @@ router.get('/owners/available', protect, admin, async (req, res) => {
   }
 });
 
-// GET /api/admin/owners - Get all owners
+// ===== GET ALL OWNERS =====
 router.get('/owners', protect, admin, async (req, res) => {
   try {
     const owners = await User.find({
@@ -621,7 +626,7 @@ router.get('/facilities/:id/owner', protect, admin, async (req, res) => {
       data: {
         owner: facility.owner,
         facilityName: facility.name,
-        facilityType: facility.type // Note: lab model might not have a generic 'type' field, consider facilityType instead if you use that
+        facilityType: facility.type
       }
     });
   } catch (error) {
@@ -709,7 +714,7 @@ router.put('/owners/:id/approve', protect, admin, async (req, res) => {
   }
 });
 
-// PUT /api/admin/owners/:id/reject - Reject owner
+// ===== REJECT OWNER =====
 router.put('/owners/:id/reject', protect, admin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -752,7 +757,7 @@ router.put('/owners/:id/reject', protect, admin, async (req, res) => {
 //        NEW ROUTES: REMOVE & CHANGE OWNER
 // ==========================================
 
-// ===== REMOVE OWNER FROM FACILITY =====
+// ===== REMOVE OWNER FROM FACILITY PROFILE =====
 router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
   try {
     const owner = await User.findById(req.params.id);
@@ -784,22 +789,25 @@ router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
   }
 });
 
-// ===== REMOVE OWNER FROM HOSPITAL =====
+// ========== 4. REMOVE OWNER FROM HOSPITAL (Ensures Role Reverts to User) ==========
+// ========== @route   PUT /api/admin/hospitals/:id/remove-owner
+// ========== @access  Private/Admin
 router.put('/hospitals/:id/remove-owner', protect, admin, async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id);
-    
+
     if (hospital.owner) {
-      // ✅ FIX: Change role back to 'user' so they aren't stuck
-      await User.findByIdAndUpdate(hospital.owner, {
-        'ownerProfile.facilityType': null,
-        'ownerProfile.facilityId': null,
-        role: 'user'
-      });
+      // ✅ FIX: Account delete hone se bachane ke liye sirf role change kiya
+      await User.updateOne(
+        { _id: hospital.owner },
+        { $set: { role: 'user' }, $unset: { ownerProfile: 1 } }
+      );
     }
 
-    hospital.owner = null;
-    await hospital.save();
+    await Hospital.updateOne(
+      { _id: req.params.id }, 
+      { $set: { owner: null, appointmentsEnabled: false } }
+    );
 
     res.status(200).json({ success: true, message: 'Owner removed successfully' });
   } catch (error) {
@@ -837,8 +845,7 @@ router.put('/hospitals/:id/assign-owner', protect, admin, async (req, res) => {
   }
 });
 
-// ===== LAB OWNER MANAGEMENT ROUTES ======
-// Assign owner to lab
+// ===== ASSIGN OWNER TO LAB ======
 router.put('/labs/:id/assign-owner', protect, admin, async (req, res) => {
   try {
     const { ownerId } = req.body;
@@ -868,23 +875,26 @@ router.put('/labs/:id/assign-owner', protect, admin, async (req, res) => {
   }
 });
 
-// Remove owner from lab
+// ========== 5. REMOVE OWNER FROM LAB (Ensures Role Reverts to User) ==========
+// ========== @route   PUT /api/admin/labs/:id/remove-owner
+// ========== @access  Private/Admin
 router.put('/labs/:id/remove-owner', protect, admin, async (req, res) => {
   try {
     const lab = await Laboratory.findById(req.params.id);
-    
+
     if (lab.owner) {
-      // ✅ FIX: Change role back to 'user'
-      await User.findByIdAndUpdate(lab.owner, {
-        'ownerProfile.facilityType': null,
-        'ownerProfile.facilityId': null,
-        role: 'user'
-      });
+      // ✅ FIX: Account delete hone se bachane ke liye sirf role change kiya
+      await User.updateOne(
+        { _id: lab.owner },
+        { $set: { role: 'user' }, $unset: { ownerProfile: 1 } }
+      );
     }
-    
-    lab.owner = null;
-    await lab.save();
-    
+
+    await Laboratory.updateOne(
+      { _id: req.params.id }, 
+      { $set: { owner: null, appointmentsEnabled: false } }
+    );
+
     res.status(200).json({ success: true, message: 'Owner removed successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -1320,7 +1330,6 @@ router.post('/create-hospital-with-owner', protect, admin, async (req, res) => {
 // ===== CREATE LAB WITH OWNER (Admin) =====
 router.post('/create-lab-with-owner', protect, admin, async (req, res) => {
   try {
-    // frontend bhej raha hai labData (AddLab.jsx check karein)
     const { labData, createOwner, ownerData } = req.body;
 
     console.log('🔬 Creating lab with owner option:', createOwner);
