@@ -16,7 +16,6 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // ✅ SAFE COMPARISON CONTEXT - WITH FALLBACK
   let comparison = null;
   try {
     comparison = useComparison();
@@ -57,6 +56,11 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
       window.location.href = `tel:${hospital.phone}`;
     }
   };
+
+  // ✅ NEW: Clean Address Logic
+  const displayAddress = [hospital.address?.area, hospital.address?.city]
+    .filter(Boolean) // This removes empty strings, null, undefined
+    .join(', ');     // This joins the remaining items with a comma
 
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
@@ -144,7 +148,7 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
         <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
           <FaMapMarkerAlt className="text-blue-500 flex-shrink-0" />
           <span className="line-clamp-1">
-            {hospital.address?.area}, {hospital.address?.city}
+            {displayAddress}
           </span>
         </div>
 
@@ -194,7 +198,7 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
             View Details
           </button>
 
-          {/* Compare - Only show if comparison context available */}
+          {/* Compare */}
           {comparison && (
             <button
               onClick={handleCompareToggle}
@@ -227,12 +231,10 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
               e.stopPropagation();
               const coords = hospital.location?.coordinates;
               if (coords) {
-                // Note: coordinates are usually [longitude, latitude] in MongoDB GeoJSON
-                window.open(`https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[0]}`, '_blank');
+                window.open(`https://maps.google.com/?q=${coords[1]},${coords[0]}`, '_blank');
               } else if (hospital.address) {
-                // Fallback to address search if coords are missing
-                const query = `${hospital.name}, ${hospital.address.area}, ${hospital.address.city}`.replace(/ /g, '+');
-                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+                const query = `${hospital.name}, ${hospital.address.area || ''}, ${hospital.address.city || ''}`.replace(/ /g, '+');
+                window.open(`https://maps.google.com/?q=${query}`, '_blank');
               }
             }}
             className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${

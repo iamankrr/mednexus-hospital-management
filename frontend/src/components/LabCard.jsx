@@ -16,7 +16,6 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // ✅ SAFE COMPARISON CONTEXT - WITH FALLBACK
   let comparison = null;
   try {
     comparison = useComparison();
@@ -57,6 +56,11 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
       window.location.href = `tel:${lab.phone}`;
     }
   };
+
+  // ✅ NEW: Clean Address Logic
+  const displayAddress = [lab.address?.area, lab.address?.city]
+    .filter(Boolean) // Removes empty strings, null, undefined
+    .join(', ');
 
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
@@ -144,7 +148,7 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
         <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
           <FaMapMarkerAlt className="text-green-500 flex-shrink-0" />
           <span className="line-clamp-1">
-            {lab.address?.area}, {lab.address?.city}
+            {displayAddress}
           </span>
         </div>
 
@@ -194,7 +198,7 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
             View Details
           </button>
 
-          {/* Compare - Only show if comparison context available */}
+          {/* Compare */}
           {comparison && (
             <button
               onClick={handleCompareToggle}
@@ -227,12 +231,10 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
               e.stopPropagation();
               const coords = lab.location?.coordinates;
               if (coords) {
-                // Note: coordinates are usually [longitude, latitude] in MongoDB GeoJSON
-                window.open(`http://maps.google.com/maps?q=${coords[1]},${coords[0]}`, '_blank');
+                window.open(`https://maps.google.com/?q=${coords[1]},${coords[0]}`, '_blank');
               } else if (lab.address) {
-                // Fallback to address search if coords are missing
-                const query = `${lab.name}, ${lab.address.area}, ${lab.address.city}`.replace(/ /g, '+');
-                window.open(`http://maps.google.com/maps?q=${query}`, '_blank');
+                const query = `${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`.replace(/ /g, '+');
+                window.open(`https://maps.google.com/?q=${query}`, '_blank');
               }
             }}
             className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${
