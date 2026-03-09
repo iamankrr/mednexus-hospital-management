@@ -64,8 +64,9 @@ const ContactUs = () => {
 
     try {
       const token = localStorage.getItem('token');
+      // FIX: Changed endpoint to match backend (plural: contacts)
       const response = await axios.post(
-        'http://localhost:3000/api/contact', 
+        'http://localhost:3000/api/contacts', 
         formData,
         {
           headers: { 'Authorization': `Bearer ${token}` }

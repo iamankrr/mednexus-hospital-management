@@ -6,20 +6,42 @@ const Contact = require('../models/Contact');
 // POST /api/contacts - Submit contact form
 router.post('/', async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    // FIX: Catch all fields sent by frontend
+    const { 
+      name, 
+      email, 
+      phone,
+      type, 
+      message,
+      organizationType,
+      organizationName,
+      address,
+      website
+    } = req.body;
 
-    if (!name || !email || !subject || !message) {
+    // Validation updated to match frontend required fields
+    if (!name || !email || !phone || !message) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
+        message: 'Name, email, phone, and message are required'
       });
     }
 
+    // Set a default subject for the DB if 'subject' isn't explicitly provided
+    const subject = type || 'General Inquiry';
+
+    // Store all data (Mongoose will ignore fields not in schema if strict mode is on, which is safe)
     const contact = await Contact.create({
       name,
       email,
+      phone,
       subject,
-      message
+      type,
+      message,
+      organizationType,
+      organizationName,
+      address,
+      website
     });
 
     console.log('✅ Contact form submitted:', contact._id);
