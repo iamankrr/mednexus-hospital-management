@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { labAPI } from '../../services/api';  // ✅ Correct Import
+import { labAPI } from '../../services/api';  
 import ServiceManager from '../../components/ServiceManager';
 import ThemeColorPicker from '../../components/ThemeColorPicker';
 import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
-import { FaSave, FaArrowLeft, FaTrash, FaFlask } from 'react-icons/fa'; // ✅ Added FaFlask for header
+import { FaSave, FaArrowLeft, FaTrash, FaFlask, FaSync } from 'react-icons/fa'; 
+import axios from 'axios'; // ✅ ADDED AXIOS FOR SYNC FEATURE
 
 const EditLab = () => {
   const { id } = useParams();
@@ -13,17 +14,19 @@ const EditLab = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [syncing, setSyncing] = useState(false); // ✅ SYNC STATE
   
-  // ✅ Initialize with a default structure to avoid undefined errors during render
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     phone: '',
     email: '',
     website: '',
-    themeColor: '#10B981', // Default Green for Labs
+    themeColor: '#10B981', 
     googlePlaceId: '',
-    establishedDate: '', // ✅ Added establishedDate field
+    googleRating: 0,       // ✅ ADDED
+    googleReviewCount: 0,  // ✅ ADDED
+    establishedDate: '', 
     address: {
       street: '',
       area: '',
@@ -34,7 +37,7 @@ const EditLab = () => {
     },
     location: {
       type: 'Point',
-      coordinates: [0, 0] // [longitude, latitude]
+      coordinates: [0, 0] 
     },
     facilities: [],
     testCategories: [],
@@ -50,23 +53,11 @@ const EditLab = () => {
     homeCollection: false,
     emergencyAvailable: false,
     images: [],
-    services: [] // Price List / Tests
+    services: [] 
   });
 
   const [newFacility, setNewFacility] = useState('');
   const [newTestCategory, setNewTestCategory] = useState('');
-
-  const commonTestCategories = [
-    'Blood Test', 'Urine Test', 'X-Ray', 'CT Scan', 'MRI', 
-    'Ultrasound', 'ECG', 'Thyroid Test', 'Diabetes Test', 
-    'Lipid Profile', 'Liver Function Test', 'Kidney Function Test'
-  ];
-
-  const commonFacilities = [
-    'Home Collection', 'Online Reports', 'NABL Certified', 
-    'Free Consultation', 'Senior Citizen Discount', 
-    'Parking Available', 'Wheelchair Access', 'Air Conditioned'
-  ];
 
   useEffect(() => {
     fetchLab();
@@ -78,7 +69,6 @@ const EditLab = () => {
       const response = await labAPI.getById(id);
       const lab = response.data.data;
       
-      // ✅ Map data safely to state
       setFormData({
         name: lab.name || '',
         description: lab.description || '',
@@ -87,7 +77,9 @@ const EditLab = () => {
         website: lab.website || '',
         themeColor: lab.themeColor || '#10B981',
         googlePlaceId: lab.googlePlaceId || '',
-        establishedDate: lab.establishedDate || '', // ✅ Setting initial value
+        googleRating: lab.googleRating || 0,             // ✅ SET RATING
+        googleReviewCount: lab.googleReviewCount || 0,   // ✅ SET REVIEWS
+        establishedDate: lab.establishedDate || '', 
         address: lab.address || {},
         location: lab.location || { type: 'Point', coordinates: [0, 0] },
         facilities: lab.facilities || [],
@@ -106,26 +98,51 @@ const EditLab = () => {
     }
   };
 
+  // ✅ NEW FUNCTION: SYNC GOOGLE RATINGS MANUALLY
+  const handleSyncGoogle = async () => {
+    if (!formData.googlePlaceId) {
+      alert("Please enter a Google Place ID first.");
+      return;
+    }
+    
+    setSyncing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:3000/api/admin/fetch-place-details',
+        { placeId: formData.googlePlaceId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (res.data.success) {
+        const place = res.data.data;
+        setFormData(prev => ({
+          ...prev,
+          googleRating: place.googleRating || prev.googleRating,
+          googleReviewCount: place.googleReviewCount || prev.googleReviewCount,
+        }));
+        alert(`✅ Sync Successful! Found ${place.googleReviewCount} reviews with ${place.googleRating} rating.`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to fetch from Google Places API.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.name) {
       alert('Lab name is required!');
       return;
     }
 
-    console.log('💾 Saving lab:', id);
-    console.log('📦 Form data:', formData);
-    console.log('🖼️ Images:', formData.images);
-
     try {
       setSaving(true);
-      const response = await labAPI.update(id, formData);
-      
-      console.log('✅ Lab save response:', response.data);
+      await labAPI.update(id, formData);
       alert('✅ Laboratory updated successfully!');
       navigate('/admin/labs');
     } catch (error) {
-      console.error('❌ Lab save error:', error);
-      console.error('❌ Error response:', error.response?.data);
       alert(error.response?.data?.message || 'Failed to save changes');
     } finally {
       setSaving(false);
@@ -140,12 +157,10 @@ const EditLab = () => {
       alert('✅ Laboratory deleted');
       navigate('/admin/labs');
     } catch (error) {
-      console.error('Delete error:', error);
       alert('Failed to delete laboratory');
     }
   };
 
-  // Generic Array Handlers
   const handleAddToArray = (field, item, setNewItemState) => {
     if (item.trim() && !formData[field].includes(item.trim())) {
       setFormData(prev => ({
@@ -191,7 +206,7 @@ const EditLab = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         
-        {/* Header matching EditHospital style */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button
@@ -227,8 +242,7 @@ const EditLab = () => {
         {/* Warning Note */}
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-red-800">
-            ⚠️ <strong>Admin Note:</strong> You cannot edit Google Ratings or Reviews. 
-            Those are read-only and synced from Google Maps API.
+            ⚠️ <strong>Admin Note:</strong> To update Google Ratings, paste the Place ID and click the Sync button below.
           </p>
         </div>
 
@@ -275,7 +289,6 @@ const EditLab = () => {
                 />
               </div>
 
-              {/* ✅ Established Date Field Added */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Established Date (Optional)
@@ -287,6 +300,36 @@ const EditLab = () => {
                   max={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
+              </div>
+
+              {/* ✅ NEW: GOOGLE PLACE ID WITH SYNC BUTTON FOR LABS */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Google Place ID (Optional)
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={formData.googlePlaceId}
+                    onChange={e => setFormData({...formData, googlePlaceId: e.target.value})}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="ChIJ..."
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSyncGoogle}
+                    disabled={syncing || !formData.googlePlaceId}
+                    className="px-6 py-2 bg-green-100 text-green-700 font-bold rounded-lg hover:bg-green-200 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <FaSync className={syncing ? "animate-spin" : ""} />
+                    {syncing ? 'Fetching...' : 'Sync Ratings'}
+                  </button>
+                </div>
+                {formData.googleReviewCount > 0 && (
+                  <p className="text-sm text-green-600 mt-2 font-semibold">
+                    ⭐ Synced Data: {formData.googleRating} Rating ({formData.googleReviewCount} Reviews)
+                  </p>
+                )}
               </div>
 
               <div className="md:col-span-2">
@@ -374,12 +417,11 @@ const EditLab = () => {
             <ImageUploadManager
               images={formData.images || []}
               onImagesChange={(newImages) => {
-                console.log('📸 Lab images updated:', newImages);
                 setFormData({ ...formData, images: newImages });
               }}
               maxImages={10}
               facilityId={id}
-              facilityType="laboratory" // ✅ Using correct facility type
+              facilityType="laboratory" 
             />
           </div>
 
@@ -463,7 +505,6 @@ const EditLab = () => {
                       operatingHours: {...formData.operatingHours, [day]: e.target.value}
                     })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    placeholder="e.g., 9:00 AM - 5:00 PM or Closed"
                   />
                 </div>
               ))}
