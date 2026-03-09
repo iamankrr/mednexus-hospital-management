@@ -3,9 +3,10 @@ import axios from 'axios';
 import LabCard from '../components/LabCard';
 import { FaFlask, FaSearch } from 'react-icons/fa';
 import Footer from '../components/Footer';
+import API_URL from '../config/api'; // ✅ ADDED: API_URL import for Vercel
 
 const Labs = () => {
-  // ✅ Initial state from Cache
+  // ✅ Initial state from Cache (Instant Load)
   const [labs, setLabs] = useState(() => {
     const cached = sessionStorage.getItem('labsData');
     return cached ? JSON.parse(cached) : [];
@@ -42,16 +43,15 @@ const Labs = () => {
     }
   }, []);
 
+  // ✅ FIX: ALWAYS fetch fresh data in background to override stale cache
   useEffect(() => {
-    if (labs.length === 0) {
-      if (userLocation !== null) {
-        fetchLabs();
-      } else {
-        const timer = setTimeout(() => {
-          if (!userLocation) fetchLabs();
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
+    if (userLocation !== null) {
+      fetchLabs();
+    } else {
+      const timer = setTimeout(() => {
+        if (!userLocation) fetchLabs();
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [userLocation]);
 
@@ -72,19 +72,21 @@ const Labs = () => {
 
   const fetchLabs = async () => {
     try {
-      setLoading(true);
+      if (labs.length === 0) setLoading(true); // ✅ Show loader ONLY if no cached data exists
+      
       const params = {};
       if (userLocation) {
-        params.lat = userLocation.lat;
-        params.lng = userLocation.lng;
+        params.latitude = userLocation.lat || userLocation.latitude;
+        params.longitude = userLocation.lng || userLocation.longitude;
       }
 
-      const response = await axios.get('http://localhost:3000/api/labs', { params });
+      // ✅ FIX: Using API_URL instead of localhost so it works on Vercel
+      const response = await axios.get(`${API_URL}/api/labs`, { params });
       
       if (response.data?.data) {
         const normalized = response.data.data.map(l => ({ ...l, id: l._id || l.id }));
-        setLabs(normalized);
-        sessionStorage.setItem('labsData', JSON.stringify(normalized));
+        setLabs(normalized); // ✅ UI instantly updates to fresh data
+        sessionStorage.setItem('labsData', JSON.stringify(normalized)); // ✅ Cache updated
       }
     } catch (error) {
       console.error('Fetch labs error:', error);
