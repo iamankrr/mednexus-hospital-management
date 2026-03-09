@@ -124,3 +124,62 @@ exports.searchPlaces = async (query, type = 'hospital', location = null) => {
     return [];
   }
 };
+
+// Update Google Ratings for ALL Hospitals and Labs
+exports.updateAllGoogleRatings = async () => {
+  try {
+    const Hospital = require('../models/Hospital');
+    const Laboratory = require('../models/Laboratory');
+    
+    // Fetch only places that have a valid googlePlaceId
+    const hospitals = await Hospital.find({ googlePlaceId: { $exists: true, $ne: '' } });
+    const labs = await Laboratory.find({ googlePlaceId: { $exists: true, $ne: '' } });
+
+    console.log(`🔄 Found ${hospitals.length} hospitals and ${labs.length} labs for rating sync.`);
+
+    let updatedCount = 0;
+
+    // Helper function to update a single facility with delay to prevent rate limiting
+    const updateFacility = async (facility, model) => {
+      try {
+        const placeData = await exports.getPlaceDetails(facility.googlePlaceId);
+        
+        // Update if data differs
+        if (placeData && (placeData.googleRating !== facility.googleRating || placeData.googleReviewCount !== facility.googleReviewCount)) {
+          facility.googleRating = placeData.googleRating;
+          facility.googleReviewCount = placeData.googleReviewCount;
+          await facility.save();
+          updatedCount++;
+          console.log(`✅ Synced: ${facility.name} (Rating: ${placeData.googleRating}, Reviews: ${placeData.googleReviewCount})`);
+        }
+      } catch (err) {
+        console.error(`⚠️ Skip ${facility.name}:`, err.message);
+      }
+    };
+
+    // Update Hospitals (1 sec delay to avoid API limits)
+    for (const hospital of hospitals) {
+      await updateFacility(hospital, Hospital);
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+    }
+
+    // Update Labs (1 sec delay)
+    for (const lab of labs) {
+      await updateFacility(lab, Laboratory);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    return {
+      success: true,
+      message: `Successfully synced ${updatedCount} facilities.`,
+      count: updatedCount
+    };
+
+  } catch (error) {
+    console.error('❌ Failed to update all ratings:', error.message);
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+};

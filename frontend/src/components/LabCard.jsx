@@ -57,9 +57,9 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
     }
   };
 
-  // ✅ NEW: Clean Address Logic
+  // ✅ Clean Address Logic
   const displayAddress = [lab.address?.area, lab.address?.city]
-    .filter(Boolean) // Removes empty strings, null, undefined
+    .filter(Boolean) 
     .join(', ');
 
   return (
@@ -229,12 +229,15 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const coords = lab.location?.coordinates;
-              if (coords) {
-                window.open(`https://maps.google.com/?q=${coords[1]},${coords[0]}`, '_blank');
+              // ✅ EXACT MAP LOCATION LOGIC
+              if (lab.googlePlaceId) {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${lab.name}&query_place_id=${lab.googlePlaceId}`, '_blank');
+              } else if (lab.location?.coordinates) {
+                const coords = lab.location.coordinates;
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`, '_blank');
               } else if (lab.address) {
                 const query = `${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`.replace(/ /g, '+');
-                window.open(`https://maps.google.com/?q=${query}`, '_blank');
+                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
               }
             }}
             className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${

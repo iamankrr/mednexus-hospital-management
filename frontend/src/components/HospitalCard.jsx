@@ -75,9 +75,8 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
               src={hospital.images[currentImageIndex]}
               alt={hospital.name}
               className="w-full h-full object-cover"
-              loading="lazy" // ✅ Added lazy loading
+              loading="lazy" 
               onError={(e) => {
-                // ✅ Added fallback for broken images
                 e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
               }}
             />
@@ -234,12 +233,15 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const coords = hospital.location?.coordinates;
-              if (coords) {
-                window.open(`https://maps.google.com/?q=${coords[1]},${coords[0]}`, '_blank');
+              // ✅ EXACT MAP LOCATION LOGIC
+              if (hospital.googlePlaceId) {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${hospital.name}&query_place_id=${hospital.googlePlaceId}`, '_blank');
+              } else if (hospital.location?.coordinates) {
+                const coords = hospital.location.coordinates;
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`, '_blank');
               } else if (hospital.address) {
                 const query = `${hospital.name}, ${hospital.address.area || ''}, ${hospital.address.city || ''}`.replace(/ /g, '+');
-                window.open(`https://maps.google.com/?q=${query}`, '_blank');
+                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
               }
             }}
             className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${
