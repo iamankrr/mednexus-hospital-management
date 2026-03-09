@@ -4,11 +4,13 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
 // ========== Generate JWT Token ==========
-const generateToken = (userId) => {
+// ✅ ADDED: role parameter to determine expiration time
+const generateToken = (userId, role) => {
+  const expiresIn = role === 'admin' ? '1h' : '30d'; // Admin ke liye 1 hour, baakiyon ke liye 30 days
   return jwt.sign(
-    { id: userId },                    // Payload (user ID)
+    { id: userId, role: role },        // Payload (user ID & role)
     process.env.JWT_SECRET,            // Secret key
-    { expiresIn: '30d' }               // Token 30 din tak valid
+    { expiresIn: expiresIn }           // Dynamic Expiry
   );
 };
 
@@ -38,7 +40,8 @@ exports.registerUser = async (req, res) => {
     });
     
     // Generate token
-    const token = generateToken(user._id);
+    // ✅ ADDED: Pass role to generateToken
+    const token = generateToken(user._id, user.role);
     
     res.status(201).json({
       success: true,
@@ -141,13 +144,15 @@ exports.loginUser = async (req, res) => {
     }
 
     // Generate JWT token
+    // ✅ ADDED: Dynamic expiration logic based on user role
+    const expiresIn = user.role === 'admin' ? '1h' : '30d'; // Admin ke liye 1 hour, baakiyon ke liye 30 days
     const token = jwt.sign(
       { 
         id: user._id, 
         role: user.role 
       },
       process.env.JWT_SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: expiresIn }
     );
 
     console.log('✅ Token generated');

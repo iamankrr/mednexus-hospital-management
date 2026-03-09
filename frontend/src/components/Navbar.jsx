@@ -66,8 +66,39 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('adminLoginTime'); // ✅ Clear timer on logout
     window.location.href = '/';
   };
+
+  // ✅ NEW: ADMIN 1-HOUR AUTO LOGOUT LOGIC
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      const loginTime = localStorage.getItem('adminLoginTime');
+      const ONE_HOUR = 60 * 60 * 1000; // 1 Hour in milliseconds (60 min * 60 sec * 1000 ms)
+
+      if (!loginTime) {
+        // Agar first time load ho raha hai, toh current time save kar lo
+        localStorage.setItem('adminLoginTime', Date.now().toString());
+      } else {
+        const timePassed = Date.now() - parseInt(loginTime);
+        
+        if (timePassed >= ONE_HOUR) {
+          // Agar 1 ghanta ho chuka hai toh turant logout karo
+          alert('Admin session expired for security reasons. Please login again.');
+          handleLogout();
+        } else {
+          // Agar kuch time bacha hai, toh utne bache hue time ka timer laga do
+          const timeLeft = ONE_HOUR - timePassed;
+          const timer = setTimeout(() => {
+            alert('Admin session expired for security reasons. Please login again.');
+            handleLogout();
+          }, timeLeft);
+          
+          return () => clearTimeout(timer); // Cleanup timer on unmount
+        }
+      }
+    }
+  }, [user]);
 
   // ✅ CREATE ADMIN
   const handleAddAdminSubmit = async (e) => {
