@@ -361,6 +361,36 @@ router.put('/users/:id/role', protect, admin, async (req, res) => {
   }
 });
 
+// ========== @desc    Create new Admin (ONLY DEFAULT ADMIN)
+// ========== @route   POST /api/admin/create-admin
+// ========== @access  Private/Admin
+router.post('/create-admin', protect, admin, async (req, res) => {
+  try {
+    if (req.user.email !== DEFAULT_ADMIN_EMAIL) {
+      return res.status(403).json({ success: false, message: 'Security Alert: Only the Default Admin can create new admins.' });
+    }
+
+    const { name, email, password, phone } = req.body;
+    
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    const newAdmin = await User.create({
+      name, email, password, phone, role: 'admin', isActive: true
+    });
+
+    res.status(201).json({ success: true, message: 'Admin created successfully', data: newAdmin });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ========== @desc    Approve/Reject Review
 // ========== @route   PUT /api/admin/reviews/:id/approve
 // ========== @access  Private/Admin
@@ -802,7 +832,7 @@ router.put('/owners/:id/reject', protect, admin, async (req, res) => {
 //        NEW ROUTES: REMOVE & CHANGE OWNER
 // ==========================================
 
-// ===== REMOVE OWNER FROM FACILITY PROFILE =====
+// ========== REMOVE OWNER FROM FACILITY PROFILE (PERMANENT DELETE) ==========
 router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
   try {
     const owner = await User.findById(req.params.id);
@@ -815,38 +845,26 @@ router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
 
     if (facilityId) {
       const Model = facilityType === 'hospital' ? Hospital : Laboratory;
-      await Model.findByIdAndUpdate(facilityId, {
-        owner: null,
-        appointmentsEnabled: false
-      });
+      await Model.findByIdAndUpdate(facilityId, { owner: null, appointmentsEnabled: false });
     }
 
-    // ✅ FIX: Don't set isActive: false! Make them a normal user so they can login
-    owner.ownerProfile.facilityId = null;
-    owner.ownerProfile.facilityType = null;
-    owner.role = 'user'; 
-    await owner.save();
+    // ✅ FIX: PERMANENTLY DELETE THE USER SO THEY CANNOT LOGIN
+    await User.findByIdAndDelete(req.params.id);
 
-    console.log(`✅ Owner ${owner.email} removed from facility and reverted to regular user.`);
-    res.status(200).json({ success: true, message: 'Owner removed from facility successfully' });
+    res.status(200).json({ success: true, message: 'Owner permanently deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// ========== 4. REMOVE OWNER FROM HOSPITAL (Ensures Role Reverts to User) ==========
-// ========== @route   PUT /api/admin/hospitals/:id/remove-owner
-// ========== @access  Private/Admin
+// ========== REMOVE OWNER FROM HOSPITAL (PERMANENT DELETE) ==========
 router.put('/hospitals/:id/remove-owner', protect, admin, async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id);
 
     if (hospital.owner) {
-      // ✅ FIX: Account delete hone se bachane ke liye sirf role change kiya
-      await User.updateOne(
-        { _id: hospital.owner },
-        { $set: { role: 'user' }, $unset: { ownerProfile: 1 } }
-      );
+      // ✅ FIX: PERMANENTLY DELETE THE USER SO THEY CANNOT LOGIN
+      await User.findByIdAndDelete(hospital.owner);
     }
 
     await Hospital.updateOne(
@@ -854,7 +872,7 @@ router.put('/hospitals/:id/remove-owner', protect, admin, async (req, res) => {
       { $set: { owner: null, appointmentsEnabled: false } }
     );
 
-    res.status(200).json({ success: true, message: 'Owner removed successfully' });
+    res.status(200).json({ success: true, message: 'Owner permanently deleted and removed from hospital' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -920,19 +938,14 @@ router.put('/labs/:id/assign-owner', protect, admin, async (req, res) => {
   }
 });
 
-// ========== 5. REMOVE OWNER FROM LAB (Ensures Role Reverts to User) ==========
-// ========== @route   PUT /api/admin/labs/:id/remove-owner
-// ========== @access  Private/Admin
+// ========== REMOVE OWNER FROM LAB (PERMANENT DELETE) ==========
 router.put('/labs/:id/remove-owner', protect, admin, async (req, res) => {
   try {
     const lab = await Laboratory.findById(req.params.id);
 
     if (lab.owner) {
-      // ✅ FIX: Account delete hone se bachane ke liye sirf role change kiya
-      await User.updateOne(
-        { _id: lab.owner },
-        { $set: { role: 'user' }, $unset: { ownerProfile: 1 } }
-      );
+      // ✅ FIX: PERMANENTLY DELETE THE USER SO THEY CANNOT LOGIN
+      await User.findByIdAndDelete(lab.owner);
     }
 
     await Laboratory.updateOne(
@@ -940,7 +953,7 @@ router.put('/labs/:id/remove-owner', protect, admin, async (req, res) => {
       { $set: { owner: null, appointmentsEnabled: false } }
     );
 
-    res.status(200).json({ success: true, message: 'Owner removed successfully' });
+    res.status(200).json({ success: true, message: 'Owner permanently deleted and removed from lab' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
