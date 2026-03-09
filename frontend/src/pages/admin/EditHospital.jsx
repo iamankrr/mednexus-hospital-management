@@ -5,14 +5,16 @@ import ServiceManager from '../../components/ServiceManager';
 import ThemeColorPicker from '../../components/ThemeColorPicker';
 import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
-import { FaSave, FaArrowLeft, FaTrash } from 'react-icons/fa';
+import { FaSave, FaArrowLeft, FaTrash, FaSync } from 'react-icons/fa';
 import { HOSPITAL_TYPES } from '../../components/HospitalTypeFilter';
+import axios from 'axios'; // ✅ ADDED AXIOS FOR SYNC FEATURE
 
 const EditHospital = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false); // ✅ SYNC STATE
 
   const [formData, setFormData] = useState({
     name: '',
@@ -23,6 +25,8 @@ const EditHospital = () => {
     website: '',
     themeColor: '#1E40AF',
     googlePlaceId: '',
+    googleRating: 0,       // ✅ ADDED
+    googleReviewCount: 0,  // ✅ ADDED
     establishedDate: '', 
     address: {
       street: '',
@@ -67,6 +71,8 @@ const EditHospital = () => {
         website: hospital.website || '',
         themeColor: hospital.themeColor || '#1E40AF',
         googlePlaceId: hospital.googlePlaceId || '',
+        googleRating: hospital.googleRating || 0,             // ✅ SET RATING
+        googleReviewCount: hospital.googleReviewCount || 0,   // ✅ SET REVIEWS
         establishedDate: hospital.establishedDate || '', 
         address: {
           street: hospital.address?.street || '',
@@ -90,28 +96,53 @@ const EditHospital = () => {
     }
   };
 
-  // ✅ UPDATED handleSave with Proper Validation
+  // ✅ NEW FUNCTION: SYNC GOOGLE RATINGS MANUALLY
+  const handleSyncGoogle = async () => {
+    if (!formData.googlePlaceId) {
+      alert("Please enter a Google Place ID first.");
+      return;
+    }
+    
+    setSyncing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:3000/api/admin/fetch-place-details',
+        { placeId: formData.googlePlaceId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (res.data.success) {
+        const place = res.data.data;
+        setFormData(prev => ({
+          ...prev,
+          googleRating: place.googleRating || prev.googleRating,
+          googleReviewCount: place.googleReviewCount || prev.googleReviewCount,
+        }));
+        alert(`✅ Sync Successful! Found ${place.googleReviewCount} reviews with ${place.googleRating} rating.`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to fetch from Google Places API.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSave = async () => {
-    // Basic fields validation
     if (!formData.name || !formData.type) {
       alert('Name and Type are required!');
       return;
     }
 
-    // ✅ Added strict validation for required Address fields to prevent backend crash
     if (!formData.address?.city || !formData.address?.state || !formData.address?.pincode) {
       alert('City, State, and PIN Code are required fields!');
       return;
     }
 
-    console.log('💾 Saving hospital:', id);
-    console.log('📦 Form data being sent:', formData);
-    console.log('🖼️ Images array length:', formData.images?.length);
-
     try {
       setSaving(true);
       
-      // ✅ Ensure the exact payload structure is sent
       const payload = {
         ...formData,
         address: {
@@ -122,15 +153,10 @@ const EditHospital = () => {
         }
       };
 
-      const response = await hospitalAPI.update(id, payload);
-      
-      console.log('✅ Save response:', response.data);
+      await hospitalAPI.update(id, payload);
       alert('✅ Hospital updated successfully!');
-      
       navigate('/admin/hospitals');
     } catch (error) {
-      console.error('❌ Save error:', error);
-      console.error('❌ Error response:', error.response?.data);
       alert(error.response?.data?.message || 'Failed to save changes. Please check required fields.');
     } finally {
       setSaving(false);
@@ -139,13 +165,11 @@ const EditHospital = () => {
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this hospital? This cannot be undone!')) return;
-
     try {
       await hospitalAPI.delete(id);
       alert('✅ Hospital deleted');
       navigate('/admin/hospitals');
     } catch (error) {
-      console.error('Delete error:', error);
       alert('Failed to delete hospital');
     }
   };
@@ -215,8 +239,7 @@ const EditHospital = () => {
         {/* Warning */}
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-red-800">
-            ⚠️ <strong>Admin Note:</strong> You cannot edit Google Ratings or Reviews. 
-            Those are read-only and synced from Google Maps API.
+            ⚠️ <strong>Admin Note:</strong> To update Google Ratings, paste the Place ID and click the Sync button below.
           </p>
         </div>
 
@@ -235,7 +258,6 @@ const EditHospital = () => {
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Apollo Hospitals"
                 />
               </div>
               <div>
@@ -261,7 +283,6 @@ const EditHospital = () => {
                   value={formData.phone}
                   onChange={e => setFormData({...formData, phone: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="+91 98765 43210"
                 />
               </div>
               <div>
@@ -271,7 +292,6 @@ const EditHospital = () => {
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="info@hospital.com"
                 />
               </div>
               <div>
@@ -281,7 +301,6 @@ const EditHospital = () => {
                   value={formData.website}
                   onChange={e => setFormData({...formData, website: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://hospital.com"
                 />
               </div>
 
@@ -298,18 +317,37 @@ const EditHospital = () => {
                 />
               </div>
 
-              <div>
+              {/* ✅ NEW: GOOGLE PLACE ID WITH SYNC BUTTON */}
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Google Place ID (Optional)
                 </label>
-                <input
-                  type="text"
-                  value={formData.googlePlaceId}
-                  onChange={e => setFormData({...formData, googlePlaceId: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="ChIJ..."
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={formData.googlePlaceId}
+                    onChange={e => setFormData({...formData, googlePlaceId: e.target.value})}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="ChIJ..."
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSyncGoogle}
+                    disabled={syncing || !formData.googlePlaceId}
+                    className="px-6 py-2 bg-blue-100 text-blue-700 font-bold rounded-lg hover:bg-blue-200 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <FaSync className={syncing ? "animate-spin" : ""} />
+                    {syncing ? 'Fetching...' : 'Sync Ratings'}
+                  </button>
+                </div>
+                {/* Visual confirmation of current ratings */}
+                {formData.googleReviewCount > 0 && (
+                  <p className="text-sm text-green-600 mt-2 font-semibold">
+                    ⭐ Synced Data: {formData.googleRating} Rating ({formData.googleReviewCount} Reviews)
+                  </p>
+                )}
               </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
@@ -317,7 +355,6 @@ const EditHospital = () => {
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Brief description of the hospital..."
                 />
               </div>
             </div>
@@ -408,7 +445,6 @@ const EditHospital = () => {
             <ImageUploadManager
               images={formData.images || []}
               onImagesChange={(newImages) => {
-                console.log('📸 New images set in form:', newImages);
                 setFormData({ ...formData, images: newImages });
               }}
               maxImages={10}
@@ -471,7 +507,6 @@ const EditHospital = () => {
                       operatingHours: {...formData.operatingHours, [day]: e.target.value}
                     })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., 9:00 AM - 5:00 PM or Closed"
                   />
                 </div>
               ))}
