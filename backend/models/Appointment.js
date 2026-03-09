@@ -56,6 +56,11 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],
     default: 'pending'
   },
+  // FIX: Added this new field to store the owner's decline reason
+  cancellationReason: {
+    type: String,
+    required: false
+  },
   notes: {
     type: String
   },

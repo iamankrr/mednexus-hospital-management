@@ -161,30 +161,42 @@ const Appointments = () => {
                       </div>
                     </div>
 
-                    {/* Reason */}
+                    {/* Reason for Visit */}
                     <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Reason</p>
+                      <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Reason for visit</p>
                       <p className="text-sm text-gray-900">{appointment.reason}</p>
                     </div>
+
+                    {/* NEW: Show Cancellation Reason if appointment is cancelled */}
+                    {appointment.status === 'cancelled' && appointment.cancellationReason && (
+                      <div className="p-3 bg-red-50 rounded-lg mt-3 border border-red-100">
+                        <p className="text-xs text-red-600 uppercase font-semibold mb-1">Reason for Cancellation</p>
+                        <p className="text-sm text-red-900">{appointment.cancellationReason}</p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Actions - Only for pending/confirmed */}
-                  {(appointment.status === 'pending' || appointment.status === 'confirmed') && (
-                    <div className="flex flex-col gap-2 ml-4">
+                  {/* FIX: Actions - Edit is now ONLY for pending status */}
+                  <div className="flex flex-col gap-2 ml-4">
+                    {appointment.status === 'pending' && (
                       <button
                         onClick={() => navigate(`/appointments/edit/${appointment._id}`, { state: { appointment } })}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition"
                       >
                         <FaEdit /> Edit
                       </button>
+                    )}
+                    
+                    {/* User can cancel if it's pending or confirmed */}
+                    {(appointment.status === 'pending' || appointment.status === 'confirmed') && (
                       <button
                         onClick={() => handleDelete(appointment._id)}
                         className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition"
                       >
                         <FaTrash /> Cancel
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                 </div>
               </div>

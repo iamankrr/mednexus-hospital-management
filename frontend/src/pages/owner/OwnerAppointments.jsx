@@ -36,12 +36,34 @@ const OwnerAppointments = () => {
     }
   };
 
+  // FIX: Added logic to ask for a reason when declining
   const handleStatusChange = async (id, newStatus) => {
+    let cancellationReason = '';
+
+    if (newStatus === 'cancelled') {
+      cancellationReason = window.prompt("Please enter a reason for declining this appointment:");
+      
+      // If owner clicks 'Cancel' on the prompt, stop the process
+      if (cancellationReason === null) return; 
+      
+      // If owner submits an empty string
+      if (cancellationReason.trim() === '') {
+        alert('A reason is required to decline an appointment.');
+        return;
+      }
+    }
+
     try {
       const token = localStorage.getItem('token');
+      const payload = { status: newStatus };
+      
+      if (newStatus === 'cancelled') {
+        payload.cancellationReason = cancellationReason;
+      }
+
       await axios.put(
         `http://localhost:3000/api/appointments/${id}`,
-        { status: newStatus },
+        payload,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
