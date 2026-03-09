@@ -19,8 +19,7 @@ const ManageReviews = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      let url = 'http://localhost:3000/api/reviews';
-      // Note: Backend needs to support this endpoint for admin
+      const url = 'http://localhost:3000/api/reviews';
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -56,9 +55,9 @@ const ManageReviews = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Note: This endpoint needs to be added to backend
+      // FIX: Changed API URL to match the backend admin route
       await axios.put(
-        `http://localhost:3000/api/reviews/${reviewId}`,
+        `http://localhost:3000/api/admin/reviews/${reviewId}/approve`,
         { isApproved: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -78,7 +77,8 @@ const ManageReviews = () => {
     try {
       const token = localStorage.getItem('token');
       
-      await axios.delete(`http://localhost:3000/api/reviews/${reviewId}`, {
+      // FIX: Changed API URL to match the backend admin route
+      await axios.delete(`http://localhost:3000/api/admin/reviews/${reviewId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

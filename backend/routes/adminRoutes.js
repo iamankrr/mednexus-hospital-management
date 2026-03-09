@@ -224,6 +224,34 @@ router.put('/labs/:id/approve', protect, admin, async (req, res) => {
   }
 });
 
+// ========== @desc    Get all users (Missing Route Added for Admin Dashboard)
+// ========== @route   GET /api/admin/users
+// ========== @access  Private/Admin
+router.get('/users', protect, admin, async (req, res) => {
+  try {
+    const query = {};
+    
+    // Check if frontend sent a role filter
+    if (req.query.role && req.query.role !== 'all') {
+      query.role = req.query.role;
+    }
+
+    const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching users',
+      error: error.message
+    });
+  }
+});
+
 // ========== @desc    Activate/Deactivate User
 // ========== @route   PUT /api/admin/users/:id/status
 // ========== @access  Private/Admin

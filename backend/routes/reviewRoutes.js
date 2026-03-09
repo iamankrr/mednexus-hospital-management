@@ -5,6 +5,34 @@ const router = express.Router();
 const Review = require('../models/Review');
 const { protect } = require('../middleware/authMiddleware');
 
+// ========== @desc    Get ALL reviews (Admin only - MISSING ROUTE ADDED)
+// ========== @route   GET /api/reviews
+// ========== @access  Private/Admin
+router.get('/', protect, async (req, res) => {
+  try {
+    // Only allow admins to fetch all reviews
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const reviews = await Review.find()
+      .populate('user', 'name email')
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      data: reviews
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching all reviews',
+      error: error.message
+    });
+  }
+});
+
 // ========== @desc    Create review
 // ========== @route   POST /api/reviews
 // ========== @access  Private
