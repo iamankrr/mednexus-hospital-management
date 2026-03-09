@@ -316,6 +316,51 @@ router.delete('/users/:id', protect, admin, async (req, res) => {
   }
 });
 
+// ========== @desc    Promote user to Admin (ONLY DEFAULT ADMIN)
+// ========== @route   PUT /api/admin/users/:id/role
+// ========== @access  Private/Admin
+router.put('/users/:id/role', protect, admin, async (req, res) => {
+  try {
+    // ✅ SECURITY: Sirf Default Admin hi kisi ka role 'admin' bana sakta hai
+    if (req.user.email !== DEFAULT_ADMIN_EMAIL) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Security Alert: Only the Default Admin can promote users to Admin.' 
+      });
+    }
+
+    const { role } = req.body;
+    
+    if (role !== 'admin') {
+      return res.status(400).json({ success: false, message: 'Invalid role assignment' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Role change update (Agar koi owner ko admin banate ho, toh uska profile reset ho jayega)
+    user.role = 'admin';
+    user.ownerProfile = undefined; 
+    await user.save();
+
+    console.log(`✅ Default Admin promoted ${user.email} to Admin`);
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'User successfully promoted to Admin', 
+      data: user 
+    });
+  } catch (error) {
+    console.error('❌ Role update error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Error updating user role' 
+    });
+  }
+});
+
 // ========== @desc    Approve/Reject Review
 // ========== @route   PUT /api/admin/reviews/:id/approve
 // ========== @access  Private/Admin

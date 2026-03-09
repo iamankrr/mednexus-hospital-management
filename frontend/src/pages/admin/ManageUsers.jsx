@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUsers, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaUsers, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUserShield } from 'react-icons/fa';
 import axios from 'axios';
 
 const ManageUsers = () => {
@@ -10,8 +10,11 @@ const ManageUsers = () => {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
-  // ✅ DEFAULT ADMIN EMAIL (Is email ko koi delete nahi kar payega)
+  // ✅ DEFAULT ADMIN EMAIL 
   const DEFAULT_ADMIN_EMAIL = 'admin@hospital.com';
+  
+  // ✅ CURRENT LOGGED IN USER (Taaki pata chale button kisko dikhana hai)
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
     fetchUsers();
@@ -42,20 +45,15 @@ const ManageUsers = () => {
   };
 
   const handleToggleStatus = async (userId, currentStatus) => {
-    if (!window.confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this user?`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this user?`)) return;
 
     try {
       const token = localStorage.getItem('token');
-      
-      // ✅ FIX: Added '/status' at the end of the URL
       await axios.put(
         `http://localhost:3000/api/admin/users/${userId}/status`,
         { isActive: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       alert('User status updated!');
       fetchUsers();
     } catch (err) {
@@ -64,21 +62,35 @@ const ManageUsers = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone!')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone!')) return;
 
     try {
       const token = localStorage.getItem('token');
-      
       await axios.delete(`http://localhost:3000/api/admin/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       alert('User deleted successfully!');
       fetchUsers();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
+  // ✅ NEW FUNCTION: Promote user to admin
+  const handleMakeAdmin = async (userId) => {
+    if (!window.confirm('Are you sure you want to make this user an Admin?')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:3000/api/admin/users/${userId}/role`,
+        { role: 'admin' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('User promoted to Admin successfully!');
+      fetchUsers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update user role');
     }
   };
 
@@ -111,9 +123,7 @@ const ManageUsers = () => {
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg font-medium ${
-                filter === 'all'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                filter === 'all' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               All Users ({users.length})
@@ -121,9 +131,7 @@ const ManageUsers = () => {
             <button
               onClick={() => setFilter('user')}
               className={`px-4 py-2 rounded-lg font-medium ${
-                filter === 'user'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                filter === 'user' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Regular Users
@@ -131,9 +139,7 @@ const ManageUsers = () => {
             <button
               onClick={() => setFilter('admin')}
               className={`px-4 py-2 rounded-lg font-medium ${
-                filter === 'admin'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                filter === 'admin' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               Admins
@@ -197,13 +203,24 @@ const ManageUsers = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {/* ✅ FIX: Hide buttons for default admin */}
                       {user.email === DEFAULT_ADMIN_EMAIL ? (
                         <span className="text-gray-400 font-bold text-xs uppercase bg-gray-100 px-3 py-1 rounded">
                           Default Admin
                         </span>
                       ) : (
                         <div className="flex gap-2">
+                          
+                          {/* ✅ NEW: Only Default Admin sees 'Make Admin' button for non-admins */}
+                          {currentUser.email === DEFAULT_ADMIN_EMAIL && user.role !== 'admin' && (
+                            <button
+                              onClick={() => handleMakeAdmin(user._id)}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1"
+                              title="Make Admin"
+                            >
+                              <FaUserShield /> Admin
+                            </button>
+                          )}
+
                           <button
                             onClick={() => handleToggleStatus(user._id, user.isActive)}
                             className={`${
@@ -212,6 +229,7 @@ const ManageUsers = () => {
                           >
                             {user.isActive ? 'Deactivate' : 'Activate'}
                           </button>
+                          
                           <button
                             onClick={() => handleDeleteUser(user._id)}
                             className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1"
