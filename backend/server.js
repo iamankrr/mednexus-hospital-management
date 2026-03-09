@@ -20,6 +20,12 @@ const app = express();
 connectDB().then(() => {
   console.log('⏰ Starting Schedulers...');
   startSchedulers();
+  
+  // ✅ INSTANT SYNC TRIGGER: Server start hote hi ratings update karega
+  const googlePlaces = require('./services/googlePlaces');
+  googlePlaces.updateAllGoogleRatings().then((res) => {
+    console.log("🌟 Force Update Result:", res.message);
+  });
 });
 
 // ========== Middleware ==========

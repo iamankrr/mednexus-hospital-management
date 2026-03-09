@@ -233,14 +233,14 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // ✅ EXACT MAP LOCATION LOGIC
+              // ✅ OFFICIAL GOOGLE MAPS EXACT LOCATION URL
               if (hospital.googlePlaceId) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${hospital.name}&query_place_id=${hospital.googlePlaceId}`, '_blank');
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.googlePlaceId}`, '_blank');
               } else if (hospital.location?.coordinates) {
-                const coords = hospital.location.coordinates;
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`, '_blank');
+                const [lng, lat] = hospital.location.coordinates;
+                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
               } else if (hospital.address) {
-                const query = `${hospital.name}, ${hospital.address.area || ''}, ${hospital.address.city || ''}`.replace(/ /g, '+');
+                const query = encodeURIComponent(`${hospital.name}, ${hospital.address.area || ''}, ${hospital.address.city || ''}`);
                 window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
               }
             }}

@@ -229,14 +229,14 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // ✅ EXACT MAP LOCATION LOGIC
+              // ✅ OFFICIAL GOOGLE MAPS EXACT LOCATION URL
               if (lab.googlePlaceId) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${lab.name}&query_place_id=${lab.googlePlaceId}`, '_blank');
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lab.name)}&query_place_id=${lab.googlePlaceId}`, '_blank');
               } else if (lab.location?.coordinates) {
-                const coords = lab.location.coordinates;
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[1]},${coords[0]}`, '_blank');
+                const [lng, lat] = lab.location.coordinates;
+                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
               } else if (lab.address) {
-                const query = `${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`.replace(/ /g, '+');
+                const query = encodeURIComponent(`${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`);
                 window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
               }
             }}
