@@ -115,15 +115,16 @@ const Home = () => {
 
   useEffect(() => {
     const cachedLat = sessionStorage.getItem('mednexus_cached_lat');
-    const currentLat = userLocation ? String(userLocation.lat) : null;
+    const currentLat = userLocation ? String(userLocation.lat || userLocation.latitude) : null;
 
     if (locationRequested) {
       if (hospitals.length === 0 && labs.length === 0) {
-          fetchHospitals();
-          fetchLabs();
+          fetchAllData();
       } else if (currentLat && cachedLat !== currentLat) {
-          fetchHospitals();
-          fetchLabs();
+          fetchAllData();
+          if (currentLat) {
+            sessionStorage.setItem('mednexus_cached_lat', currentLat);
+          }
       }
     }
   }, [userLocation, locationRequested, filters.distance]); 
@@ -143,9 +144,12 @@ const Home = () => {
     } catch (error) {}
   };
 
-  const fetchHospitals = async () => {
+  // ✅ NEW PROGRESSIVE FETCH FUNCTION
+  const fetchAllData = async () => {
     try {
       setLoading(true);
+      
+      const token = localStorage.getItem('token');
       const params = {};
       
       if (userLocation) {
@@ -163,64 +167,53 @@ const Home = () => {
       if (filters.city && filters.city !== 'All Cities') {
         params.city = filters.city;
       }
-      
-      console.log('🏥 Fetching hospitals with params:', params);
-      const response = await axios.get(`${API_URL}/api/hospitals`, { params });
-      
-      const dataArray = response.data.data || [];
-      console.log('✅ Response:', dataArray.length, 'hospitals');
-      
-      const normalizedHospitals = dataArray.map(hospital => ({
-        ...hospital, id: hospital._id || hospital.id
-      }));
 
-      setHospitals(normalizedHospitals);
-      sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
+      console.log('🚀 Fetching data progressively with params:', params);
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      // ✅ Fetch hospitals first (updates UI immediately)
+      axios.get(`${API_URL}/api/hospitals`, { params, headers })
+        .then(response => {
+          const hospitalsDataArray = response.data.data || [];
+          console.log('✅ Hospitals loaded first:', hospitalsDataArray.length);
+
+          const normalizedHospitals = hospitalsDataArray.map(hospital => ({
+            ...hospital, id: hospital._id || hospital.id
+          }));
+
+          setHospitals(normalizedHospitals);
+          sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
+          
+          // Stop loading skeleton as soon as hospitals arrive
+          setLoading(false); 
+        })
+        .catch(error => {
+          console.error('❌ Hospitals fetch error:', error);
+          setHospitals([]);
+          setLoading(false); // Stop loading even if it fails
+        });
+
+      // ✅ Fetch labs in background
+      axios.get(`${API_URL}/api/labs`, { params, headers })
+        .then(response => {
+          const labsDataArray = response.data.data || [];
+          console.log('✅ Labs loaded:', labsDataArray.length);
+
+          const normalizedLabs = labsDataArray.map(lab => ({
+            ...lab, id: lab._id || lab.id
+          }));
+
+          setLabs(normalizedLabs);
+          sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
+        })
+        .catch(error => {
+          console.error('❌ Labs fetch error:', error);
+          setLabs([]);
+        });
       
     } catch (error) {
-      console.error('❌ Fetch hospitals error:', error);
-      setHospitals([]);
-    } finally {
-      setLoading(false); 
-    }
-  };
-
-  const fetchLabs = async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      
-      if (userLocation) {
-        params.latitude = userLocation.latitude || userLocation.lat;
-        params.longitude = userLocation.longitude || userLocation.lng;
-        
-        if (filters.distance) {
-          params.maxDistance = filters.distance * 1000;
-        }
-      }
-      
-      if (filters.city && filters.city !== 'All Cities') {
-        params.city = filters.city;
-      }
-      
-      console.log('🔬 Fetching labs with params:', params);
-      const response = await axios.get(`${API_URL}/api/labs`, { params });
-      
-      const dataArray = response.data.data || [];
-      console.log(`✅ Loaded ${dataArray.length} labs`);
-      
-      const normalizedLabs = dataArray.map(lab => ({
-        ...lab, id: lab._id || lab.id
-      }));
-
-      setLabs(normalizedLabs);
-      sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
-      
-    } catch (error) {
-      console.error('❌ Fetch labs error:', error);
-      setLabs([]);
-    } finally {
-      setLoading(false); 
+      console.error('❌ General fetch setup error:', error);
+      setLoading(false);
     }
   };
 

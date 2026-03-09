@@ -40,7 +40,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ========== Test Route ==========
+// ========== Test & Health Routes ==========
 app.get('/', (req, res) => {
   res.json({ 
     message: '🏥 Hospital Service API is running!',
@@ -65,6 +65,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// ✅ ADDED: Top-level health route
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Existing api health route
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK',
@@ -153,3 +163,8 @@ app.listen(PORT, () => {
   console.log(`   GET    http://localhost:${PORT}/api/tests`);
   console.log(`✅ Ready to accept requests!\n`);
 });
+
+// ✅ ADDED: Keep-Alive utility for production
+if (process.env.NODE_ENV === 'production') {
+  require('./utils/keepAlive');
+}

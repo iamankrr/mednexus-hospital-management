@@ -57,10 +57,10 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
     }
   };
 
-  // ✅ NEW: Clean Address Logic
+  // ✅ Clean Address Logic
   const displayAddress = [hospital.address?.area, hospital.address?.city]
-    .filter(Boolean) // This removes empty strings, null, undefined
-    .join(', ');     // This joins the remaining items with a comma
+    .filter(Boolean) 
+    .join(', ');     
 
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
@@ -75,6 +75,11 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
               src={hospital.images[currentImageIndex]}
               alt={hospital.name}
               className="w-full h-full object-cover"
+              loading="lazy" // ✅ Added lazy loading
+              onError={(e) => {
+                // ✅ Added fallback for broken images
+                e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
+              }}
             />
             
             {hospital.images.length > 1 && (
