@@ -70,7 +70,7 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-    // ========== @desc    Login user
+// ========== @desc    Login user
 // ========== @route   POST /api/users/login
 // ========== @access  Public
 exports.loginUser = async (req, res) => {
@@ -89,6 +89,15 @@ exports.loginUser = async (req, res) => {
 
     // Find user (include password for comparison)
     const user = await User.findOne({ email }).select('+password');
+
+    // ✅ ADDED DEACTIVATION CHECK HERE (Password check se pehle)
+    if (user && user.isActive === false) {
+      console.log('❌ Account deactivated login attempt:', email);
+      return res.status(401).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact the administrator.'
+      });
+    }
 
     if (!user) {
       console.log('❌ User not found:', email);
@@ -171,7 +180,7 @@ exports.loginUser = async (req, res) => {
       error: error.message
     });
   }
- };
+};
 
 // ========== @desc    Get user profile
 // ========== @route   GET /api/users/profile

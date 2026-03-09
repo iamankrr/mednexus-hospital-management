@@ -832,47 +832,39 @@ router.put('/owners/:id/reject', protect, admin, async (req, res) => {
 //        NEW ROUTES: REMOVE & CHANGE OWNER
 // ==========================================
 
-// ========== REMOVE OWNER FROM FACILITY PROFILE (PERMANENT DELETE) ==========
+// ========== 3. REMOVE OWNER FROM FACILITY PROFILE (PERMANENT DELETE) ==========
 router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
   try {
     const owner = await User.findById(req.params.id);
     if (!owner || owner.role !== 'owner') {
       return res.status(404).json({ success: false, message: 'Owner not found' });
     }
-
-    const facilityType = owner.ownerProfile?.facilityType;
     const facilityId = owner.ownerProfile?.facilityId;
+    const facilityType = owner.ownerProfile?.facilityType;
 
     if (facilityId) {
       const Model = facilityType === 'hospital' ? Hospital : Laboratory;
       await Model.findByIdAndUpdate(facilityId, { owner: null, appointmentsEnabled: false });
     }
-
-    // ✅ FIX: PERMANENTLY DELETE THE USER SO THEY CANNOT LOGIN
-    await User.findByIdAndDelete(req.params.id);
-
+    await User.findByIdAndDelete(req.params.id); // 🔥 permanently deletes user
     res.status(200).json({ success: true, message: 'Owner permanently deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// ========== REMOVE OWNER FROM HOSPITAL (PERMANENT DELETE) ==========
+// ========== 1. REMOVE OWNER FROM HOSPITAL (PERMANENT DELETE) ==========
 router.put('/hospitals/:id/remove-owner', protect, admin, async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id);
-
-    if (hospital.owner) {
-      // ✅ FIX: PERMANENTLY DELETE THE USER SO THEY CANNOT LOGIN
-      await User.findByIdAndDelete(hospital.owner);
+    if (hospital && hospital.owner) {
+      await User.findByIdAndDelete(hospital.owner); // 🔥 permanently deletes user
     }
-
     await Hospital.updateOne(
       { _id: req.params.id }, 
       { $set: { owner: null, appointmentsEnabled: false } }
     );
-
-    res.status(200).json({ success: true, message: 'Owner permanently deleted and removed from hospital' });
+    res.status(200).json({ success: true, message: 'Owner permanently deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -938,22 +930,18 @@ router.put('/labs/:id/assign-owner', protect, admin, async (req, res) => {
   }
 });
 
-// ========== REMOVE OWNER FROM LAB (PERMANENT DELETE) ==========
+// ========== 2. REMOVE OWNER FROM LAB (PERMANENT DELETE) ==========
 router.put('/labs/:id/remove-owner', protect, admin, async (req, res) => {
   try {
     const lab = await Laboratory.findById(req.params.id);
-
-    if (lab.owner) {
-      // ✅ FIX: PERMANENTLY DELETE THE USER SO THEY CANNOT LOGIN
-      await User.findByIdAndDelete(lab.owner);
+    if (lab && lab.owner) {
+      await User.findByIdAndDelete(lab.owner); // 🔥 permanently deletes user
     }
-
     await Laboratory.updateOne(
       { _id: req.params.id }, 
       { $set: { owner: null, appointmentsEnabled: false } }
     );
-
-    res.status(200).json({ success: true, message: 'Owner permanently deleted and removed from lab' });
+    res.status(200).json({ success: true, message: 'Owner permanently deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1571,45 +1559,22 @@ router.post('/assign-owner', protect, admin, async (req, res) => {
   }
 });
 
-// ===== REMOVE OWNER FROM FACILITY (Old logic kept for backward compatibility if used) =====
+// ========== 4. THE OLD REMOVE ROUTE (YEH ROUTE FRONTEND HIT KAR RAHA THA) ==========
 router.post('/remove-owner', protect, admin, async (req, res) => {
   try {
     const { facilityId, facilityType } = req.body;
-
     const Model = facilityType === 'hospital' ? Hospital : Laboratory;
     const facility = await Model.findById(facilityId);
 
-    if (!facility || !facility.owner) {
-      return res.status(404).json({
-        success: false,
-        message: 'Facility or owner not found'
-      });
+    if (facility && facility.owner) {
+      await User.findByIdAndDelete(facility.owner); // 🔥 permanently deletes user
+      facility.owner = null;
+      facility.appointmentsEnabled = false;
+      await facility.save();
     }
-
-    // Remove owner from user
-    await User.findByIdAndUpdate(facility.owner, {
-      $unset: { ownerProfile: 1 },
-      role: 'user'
-    });
-
-    // Remove owner from facility
-    facility.owner = null;
-    facility.appointmentsEnabled = false;
-    await facility.save();
-
-    console.log('✅ Owner removed from facility');
-
-    res.status(200).json({
-      success: true,
-      message: 'Owner removed successfully'
-    });
-
+    res.status(200).json({ success: true, message: 'Owner removed and account deleted' });
   } catch (error) {
-    console.error('❌ Remove owner error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
