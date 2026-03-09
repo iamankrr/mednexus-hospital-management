@@ -10,6 +10,9 @@ const ManageUsers = () => {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
+  // ✅ DEFAULT ADMIN EMAIL (Is email ko koi delete nahi kar payega)
+  const DEFAULT_ADMIN_EMAIL = 'admin@hospital.com';
+
   useEffect(() => {
     fetchUsers();
   }, [filter]);
@@ -46,8 +49,9 @@ const ManageUsers = () => {
     try {
       const token = localStorage.getItem('token');
       
+      // ✅ FIX: Added '/status' at the end of the URL
       await axios.put(
-        `http://localhost:3000/api/admin/users/${userId}`,
+        `http://localhost:3000/api/admin/users/${userId}/status`,
         { isActive: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -55,7 +59,7 @@ const ManageUsers = () => {
       alert('User status updated!');
       fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update user');
+      alert(err.response?.data?.message || 'Failed to update user status');
     }
   };
 
@@ -178,6 +182,8 @@ const ManageUsers = () => {
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                         user.role === 'admin'
                           ? 'bg-red-100 text-red-800'
+                          : user.role === 'owner'
+                          ? 'bg-purple-100 text-purple-800'
                           : 'bg-blue-100 text-blue-800'
                       }`}>
                         {user.role.toUpperCase()}
@@ -191,22 +197,29 @@ const ManageUsers = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleToggleStatus(user._id, user.isActive)}
-                          className={`${
-                            user.isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'
-                          } text-white px-3 py-1 rounded`}
-                        >
-                          {user.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1"
-                        >
-                          <FaTrash /> Delete
-                        </button>
-                      </div>
+                      {/* ✅ FIX: Hide buttons for default admin */}
+                      {user.email === DEFAULT_ADMIN_EMAIL ? (
+                        <span className="text-gray-400 font-bold text-xs uppercase bg-gray-100 px-3 py-1 rounded">
+                          Default Admin
+                        </span>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleToggleStatus(user._id, user.isActive)}
+                            className={`${
+                              user.isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'
+                            } text-white px-3 py-1 rounded`}
+                          >
+                            {user.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user._id)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1"
+                          >
+                            <FaTrash /> Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

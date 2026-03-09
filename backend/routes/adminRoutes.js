@@ -9,6 +9,9 @@ const Review = require('../models/Review');
 const Contact = require('../models/Contact');
 const FacilitySubmission = require('../models/FacilitySubmission');
 
+// ✅ DEFAULT ADMIN CONFIGURATION
+const DEFAULT_ADMIN_EMAIL = 'admin@hospital.com';
+
 // ✅ FIXED: Imported 'admin' instead of 'adminOnly'
 const { protect, admin } = require('../middleware/authMiddleware');
 const { searchPlaces, getPlaceDetails } = require('../services/googlePlaces');
@@ -262,17 +265,12 @@ router.put('/users/:id/status', protect, admin, async (req, res) => {
     const user = await User.findById(req.params.id);
     
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.role === 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot modify admin users'
-      });
+    // ✅ FIX: Protect default admin
+    if (user.email === DEFAULT_ADMIN_EMAIL) {
+      return res.status(403).json({ success: false, message: 'Cannot modify the default admin' });
     }
 
     user.isActive = isActive;
@@ -284,11 +282,7 @@ router.put('/users/:id/status', protect, admin, async (req, res) => {
       data: user
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error updating user status',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error updating user status', error: error.message });
   }
 });
 
@@ -300,31 +294,19 @@ router.delete('/users/:id', protect, admin, async (req, res) => {
     const user = await User.findById(req.params.id);
     
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.role === 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot delete admin users'
-      });
+    // ✅ FIX: Protect default admin
+    if (user.email === DEFAULT_ADMIN_EMAIL) {
+      return res.status(403).json({ success: false, message: 'Cannot delete the default admin' });
     }
 
     await user.deleteOne();
 
-    res.status(200).json({
-      success: true,
-      message: 'User deleted successfully'
-    });
+    res.status(200).json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting user',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error deleting user', error: error.message });
   }
 });
 
@@ -775,46 +757,30 @@ router.put('/owners/:id/remove-facility', protect, admin, async (req, res) => {
   try {
     const owner = await User.findById(req.params.id);
     if (!owner || owner.role !== 'owner') {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Owner not found' 
+      return res.status(404).json({ success: false, message: 'Owner not found' });
+    }
+
+    const facilityType = owner.ownerProfile?.facilityType;
+    const facilityId = owner.ownerProfile?.facilityId;
+
+    if (facilityId) {
+      const Model = facilityType === 'hospital' ? Hospital : Laboratory;
+      await Model.findByIdAndUpdate(facilityId, {
+        owner: null,
+        appointmentsEnabled: false
       });
     }
 
-    const facilityType = owner.ownerProfile.facilityType;
-    const facilityId = owner.ownerProfile.facilityId;
-
-    if (!facilityId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Owner does not have a linked facility' 
-      });
-    }
-
-    // Remove owner from facility
-    const Model = facilityType === 'hospital' ? Hospital : Laboratory;
-    await Model.findByIdAndUpdate(facilityId, {
-      owner: null,
-      appointmentsEnabled: false
-    });
-
-    // Clear owner profile
+    // ✅ FIX: Don't set isActive: false! Make them a normal user so they can login
     owner.ownerProfile.facilityId = null;
-    owner.isActive = false;
+    owner.ownerProfile.facilityType = null;
+    owner.role = 'user'; 
     await owner.save();
 
-    console.log(`✅ Owner ${owner.email} removed from facility ${facilityId}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Owner removed from facility'
-    });
+    console.log(`✅ Owner ${owner.email} removed from facility and reverted to regular user.`);
+    res.status(200).json({ success: true, message: 'Owner removed from facility successfully' });
   } catch (error) {
-    console.error('❌ Remove owner error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -824,25 +790,20 @@ router.put('/hospitals/:id/remove-owner', protect, admin, async (req, res) => {
     const hospital = await Hospital.findById(req.params.id);
     
     if (hospital.owner) {
-      // Clear user's owner profile
+      // ✅ FIX: Change role back to 'user' so they aren't stuck
       await User.findByIdAndUpdate(hospital.owner, {
         'ownerProfile.facilityType': null,
-        'ownerProfile.facilityId': null
+        'ownerProfile.facilityId': null,
+        role: 'user'
       });
     }
 
     hospital.owner = null;
     await hospital.save();
 
-    res.status(200).json({
-      success: true,
-      message: 'Owner removed successfully'
-    });
+    res.status(200).json({ success: true, message: 'Owner removed successfully' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -913,25 +874,20 @@ router.put('/labs/:id/remove-owner', protect, admin, async (req, res) => {
     const lab = await Laboratory.findById(req.params.id);
     
     if (lab.owner) {
-      // Clear user's owner profile
+      // ✅ FIX: Change role back to 'user'
       await User.findByIdAndUpdate(lab.owner, {
         'ownerProfile.facilityType': null,
-        'ownerProfile.facilityId': null
+        'ownerProfile.facilityId': null,
+        role: 'user'
       });
     }
     
     lab.owner = null;
     await lab.save();
     
-    res.status(200).json({
-      success: true,
-      message: 'Owner removed successfully'
-    });
+    res.status(200).json({ success: true, message: 'Owner removed successfully' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -942,19 +898,12 @@ router.put('/facilities/:type/:id/change-owner', protect, admin, async (req, res
     const { type, id } = req.params;
 
     if (!newOwnerEmail) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'New owner email is required' 
-      });
+      return res.status(400).json({ success: false, message: 'New owner email is required' });
     }
 
-    // Find new owner
     const newOwner = await User.findOne({ email: newOwnerEmail, role: 'owner' });
     if (!newOwner) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Owner not found with this email' 
-      });
+      return res.status(404).json({ success: false, message: 'Owner not found with this email' });
     }
 
     if (newOwner.ownerProfile?.facilityId) {
@@ -964,21 +913,20 @@ router.put('/facilities/:type/:id/change-owner', protect, admin, async (req, res
       });
     }
 
-    // Find facility
     const Model = type === 'hospital' ? Hospital : Laboratory;
     const facility = await Model.findById(id);
+    
     if (!facility) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Facility not found' 
-      });
+      return res.status(404).json({ success: false, message: 'Facility not found' });
     }
 
     // Remove old owner
     if (facility.owner) {
+      // ✅ FIX: Don't use isActive: false. Make old owner a normal user.
       await User.findByIdAndUpdate(facility.owner, {
         'ownerProfile.facilityId': null,
-        isActive: false
+        'ownerProfile.facilityType': null,
+        role: 'user' 
       });
       console.log(`Removed old owner ${facility.owner} from facility ${id}`);
     }
@@ -993,18 +941,9 @@ router.put('/facilities/:type/:id/change-owner', protect, admin, async (req, res
     newOwner.isActive = true;
     await newOwner.save();
 
-    console.log(`✅ Changed owner for facility ${id} to ${newOwnerEmail}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Owner changed successfully'
-    });
+    res.status(200).json({ success: true, message: 'Owner changed successfully' });
   } catch (error) {
-    console.error('❌ Change owner error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
