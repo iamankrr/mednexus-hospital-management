@@ -8,6 +8,8 @@ import SearchResults from './pages/SearchResults';
 import HospitalDetails from './pages/HospitalDetails';
 import Login from './pages/auth/Login';
 
+import EditAppointment from './pages/EditAppointment';
+
 import Hospitals from './pages/Hospitals';
 import Labs from './pages/Labs';
 
@@ -129,6 +131,7 @@ function App() {
         <Route path="/admin/contacts" element={<ContactRequests />} />
         <Route path="/admin/submissions" element={<ReviewSubmissions />} />
         <Route path="/admin/contacts" element={<ViewContacts />} />
+        <Route path="/appointments/edit/:id" element={<EditAppointment />} />
         <Route path="/admin/:type/:id/manage-services" element={<AdminManageServices />} /> 
       </Routes>
       
