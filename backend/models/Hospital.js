@@ -9,34 +9,36 @@ const hospitalSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, 'Please provide hospital type'],
+    // ✅ FIX: Added lowercase options and common variations to prevent validation errors
     enum: {
       values: [
-        'General Hospital',
-        'Dental Hospital',
-        'Eye Hospital',
-        'Maternity Hospital',
-        'Children Hospital',
-        'Orthopedic Hospital',
-        'Cardiac Hospital',
-        'Cancer Hospital',
-        'Neuro Hospital',
-        'Ent Hospital',
-        'Dermatology Hospital',
-        'Psychiatry Hospital',
-        'Rehabilitation Hospital',
-        'Veterinary Hospital',
-        'Ayurvedic Hospital',
-        'Homeopathic Hospital',
-        'Government Hospital',
-        'Multi Specialty Hospital',
-        'Super Specialty Hospital'
+        'General Hospital', 'general', 'General',
+        'Dental Hospital', 'dental', 'Dental',
+        'Eye Hospital', 'eye', 'Eye',
+        'Maternity Hospital', 'maternity', 'Maternity',
+        'Children Hospital', 'children', 'Children',
+        'Orthopedic Hospital', 'orthopedic', 'Orthopedic',
+        'Cardiac Hospital', 'cardiac', 'Cardiac',
+        'Cancer Hospital', 'cancer', 'Cancer',
+        'Neuro Hospital', 'neuro', 'Neuro',
+        'Ent Hospital', 'ent', 'Ent',
+        'Dermatology Hospital', 'dermatology', 'Dermatology',
+        'Psychiatry Hospital', 'psychiatry', 'Psychiatry',
+        'Rehabilitation Hospital', 'rehabilitation', 'Rehabilitation',
+        'Veterinary Hospital', 'veterinary', 'Veterinary',
+        'Ayurvedic Hospital', 'ayurvedic', 'Ayurvedic',
+        'Homeopathic Hospital', 'homeopathic', 'Homeopathic',
+        'Government Hospital', 'government', 'Government',
+        'Private Hospital', 'private', 'Private', // Added Private variations
+        'Multi Specialty Hospital', 'multi specialty', 'Multi Specialty',
+        'Super Specialty Hospital', 'super specialty', 'Super Specialty'
       ],
       message: '{VALUE} is not a valid hospital type'
     }
   },
   category: {
     type: String,
-    enum: ['private', 'government', 'charity', 'public'],
+    enum: ['Private', 'Government', 'Charity', 'Public', 'private', 'government', 'charity', 'public'], // ✅ FIX: Added capitalized versions just in case
     default: 'private'
   },
   description: {
