@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { FaRupeeSign, FaClock, FaSearch, FaTag } from 'react-icons/fa';
 
-const CATEGORIES = [
-  'All', 'Pathology', 'Radiology', 'OPD', 'Surgery',
-  'Cardiology', 'Neurology', 'Dental', 'Eye',
-  'Orthopedic', 'Maternity', 'General', 'Other'
-];
-
 const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -41,8 +35,10 @@ const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
   });
 
   const totalServices = services.length;
-  const minPrice = Math.min(...services.map(s => s.price));
-  const maxPrice = Math.max(...services.map(s => s.price));
+  // ✅ Calculate min/max only for valid prices
+  const validPrices = services.map(s => s.price).filter(p => p != null && p > 0);
+  const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
+  const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden">
@@ -55,13 +51,15 @@ const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
               💰 Price List
             </h2>
             <p className="text-white text-opacity-80 text-sm mt-1">
-              {totalServices} services • ₹{minPrice} – ₹{maxPrice}
+              {totalServices} services listed
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-white text-opacity-70">Starting from</p>
-            <p className="text-3xl font-bold">₹{minPrice}</p>
-          </div>
+          {minPrice && (
+            <div className="text-right">
+              <p className="text-sm text-white text-opacity-70">Starting from</p>
+              <p className="text-3xl font-bold">₹{minPrice}</p>
+            </div>
+          )}
         </div>
 
         {/* Search */}
@@ -140,13 +138,14 @@ const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
                       )}
                     </div>
                     <div className="text-right ml-4">
+                      {/* ✅ Handle Null Price Display */}
                       <p
-                        className="text-xl font-bold"
-                        style={{ color: themeColor }}
+                        className={`text-lg font-bold ${service.price ? '' : 'text-sm text-gray-500'}`}
+                        style={service.price ? { color: themeColor } : {}}
                       >
-                        ₹{service.price.toLocaleString()}
+                        {service.price ? `₹${service.price.toLocaleString()}` : 'Price on Request'}
                       </p>
-                      <p className="text-xs text-gray-400">onwards</p>
+                      {service.price && <p className="text-xs text-gray-400">onwards</p>}
                     </div>
                   </div>
                 ))}

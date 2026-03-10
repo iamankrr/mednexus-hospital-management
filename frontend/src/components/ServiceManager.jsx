@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaRupeeSign } from 'react-icons/fa';
 import axios from 'axios';
 
+// ✅ Added more categories including diagnostic ones
 const CATEGORIES = [
-  'Pathology', 'Radiology', 'OPD', 'Surgery',
-  'Cardiology', 'Neurology', 'Dental', 'Eye',
-  'Orthopedic', 'Maternity', 'General', 'Other'
+  'Consultation', 'Pathology', 'Radiology', 'Diagnosis', 
+  'OPD', 'Surgery', 'Cardiology', 'Neurology', 'Dental', 
+  'Eye', 'Orthopedic', 'Maternity', 'Therapy', 'General', 'Other'
 ];
 
 const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices = [], onUpdate }) => {
@@ -33,15 +34,16 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
 
   // ADD service
   const handleAdd = async () => {
-    if (!form.name || !form.price) {
-      alert('Service name and price are required!');
+    if (!form.name) {
+      alert('Service name is required!');
       return;
     }
     try {
       setLoading(true);
       const res = await axios.post(
         getEndpoint(),
-        { ...form, price: parseFloat(form.price) },
+        // ✅ Send null if price is empty
+        { ...form, price: form.price ? parseFloat(form.price) : null },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setServices(res.data.data);
@@ -61,7 +63,7 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     setEditForm({
       name: service.name,
       category: service.category || 'General',
-      price: service.price,
+      price: service.price || '',
       duration: service.duration || '',
       description: service.description || '',
       isAvailable: service.isAvailable !== false
@@ -74,12 +76,13 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
       setLoading(true);
       const res = await axios.put(
         `${getEndpoint()}/${serviceId}`,
-        { ...editForm, price: parseFloat(editForm.price) },
+         // ✅ Send null if price is empty
+        { ...editForm, price: editForm.price ? parseFloat(editForm.price) : null },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       // Update local state
       setServices(prev => prev.map(s =>
-        s._id === serviceId ? { ...s, ...editForm, price: parseFloat(editForm.price) } : s
+        s._id === serviceId ? { ...s, ...editForm, price: editForm.price ? parseFloat(editForm.price) : null } : s
       ));
       if (onUpdate) onUpdate(services);
       setEditingId(null);
@@ -177,10 +180,11 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Price (₹) *</label>
+              {/* ✅ Made Price Optional */}
+              <label className="text-sm font-medium text-gray-700">Price (₹) (Optional)</label>
               <input
                 type="number"
-                placeholder="e.g. 500"
+                placeholder="e.g. 500 (Leave blank for Request)"
                 value={form.price}
                 onChange={e => setForm({ ...form, price: e.target.value })}
                 className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -292,7 +296,7 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
                             onChange={e => setEditForm({ ...editForm, price: e.target.value })}
                             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                             style={{ color: '#1f2937', backgroundColor: '#ffffff' }}
-                            placeholder="Price ₹"
+                            placeholder="Price ₹ (Optional)"
                           />
                           <input
                             type="text"
@@ -347,8 +351,9 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
                           )}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xl font-bold text-blue-600">
-                            ₹{service.price?.toLocaleString()}
+                          {/* ✅ Handle Null Price */}
+                          <span className={`text-lg font-bold ${service.price ? 'text-blue-600' : 'text-gray-500 text-sm'}`}>
+                            {service.price ? `₹${service.price.toLocaleString()}` : 'Price on Request'}
                           </span>
                           <button
                             onClick={() => startEdit(service)}
@@ -379,9 +384,14 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
           <div className="flex justify-between text-sm text-gray-600">
             <span>Total: {services.length} services</span>
             <span>
-              Range: ₹{Math.min(...services.map(s => s.price)).toLocaleString()}
-              {' – '}
-              ₹{Math.max(...services.map(s => s.price)).toLocaleString()}
+              {/* ✅ Handle calculation only for valid prices */}
+              {services.some(s => s.price) ? (
+                <>
+                  Range: ₹{Math.min(...services.map(s => s.price).filter(p => p)).toLocaleString()}
+                  {' – '}
+                  ₹{Math.max(...services.map(s => s.price).filter(p => p)).toLocaleString()}
+                </>
+              ) : 'Prices available on request'}
             </span>
           </div>
         </div>

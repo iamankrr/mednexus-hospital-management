@@ -307,8 +307,9 @@ router.post('/:id/services', protect, async (req, res) => {
 
     const { name, category, price, duration, description, isAvailable } = req.body;
 
-    if (!name || !price) {
-      return res.status(400).json({ success: false, message: 'Name and price are required' });
+    // ✅ REMOVED !price condition
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Service name is required' });
     }
 
     const hospital = await Hospital.findById(req.params.id);
@@ -323,8 +324,10 @@ router.post('/:id/services', protect, async (req, res) => {
     }
 
     hospital.services.push({
-      name, category: category || 'General',
-      price: parseFloat(price),
+      name, 
+      category: category || 'General',
+      // ✅ Handle null price
+      price: price ? parseFloat(price) : null,
       duration, description,
       isAvailable: isAvailable !== undefined ? isAvailable : true
     });
@@ -358,9 +361,14 @@ router.put('/:id/services/:serviceId', protect, async (req, res) => {
     const { name, category, price, duration, description, isAvailable } = req.body;
     if (name)        service.name        = name;
     if (category)    service.category    = category;
-    if (price)       service.price       = parseFloat(price);
-    if (duration)    service.duration    = duration;
-    if (description) service.description = description;
+    
+    // ✅ Handle price update (can be null/empty)
+    if (price !== undefined) {
+       service.price = price ? parseFloat(price) : null;
+    }
+    
+    if (duration !== undefined)    service.duration    = duration;
+    if (description !== undefined) service.description = description;
     if (isAvailable !== undefined) service.isAvailable = isAvailable;
 
     await hospital.save();
