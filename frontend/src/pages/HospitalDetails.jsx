@@ -154,6 +154,36 @@ const HospitalDetails = () => {
   const tabs  = ['overview', 'services', 'reviews'];
   const isCompared = compareList.some(h => h.id === hospital._id || h.id === hospital.id);
 
+  // ==========================================
+  // ✅ LOGIC: MERGE UNPRICED SERVICES INTO ARRAYS
+  // ==========================================
+  const unpricedServices = hospital.services?.filter(s => !s.price || s.price <= 0) || [];
+  
+  const combinedTests = Array.from(new Set([
+    ...(hospital.tests || []),
+    ...unpricedServices.filter(s => ['Pathology', 'Radiology', 'Diagnosis'].includes(s.category)).map(s => s.name)
+  ]));
+
+  const combinedTreatments = Array.from(new Set([
+    ...(hospital.treatments || []),
+    ...unpricedServices.filter(s => ['Consultation', 'OPD', 'General', 'Other'].includes(s.category)).map(s => s.name)
+  ]));
+
+  const combinedSurgeries = Array.from(new Set([
+    ...(hospital.surgeries || []),
+    ...unpricedServices.filter(s => s.category === 'Surgery').map(s => s.name)
+  ]));
+
+  const combinedTherapies = Array.from(new Set([
+    ...(hospital.therapies || []),
+    ...unpricedServices.filter(s => s.category === 'Therapy').map(s => s.name)
+  ]));
+
+  const combinedProcedures = Array.from(new Set([
+    ...(hospital.procedures || []),
+    ...unpricedServices.filter(s => ['Dental', 'Eye', 'Orthopedic', 'Maternity', 'Cardiology', 'Neurology'].includes(s.category)).map(s => s.name)
+  ]));
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
 
@@ -187,7 +217,7 @@ const HospitalDetails = () => {
             {/* ── HOSPITAL INFO CARD ── */}
             <div className="bg-white rounded-2xl shadow-md p-6">
               
-              {/* ✅ UPDATED BADGES: Category & Type both shown properly */}
+              {/* UPDATED BADGES: Category & Type both shown properly */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {/* Category Badge */}
                 <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 shadow-sm border border-gray-200 uppercase tracking-wide">
@@ -526,7 +556,6 @@ const HospitalDetails = () => {
               <h3 className="font-bold text-gray-800 mb-4">ℹ️ Quick Info</h3>
               <div className="space-y-3 text-sm">
                 
-                {/* ✅ Added Category inside Quick Info */}
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Category</span>
                   <span className="font-semibold capitalize text-gray-800 flex items-center gap-1">
@@ -562,34 +591,30 @@ const HospitalDetails = () => {
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Services & Facilities</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hospital.tests && hospital.tests.length > 0 && (
+          
+          {combinedTests.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <FaFlask className="text-xl text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">Tests</h3>
-                  <p className="text-sm text-gray-600">{hospital.tests.length} available</p>
+                  <h3 className="font-bold text-gray-900">Tests / Diagnosis</h3>
+                  <p className="text-sm text-gray-600">{combinedTests.length} available</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.tests.slice(0, 5).map((test, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedTests.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <span className="text-green-600">✓</span>
-                    <span className="text-gray-700">{test.name || test}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
-                {hospital.tests.length > 5 && (
-                  <p className="text-xs text-blue-600 font-semibold mt-2">
-                    +{hospital.tests.length - 5} more tests
-                  </p>
-                )}
               </div>
             </div>
           )}
 
-          {hospital.treatments && hospital.treatments.length > 0 && (
+          {combinedTreatments.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -597,26 +622,21 @@ const HospitalDetails = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Treatments</h3>
-                  <p className="text-sm text-gray-600">{hospital.treatments.length} available</p>
+                  <p className="text-sm text-gray-600">{combinedTreatments.length} available</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.treatments.slice(0, 5).map((treatment, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedTreatments.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <span className="text-green-600">✓</span>
-                    <span className="text-gray-700">{treatment}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
-                {hospital.treatments.length > 5 && (
-                  <p className="text-xs text-green-600 font-semibold mt-2">
-                    +{hospital.treatments.length - 5} more treatments
-                  </p>
-                )}
               </div>
             </div>
           )}
 
-          {hospital.surgeries && hospital.surgeries.length > 0 && (
+          {combinedSurgeries.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -624,26 +644,21 @@ const HospitalDetails = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Surgeries</h3>
-                  <p className="text-sm text-gray-600">{hospital.surgeries.length} available</p>
+                  <p className="text-sm text-gray-600">{combinedSurgeries.length} available</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.surgeries.slice(0, 5).map((surgery, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedSurgeries.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <span className="text-green-600">✓</span>
-                    <span className="text-gray-700">{surgery}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
-                {hospital.surgeries.length > 5 && (
-                  <p className="text-xs text-red-600 font-semibold mt-2">
-                    +{hospital.surgeries.length - 5} more surgeries
-                  </p>
-                )}
               </div>
             </div>
           )}
 
-          {hospital.procedures && hospital.procedures.length > 0 && (
+          {combinedProcedures.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -651,26 +666,21 @@ const HospitalDetails = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Procedures</h3>
-                  <p className="text-sm text-gray-600">{hospital.procedures.length} available</p>
+                  <p className="text-sm text-gray-600">{combinedProcedures.length} available</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.procedures.slice(0, 5).map((procedure, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedProcedures.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <span className="text-green-600">✓</span>
-                    <span className="text-gray-700">{procedure}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
-                {hospital.procedures.length > 5 && (
-                  <p className="text-xs text-purple-600 font-semibold mt-2">
-                    +{hospital.procedures.length - 5} more procedures
-                  </p>
-                )}
               </div>
             </div>
           )}
 
-          {hospital.therapies && hospital.therapies.length > 0 && (
+          {combinedTherapies.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
@@ -678,21 +688,16 @@ const HospitalDetails = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">Therapies</h3>
-                  <p className="text-sm text-gray-600">{hospital.therapies.length} available</p>
+                  <p className="text-sm text-gray-600">{combinedTherapies.length} available</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.therapies.slice(0, 5).map((therapy, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedTherapies.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <span className="text-green-600">✓</span>
-                    <span className="text-gray-700">{therapy}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
-                {hospital.therapies.length > 5 && (
-                  <p className="text-xs text-teal-600 font-semibold mt-2">
-                    +{hospital.therapies.length - 5} more therapies
-                  </p>
-                )}
               </div>
             </div>
           )}
@@ -708,11 +713,11 @@ const HospitalDetails = () => {
                   <p className="text-sm text-gray-600">{hospital.managementServices.length} services</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.managementServices.slice(0, 5).map((service, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {hospital.managementServices.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <span className="text-green-600">✓</span>
-                    <span className="text-gray-700">{service}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
               </div>
@@ -730,11 +735,11 @@ const HospitalDetails = () => {
                   <p className="text-sm text-gray-600">{hospital.insuranceAccepted.length} providers</p>
                 </div>
               </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {hospital.insuranceAccepted.map((insurance, idx) => (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {hospital.insuranceAccepted.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     <FaShieldAlt className="text-green-600 text-xs" />
-                    <span className="text-gray-700">{insurance}</span>
+                    <span className="text-gray-700">{item}</span>
                   </div>
                 ))}
               </div>
