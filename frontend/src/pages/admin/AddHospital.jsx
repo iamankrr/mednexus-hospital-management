@@ -90,6 +90,9 @@ const AddHospital = () => {
     isActive: true
   });
 
+  // =====================================
+  // ✅ FIXED SERVICES ADDITION FUNCTIONS
+  // =====================================
   const addTest = () => {
     if (newTest.trim() && !formData.tests?.includes(newTest.trim())) {
       setFormData({ ...formData, tests: [...(formData.tests || []), newTest.trim()] });
@@ -598,13 +601,13 @@ const AddHospital = () => {
 
             {/* Services (Tests, Treatments, etc) */}
             <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">💰 Services Added</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">💰 Services Added (Prices N/A)</h2>
               
               {/* Tests */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tests Available</label>
                 <div className="flex gap-2 mb-2">
-                  <input type="text" value={newTest} onChange={(e) => setNewTest(e.target.value)} onKeyPress={(e) => {if (e.key === 'Enter') {e.preventDefault(); addTest();}}} placeholder="e.g., Blood Test, X-Ray" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
+                  <input type="text" value={newTest} onChange={(e) => setNewTest(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addTest();}}} placeholder="e.g., Blood Test, X-Ray" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
                   <button type="button" onClick={addTest} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold"><FaPlus /></button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -618,7 +621,7 @@ const AddHospital = () => {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Treatments</label>
                 <div className="flex gap-2 mb-2">
-                  <input type="text" value={newTreatment} onChange={(e) => setNewTreatment(e.target.value)} onKeyPress={(e) => {if (e.key === 'Enter') {e.preventDefault(); addTreatment();}}} placeholder="e.g., Diabetes Management" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
+                  <input type="text" value={newTreatment} onChange={(e) => setNewTreatment(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addTreatment();}}} placeholder="e.g., Diabetes Management" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
                   <button type="button" onClick={addTreatment} className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold"><FaPlus /></button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -632,12 +635,26 @@ const AddHospital = () => {
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Surgeries</label>
                 <div className="flex gap-2 mb-2">
-                  <input type="text" value={newSurgery} onChange={(e) => setNewSurgery(e.target.value)} onKeyPress={(e) => {if (e.key === 'Enter') {e.preventDefault(); addSurgery();}}} placeholder="e.g., Cardiac Surgery" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
+                  <input type="text" value={newSurgery} onChange={(e) => setNewSurgery(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addSurgery();}}} placeholder="e.g., Cardiac Surgery" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
                   <button type="button" onClick={addSurgery} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold"><FaPlus /></button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.surgeries?.map((surgery, idx) => (
                     <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm flex items-center gap-2">{surgery} <button type="button" onClick={() => setFormData({...formData, surgeries: formData.surgeries.filter((_, i) => i !== idx)})} className="text-red-500 font-bold">×</button></span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Insurance */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Insurance</label>
+                <div className="flex gap-2 mb-2">
+                  <input type="text" value={newInsurance} onChange={(e) => setNewInsurance(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addInsurance();}}} placeholder="e.g., Ayushman Bharat" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
+                  <button type="button" onClick={addInsurance} className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold"><FaPlus /></button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.insuranceAccepted?.map((insurance, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-2">{insurance} <button type="button" onClick={() => setFormData({...formData, insuranceAccepted: formData.insuranceAccepted.filter((_, i) => i !== idx)})} className="text-red-500 font-bold">×</button></span>
                   ))}
                 </div>
               </div>
