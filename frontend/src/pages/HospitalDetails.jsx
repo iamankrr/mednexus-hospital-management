@@ -183,8 +183,16 @@ const HospitalDetails = () => {
     ...unpricedServices.filter(s => ['Dental', 'Eye', 'Orthopedic', 'Maternity', 'Cardiology', 'Neurology'].includes(s.category)).map(s => s.name)
   ]));
 
-  // Total Services calc for Quick Info
-  const totalServicesListed = (hospital.services?.length || 0) + combinedTests.length + combinedTreatments.length + combinedSurgeries.length;
+  // ✅ FIX: TOTAL SERVICES CALCULATION NOW INCLUDES ALL ARRAYS
+  const totalServicesListed = 
+    (hospital.services?.length || 0) + 
+    combinedTests.length + 
+    combinedTreatments.length + 
+    combinedSurgeries.length +
+    combinedTherapies.length + 
+    combinedProcedures.length +
+    (hospital.managementServices?.length || 0) +
+    (hospital.insuranceAccepted?.length || 0);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -426,7 +434,6 @@ const HospitalDetails = () => {
                       </div>
                     )}
 
-                    {/* ✅ FIX: BLUE BOX PROMPT SHOWS BEDS AND DOCTORS CORRECTLY */}
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                       <button
                         onClick={scrollToServices}
@@ -554,12 +561,14 @@ const HospitalDetails = () => {
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-4">ℹ️ Quick Info</h3>
               <div className="space-y-3 text-sm">
+                
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Category</span>
                   <span className="font-semibold capitalize text-gray-800 flex items-center gap-1">
                     {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
                   </span>
                 </div>
+
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Type</span>
                   <span className="font-semibold capitalize text-gray-800">{hospital.type || 'N/A'}</span>
@@ -572,7 +581,6 @@ const HospitalDetails = () => {
                 </div>
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Services</span>
-                  {/* ✅ FIX: Quick info listed fix */}
                   <span className="font-semibold text-gray-800">{totalServicesListed} listed</span>
                 </div>
                 <div className="flex justify-between items-center">
