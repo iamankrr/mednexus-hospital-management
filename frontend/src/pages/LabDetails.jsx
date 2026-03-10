@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; 
 import axios from 'axios';
 import { 
   FaFlask, 
@@ -11,42 +11,40 @@ import {
   FaCalendarAlt,
   FaChevronLeft,
   FaChevronRight,
-  FaExclamationCircle
+  FaExclamationCircle,
+  FaCheckCircle
 } from 'react-icons/fa';
 import Footer from '../components/Footer';
+import PriceList from '../components/PriceList'; // ✅ Using unified PriceList
+import ReviewForm from '../components/ReviewForm';
 
 const LabDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const locationRouter = useLocation(); // ✅ To catch data from Card
+  const locationRouter = useLocation(); 
 
-  const initialData = locationRouter.state?.facilityData; // ✅ Get instant data
+  const initialData = locationRouter.state?.facilityData; 
 
-  // ✅ Initialize states with instant data if available
   const [lab, setLab] = useState(initialData || null);
-  const [loading, setLoading] = useState(!initialData); // ❌ No loading if data exists
+  const [loading, setLoading] = useState(!initialData); 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
 
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    // 🚀 FIX: Hamesha page ko top se open karega!
     window.scrollTo(0, 0); 
-    
     fetchLab();
     checkIfFavorite(); 
   }, [id]);
 
   const fetchLab = async () => {
     try {
-      // ✅ Only show spinner if we don't have instant data from card
       if (!lab) {
         setLoading(true);
       }
-      
       const response = await axios.get(`http://localhost:3000/api/labs/${id}`);
-      setLab(response.data.data); // Silently updates with fresh backend data
+      setLab(response.data.data); 
     } catch (error) {
       console.error('Error fetching lab:', error);
     } finally {
@@ -144,22 +142,32 @@ const LabDetails = () => {
   }
 
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const themeColor = lab.themeColor || '#9333EA'; // Default purple for labs
   
   const getMapUrl = () => {
     if (lab.location?.coordinates?.length === 2) {
-      return `https://www.google.com/maps?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}`;
+      return `https://maps.google.com/?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}`;
     }
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lab.name} ${lab.address?.city}`)}`;
+    return `https://maps.google.com/?q=${encodeURIComponent(`${lab.name} ${lab.address?.city}`)}`;
   };
+
+  // ✅ LOGIC: Merging unpriced services into tests list
+  const unpricedServices = lab.services?.filter(s => !s.price || s.price <= 0) || [];
+  const combinedTests = Array.from(new Set([
+    ...(lab.tests || []),
+    ...unpricedServices.map(s => s.name)
+  ]));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="h-2 w-full" style={{ backgroundColor: themeColor }} />
+
       <div className="flex-1">
         {/* Hero Section with Image Gallery */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <button onClick={() => navigate(-1)} className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-2 font-medium">
-              <FaArrowLeft /> Back to Search
+              <FaArrowLeft /> Back
             </button>
           </div>
 
@@ -198,7 +206,7 @@ const LabDetails = () => {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-bold">
+                  <span className="px-3 py-1 rounded-full text-sm font-bold text-white shadow-sm capitalize" style={{ backgroundColor: themeColor }}>
                     🔬 {lab.type}
                   </span>
                 </div>
@@ -211,14 +219,12 @@ const LabDetails = () => {
 
                 {lab.establishedDate && (
                   <div className="flex items-center gap-2 mb-3">
-                    <FaCalendarAlt className="text-purple-600" />
+                    <FaCalendarAlt style={{ color: themeColor }} />
                     <div>
                       <p className="text-sm font-semibold text-gray-700">Established</p>
                       <p className="text-sm text-gray-900">
                         {new Date(lab.establishedDate).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
+                          day: 'numeric', month: 'long', year: 'numeric'
                         })}
                       </p>
                       <p className="text-xs text-gray-500">{calculateYearsSince(lab.establishedDate)}</p>
@@ -228,14 +234,14 @@ const LabDetails = () => {
 
                 <div className="flex items-center gap-4 flex-wrap">
                   {lab.googleRating > 0 && (
-                    <div className="flex items-center gap-2">
-                      <FaStar className="text-yellow-500 text-xl" />
+                    <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg">
+                      <FaStar className="text-yellow-500" />
                       <span className="font-bold text-gray-900 text-lg">{lab.googleRating}</span>
                       <span className="text-sm text-gray-600">{lab.googleReviewCount} Google reviews</span>
                     </div>
                   )}
                   {lab.distance && (
-                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold">
+                    <span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg font-bold">
                       📍 {lab.distance} km from you
                     </span>
                   )}
@@ -244,7 +250,7 @@ const LabDetails = () => {
 
               <div className="flex flex-col gap-3 ml-6">
                 {lab.owner && lab.appointmentsEnabled ? (
-                  <button onClick={() => navigate(`/appointments/book?lab=${lab._id}`)} className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 flex items-center gap-2 whitespace-nowrap">
+                  <button onClick={() => navigate(`/appointments/book?lab=${lab._id}`)} className="px-6 py-3 text-white rounded-xl font-bold hover:opacity-90 flex items-center gap-2 shadow-md transition" style={{ backgroundColor: themeColor }}>
                     <FaCalendarCheck /> Book Test
                   </button>
                 ) : (
@@ -253,38 +259,26 @@ const LabDetails = () => {
                   </div>
                 )}
                 
-                <button onClick={handleToggleFavorite} className={`px-6 py-3 border-2 rounded-xl font-bold flex items-center justify-center gap-2 transition ${isFavorite ? 'bg-red-50 border-red-200 text-red-600' : 'border-purple-600 text-purple-600 hover:bg-purple-50'}`}>
-                  <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-purple-600'} /> {isFavorite ? 'Saved' : 'Save'}
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={handleToggleFavorite} className={`flex-1 px-4 py-3 border-2 rounded-xl font-bold flex items-center justify-center gap-2 transition ${isFavorite ? 'bg-red-50 border-red-200 text-red-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                    <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'} /> {isFavorite ? 'Saved' : 'Save'}
+                  </button>
 
-                <button onClick={() => window.open(getMapUrl(), '_blank')} className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center gap-2">
-                  <FaMapMarkerAlt /> Get Directions
-                </button>
+                  <button onClick={() => window.open(getMapUrl(), '_blank')} className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition">
+                    <FaMapMarkerAlt /> Directions
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons Row */}
-        <div className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex gap-3">
-              <button onClick={() => window.open(getMapUrl(), '_blank')} className="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700">
-                Get Directions
-              </button>
-              <button className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50">
-                Compare
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Tabs */}
-        <div className="bg-white border-b sticky top-20 z-10">
+        <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-8">
               {['overview', 'pricing', 'reviews'].map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`py-4 font-bold border-b-2 transition ${activeTab === tab ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
+                <button key={tab} onClick={() => setActiveTab(tab)} className={`py-4 font-bold border-b-2 transition ${activeTab === tab ? 'border-current' : 'border-transparent text-gray-500 hover:text-gray-900'}`} style={activeTab === tab ? { color: themeColor, borderColor: themeColor } : {}}>
                   {tab === 'overview' && '📋 Overview'}
                   {tab === 'pricing' && '💰 Price List'}
                   {tab === 'reviews' && '⭐ Reviews'}
@@ -298,256 +292,149 @@ const LabDetails = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            {/* Left Column - Dynamic Based on Active Tab */}
+            {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
               
               {/* ===== TAB 1: OVERVIEW ===== */}
               {activeTab === 'overview' && (
                 <div className="space-y-6">
-                  {/* About */}
                   {lab.description && (
                     <div className="bg-white rounded-2xl shadow-md p-6">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-4">About</h2>
-                      <p className="text-gray-700 leading-relaxed">{lab.description}</p>
+                      <h2 className="text-xl font-bold text-gray-900 mb-4">About</h2>
+                      <p className="text-gray-700 leading-relaxed text-sm md:text-base">{lab.description}</p>
                     </div>
                   )}
 
-                  {/* Facilities */}
                   {lab.facilities && lab.facilities.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-md p-6">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-4">Facilities</h2>
+                      <h2 className="text-xl font-bold text-gray-900 mb-4">Facilities</h2>
                       <div className="flex flex-wrap gap-2">
                         {lab.facilities.map((facility, index) => (
-                          <span key={index} className="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg font-medium">
-                            {facility}
+                          <span key={index} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
+                            <FaCheckCircle className="text-xs" /> {facility}
                           </span>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Tests Summary */}
-                  {lab.tests && lab.tests.length > 0 && (
+                  {/* Tests Summary with Unpriced Merged logic */}
+                  {combinedTests.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-md p-6">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-4">Services & Facilities</h2>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="font-bold text-gray-900 mb-3">Tests <span className="text-sm text-gray-600">({lab.tests.length} available)</span></h3>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            {lab.tests.slice(0, 6).map((test, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-sm">
-                                <span className="text-green-600">✓</span>
-                                <span className="text-gray-700">{test}</span>
-                              </div>
-                            ))}
-                          </div>
-                          {lab.tests.length > 6 && (
-                            <p className="text-sm text-purple-600 font-semibold mt-2 cursor-pointer hover:underline" onClick={() => setActiveTab('pricing')}>
-                              +{lab.tests.length - 6} more tests (View Pricing)
-                            </p>
-                          )}
-                        </div>
+                      <div className="flex items-center justify-between mb-4">
+                         <h2 className="text-xl font-bold text-gray-900">Services & Tests Available</h2>
+                         <button onClick={() => setActiveTab('pricing')} className="text-sm font-bold hover:underline" style={{ color: themeColor }}>View Pricing ➔</button>
                       </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {combinedTests.slice(0, 10).map((test, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
+                            <FaFlask style={{ color: themeColor }} />
+                            <span className="text-gray-800 text-sm font-medium">{test}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {combinedTests.length > 10 && (
+                        <button onClick={() => setActiveTab('pricing')} className="mt-4 w-full py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm font-bold text-gray-700 border border-gray-200 transition">
+                           View {combinedTests.length - 10} more tests
+                        </button>
+                      )}
                     </div>
                   )}
 
-                  {/* Working Hours */}
                   <div className="bg-white rounded-2xl shadow-md p-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Working Hours</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Working Hours</h2>
                     {lab.operatingHours ? (
-                      <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                         {daysOfWeek.map((day) => (
                           <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100">
-                            <span className="font-medium text-gray-700 capitalize">{day}</span>
-                            <span className="text-gray-900">{lab.operatingHours.open} - {lab.operatingHours.close}</span>
+                            <span className="text-sm font-medium text-gray-500 capitalize">{day}</span>
+                            <span className={`text-sm font-semibold ${lab.operatingHours[day] === 'Closed' ? 'text-red-500' : 'text-gray-900'}`}>
+                              {lab.operatingHours[day] || 'N/A'}
+                            </span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {daysOfWeek.map((day) => (
-                          <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100">
-                            <span className="font-medium text-gray-700 capitalize">{day}</span>
-                            <span className="text-gray-500">N/A</span>
-                          </div>
-                        ))}
-                      </div>
+                      <p className="text-gray-500 text-sm">Working hours not provided</p>
                     )}
-                  </div>
-
-                  {/* Contact Info */}
-                  <div className="bg-white rounded-2xl shadow-md p-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Contact Info</h2>
-                    <div className="space-y-4">
-                      {lab.phone && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-1">Phone</p>
-                          <a href={`tel:${lab.phone}`} className="text-purple-600 hover:underline font-medium">
-                            {lab.phone}
-                          </a>
-                        </div>
-                      )}
-                      {lab.email && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-1">Email</p>
-                          <a href={`mailto:${lab.email}`} className="text-purple-600 hover:underline">
-                            {lab.email}
-                          </a>
-                        </div>
-                      )}
-                      {lab.website && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-1">Website</p>
-                          <a href={lab.website} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
-                            {lab.website}
-                          </a>
-                        </div>
-                      )}
-                      {lab.address?.landmark && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-1">Landmark</p>
-                          <p className="text-gray-900">{lab.address.landmark}</p>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               )}
 
-              {/* ===== TAB 2: PRICING ===== */}
+              {/* ===== TAB 2: PRICING (✅ UNIFIED COMPONENT NOW) ===== */}
               {activeTab === 'pricing' && (
-                <div className="bg-white rounded-2xl shadow-md p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">💰 Price List</h2>
-                  {lab.tests && lab.tests.length > 0 ? (
-                    <div className="space-y-3">
-                      {lab.tests.map((test, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 border-b border-gray-100 hover:bg-gray-50 transition rounded-lg">
-                          <span className="text-gray-900 font-medium">{test}</span>
-                          <span className="text-purple-600 font-bold bg-purple-50 px-3 py-1 rounded-lg">Contact for pricing</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No pricing information available</p>
-                    </div>
-                  )}
+                <div className="animate-fadeIn">
+                  <PriceList services={lab.services || []} themeColor={themeColor} />
                 </div>
               )}
 
               {/* ===== TAB 3: REVIEWS ===== */}
               {activeTab === 'reviews' && (
-                <div className="bg-white rounded-2xl shadow-md p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">⭐ Reviews</h2>
-                  
-                  {lab.googleRating > 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                      <FaStar className="text-6xl text-yellow-500 mx-auto mb-4 drop-shadow-sm" />
-                      <p className="text-3xl font-bold text-gray-900 mb-2">
-                        {lab.googleRating} <span className="text-lg text-gray-500 font-medium">/ 5.0</span>
-                      </p>
-                      <p className="text-gray-600 mb-6 font-medium">
-                        Based on {lab.googleReviewCount} Google reviews
-                      </p>
-                      
-                      <a 
-                        href={`https://www.google.com/search?q=${encodeURIComponent(`${lab.name} ${lab.address?.city || ''}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-md"
-                      >
-                        Read on Google
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-                      <p className="text-gray-500 text-lg">No reviews available yet</p>
-                    </div>
-                  )}
+                <div className="animate-fadeIn">
+                   <ReviewForm facilityId={lab._id || lab.id} facilityType="laboratory" onReviewSubmitted={() => { alert('Review submitted!'); fetchLab(); }} />
                 </div>
               )}
 
             </div>
 
-            {/* Right Sidebar - This stays visible across all tabs */}
+            {/* Right Sidebar - Remains visible */}
             <div className="space-y-6">
               
-              {/* Location Card */}
-              <div className="bg-white rounded-2xl shadow-md p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">📍 Location</h3>
-                <p className="text-gray-700 mb-2">{lab.address?.street}, {lab.address?.city}, {lab.address?.state}</p>
-                {lab.distance && (
-                  <p className="text-sm text-green-600 font-semibold mb-4">{lab.distance} km away</p>
+              {/* Map Preview */}
+              <div className="bg-white rounded-2xl shadow-md overflow-hidden h-64 relative border border-gray-100">
+                {lab.location?.coordinates?.length === 2 ? (
+                  <iframe title="Lab Location" width="100%" height="100%" frameBorder="0" style={{ border: 0 }} src={`https://maps.google.com/?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}&output=embed`} allowFullScreen></iframe>
+                ) : (
+                  <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-500 flex-col">
+                    <FaMapMarkerAlt className="text-3xl mb-2 text-gray-300" /> Map not available
+                  </div>
                 )}
-                <button onClick={() => window.open(getMapUrl(), '_blank')} className="w-full py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition shadow-sm">
-                  Get Directions
-                </button>
               </div>
 
               {/* Quick Info */}
-              <div className="bg-white rounded-2xl shadow-md p-6">
+              <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">ℹ️ Quick Info</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Type</span>
-                    <span className="font-semibold text-gray-900">{lab.type}</span>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <span className="text-gray-500">Type</span>
+                    <span className="font-semibold text-gray-900 capitalize">{lab.type}</span>
                   </div>
                   {lab.reportTime && (
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Report Time</span>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-gray-500">Report Time</span>
                       <span className="font-semibold text-gray-900">{lab.reportTime}</span>
                     </div>
                   )}
                   {lab.homeCollection !== undefined && (
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Home Collection</span>
-                      <span className={`font-semibold ${lab.homeCollection ? 'text-green-600' : 'text-gray-900'}`}>
-                        {lab.homeCollection ? '✅ Available' : 'Not Available'}
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-gray-500">Home Collection</span>
+                      <span className={`font-bold ${lab.homeCollection ? 'text-green-600' : 'text-gray-500'}`}>
+                        {lab.homeCollection ? '✅ Available' : '❌ No'}
                       </span>
                     </div>
                   )}
                   {lab.accreditation && lab.accreditation.length > 0 && (
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Accreditation</span>
-                      <span className="font-semibold text-gray-900 text-right">{lab.accreditation.join(', ')}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-gray-500">Accreditation</span>
+                      <span className="font-semibold text-gray-900">{lab.accreditation.join(', ')}</span>
                     </div>
                   )}
-                  {lab.tests && (
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Tests Available</span>
-                      <span className="font-semibold text-gray-900">{lab.tests.length} listed</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-2">
-                    <span className="text-gray-600">Pin Code</span>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                    <span className="text-gray-500">Services Listed</span>
+                    <span className="font-semibold text-gray-900">{(lab.services?.length || 0) + combinedTests.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-500">Pin Code</span>
                     <span className="font-semibold text-gray-900">{lab.address?.pincode}</span>
                   </div>
                 </div>
               </div>
-
-              {/* Map */}
-              <div className="bg-white rounded-2xl shadow-md overflow-hidden h-64 relative">
-                {lab.location?.coordinates?.length === 2 ? (
-                  <iframe
-                    title="Lab Location"
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
-                    style={{ border: 0 }}
-                    src={`https://maps.google.com/maps?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}&z=15&output=embed`}
-                    allowFullScreen
-                  ></iframe>
-                ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-500">
-                    Map preview not available
-                  </div>
-                )}
-              </div>
             </div>
+
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   );

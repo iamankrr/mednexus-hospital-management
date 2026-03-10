@@ -1,24 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Laboratory = require('../models/Laboratory');
-const User = require('../models/User'); // ⬅️ Imported User model at top for ownership check
+const User = require('../models/User'); 
 const { protect } = require('../middleware/authMiddleware');
-const googlePlaces = require('../services/googlePlaces'); // ✅ ADDED THIS
+const googlePlaces = require('../services/googlePlaces');
 
 // GET /api/labs - Get all labs with location-based sorting
 router.get('/', async (req, res) => {
   try {
-    // 🔥 FIX: Removed default maxDistance=50 parameter
     const { latitude, longitude, city, type, state, pincode, lat, lng, maxDistance } = req.query;
     console.log('📍 Lab request params:', { latitude, longitude, city, type, maxDistance });
 
-    // Support both naming conventions (lat/lng vs latitude/longitude)
     const userLat = latitude || lat ? parseFloat(latitude || lat) : null;
     const userLng = longitude || lng ? parseFloat(longitude || lng) : null;
     
-    let query = { isActive: true }; // ✅ Only active labs
+    let query = { isActive: true }; 
     
-    // Apply filters
     if (city && city !== 'All Cities') {
       query['address.city'] = new RegExp(city, 'i');
     }
@@ -32,13 +29,11 @@ router.get('/', async (req, res) => {
       query['address.pincode'] = pincode;
     }
 
-    // Fetch all labs
     let labs = await Laboratory.find(query)
       .populate('owner', 'name email phone')
       .select('-__v')
-      .lean(); // ✅ Faster queries by returning plain JS objects
+      .lean(); 
 
-    // Calculate distance if user location provided
     if (userLat && userLng) {
       console.log('📍 User location:', { userLat, userLng });
 
@@ -46,8 +41,7 @@ router.get('/', async (req, res) => {
         if (lab.location && lab.location.coordinates) {
           const [labLng, labLat] = lab.location.coordinates;
           
-          // Haversine formula
-          const R = 6371; // Earth's radius in km
+          const R = 6371; 
           const dLat = (labLat - userLat) * Math.PI / 180;
           const dLon = (labLng - userLng) * Math.PI / 180;
           const a = 
@@ -59,19 +53,17 @@ router.get('/', async (req, res) => {
 
           return {
             ...lab,
-            distance: Math.round(distance * 10) / 10 // Round to 1 decimal
+            distance: Math.round(distance * 10) / 10 
           };
         }
         return lab;
       });
 
-      // 🔥 FIX: Only filter by distance IF maxDistance was explicitly provided in the query
       if (maxDistance) {
         const maxDistanceKm = parseFloat(maxDistance);
         labs = labs.filter(l => !l.distance || l.distance <= maxDistanceKm);
       }
 
-      // Sort by distance (nearest first)
       labs.sort((a, b) => {
         if (a.distance === undefined) return 1;
         if (b.distance === undefined) return -1;
@@ -133,7 +125,6 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
-    // ✅ DUPLICATE CHECK LOGIC START
     const { name, phone, googlePlaceId, address } = req.body;
 
     if (googlePlaceId && googlePlaceId.trim() !== '') {
@@ -158,7 +149,6 @@ router.post('/', protect, async (req, res) => {
         return res.status(400).json({ success: false, message: 'This laboratory already exists (Matching Name & City, or Phone number found).' });
       }
     }
-    // ✅ DUPLICATE CHECK LOGIC END
 
     const lab = await Laboratory.create(req.body);
     console.log('✅ Laboratory created:', lab.name);
@@ -207,7 +197,6 @@ router.put('/:id', protect, async (req, res) => {
       }
     }
 
-    // ✅ NEW LOGIC ADDED HERE: Instantly fetch and update Google Ratings
     let updateData = { ...req.body };
     if (updateData.googlePlaceId && updateData.googlePlaceId.trim() !== '') {
       try {
@@ -226,7 +215,7 @@ router.put('/:id', protect, async (req, res) => {
 
     const lab = await Laboratory.findByIdAndUpdate(
       req.params.id,
-      updateData, // ✅ Using updated data with ratings
+      updateData, 
       { new: true, runValidators: true }
     );
 
@@ -284,6 +273,138 @@ router.delete('/:id', protect, async (req, res) => {
       success: false, 
       message: error.message 
     });
+  }
+});
+
+// ============================================
+// ✅ NEW: LAB SERVICES MANAGEMENT ROUTES
+// ============================================
+
+// GET services for a lab
+router.get('/:id/services', async (req, res) => {
+  try {
+    const lab = await Laboratory.findById(req.params.id).select('services name');
+    if (!lab) return res.status(404).json({ success: false, message: 'Laboratory not found' });
+
+    const grouped = {};
+    lab.services.forEach(service => {
+      const cat = service.category || 'General';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(service);
+    });
+
+    res.status(200).json({
+      success: true,
+      count: lab.services.length,
+      data: lab.services,
+      grouped
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ADD service
+router.post('/:id/services', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const { name, category, price, duration, description, isAvailable } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Service name is required' });
+    }
+
+    const lab = await Laboratory.findById(req.params.id);
+    if (!lab) return res.status(404).json({ success: false, message: 'Laboratory not found' });
+
+    if (req.user.role === 'owner') {
+      const user = await User.findById(req.user.id);
+      if (user.ownerProfile?.facilityId?.toString() !== req.params.id) {
+        return res.status(403).json({ success: false, message: 'Not your facility' });
+      }
+    }
+
+    if (!lab.services) {
+      lab.services = [];
+    }
+
+    lab.services.push({
+      name, 
+      category: category || 'Diagnosis',
+      price: price ? parseFloat(price) : null,
+      duration, 
+      description,
+      isAvailable: isAvailable !== undefined ? isAvailable : true
+    });
+
+    await lab.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Service added successfully',
+      data: lab.services
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPDATE service
+router.put('/:id/services/:serviceId', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const lab = await Laboratory.findById(req.params.id);
+    if (!lab) return res.status(404).json({ success: false, message: 'Laboratory not found' });
+
+    const service = lab.services.id(req.params.serviceId);
+    if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
+
+    const { name, category, price, duration, description, isAvailable } = req.body;
+    if (name) service.name = name;
+    if (category) service.category = category;
+    if (price !== undefined) service.price = price ? parseFloat(price) : null;
+    if (duration !== undefined) service.duration = duration;
+    if (description !== undefined) service.description = description;
+    if (isAvailable !== undefined) service.isAvailable = isAvailable;
+
+    await lab.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Service updated',
+      data: service
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE service
+router.delete('/:id/services/:serviceId', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const lab = await Laboratory.findById(req.params.id);
+    if (!lab) return res.status(404).json({ success: false, message: 'Laboratory not found' });
+
+    lab.services.pull(req.params.serviceId);
+    await lab.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Service deleted',
+      data: lab.services
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
