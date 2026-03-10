@@ -10,7 +10,6 @@ const hospitalSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide hospital type'],
     trim: true 
-    // ✅ FIX: Enum is completely removed. Now ANY type you select from frontend will be saved without validation errors!
   },
   category: {
     type: String,
@@ -121,6 +120,20 @@ const hospitalSchema = new mongoose.Schema({
     availability: { type: String },
     consultationFee: { type: Number }
   }],
+  
+  // ==========================================
+  // ✅ FIX: ADDED MISSING SERVICES ARRAY
+  // ==========================================
+  services: [{
+    name: { type: String, required: true },
+    category: { type: String, default: 'General' },
+    price: { type: Number, default: null }, // Optional price
+    duration: { type: String },
+    description: { type: String },
+    isAvailable: { type: Boolean, default: true }
+  }],
+  // ==========================================
+
   customServices: [{
     category: { type: String },
     name: { type: String }
