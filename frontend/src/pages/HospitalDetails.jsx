@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; 
 import axios from 'axios'; 
 import {
   FaStar, FaGoogle, FaPhone, FaEnvelope, FaMapMarkerAlt,
   FaClock, FaAmbulance, FaHeart, FaShare, FaArrowLeft,
   FaCheckCircle, FaBalanceScale, FaCalendarAlt, FaClipboardList,
-  FaFlask, FaPills, FaCut, FaSpa, FaUserMd, FaShieldAlt, FaBed
+  FaFlask, FaPills, FaCut, FaSpa, FaUserMd, FaShieldAlt, FaBed, FaBuilding
 } from 'react-icons/fa';
 import { hospitalAPI } from '../services/api';
 import PriceList from '../components/PriceList';
@@ -30,42 +30,46 @@ const calculateYearsSince = (date) => {
   return `Established ${years} ${years === 1 ? 'year' : 'years'} ago`;
 };
 
+// Helper for category icons
+const getCategoryIcon = (category) => {
+  const cat = category?.toLowerCase() || '';
+  if (cat.includes('gov')) return '🏛️';
+  if (cat.includes('public')) return '🏥';
+  if (cat.includes('charity') || cat.includes('ngo')) return '❤️';
+  return '💼'; // Private default
+};
+
 const HospitalDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const locationRouter = useLocation(); // ✅ To catch data from Card
+  const locationRouter = useLocation(); 
   const { addToCompare, isInCompare, compareList } = useComparison();
   const { userLocation } = useUserLocation();
 
-  const initialData = locationRouter.state?.facilityData; // ✅ Get instant data
+  const initialData = locationRouter.state?.facilityData; 
 
-  // ✅ Initialize states with instant data if available
   const [hospital, setHospital]       = useState(initialData || null);
-  const [loading, setLoading]         = useState(!initialData); // ❌ No loading if data exists
+  const [loading, setLoading]         = useState(!initialData); 
   const [activeTab, setActiveTab]     = useState('overview');
   const [distance, setDistance]       = useState(initialData?.distance || null);
   
   const [isFavorite, setIsFavorite]   = useState(false);
 
   useEffect(() => {
-    // 🚀 FIX: Hamesha page ko top se open karega!
     window.scrollTo(0, 0); 
-    
     fetchHospital();
     checkIfFavorite(); 
   }, [id]);
 
   const fetchHospital = async () => {
     try {
-      // ✅ Only show spinner if we don't have instant data from card
       if (!hospital) {
         setLoading(true);
       }
-
       const res = await hospitalAPI.getById(id);
       const data = res.data.data; 
       
-      setHospital(data); // Silently updates with fresh backend data
+      setHospital(data); 
 
       if (userLocation && data.location?.coordinates) {
         const dist = calculateDistance(
@@ -182,13 +186,23 @@ const HospitalDetails = () => {
 
             {/* ── HOSPITAL INFO CARD ── */}
             <div className="bg-white rounded-2xl shadow-md p-6">
-              <div className="flex items-center gap-2 mb-3">
+              
+              {/* ✅ UPDATED BADGES: Category & Type both shown properly */}
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {/* Category Badge */}
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 shadow-sm border border-gray-200 uppercase tracking-wide">
+                  {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
+                </span>
+                
+                {/* Type Badge */}
                 <span
-                  className="px-3 py-1 rounded-full text-xs font-bold text-white capitalize shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white capitalize shadow-sm"
                   style={{ backgroundColor: theme }}
                 >
                   🏥 {hospital.type || 'Hospital'}
                 </span>
+
+                {/* Verification Badge */}
                 {hospital.isVerified && (
                   <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
                     <FaCheckCircle /> Verified
@@ -511,6 +525,15 @@ const HospitalDetails = () => {
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-4">ℹ️ Quick Info</h3>
               <div className="space-y-3 text-sm">
+                
+                {/* ✅ Added Category inside Quick Info */}
+                <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                  <span className="text-gray-500">Category</span>
+                  <span className="font-semibold capitalize text-gray-800 flex items-center gap-1">
+                    {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
+                  </span>
+                </div>
+
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Type</span>
                   <span className="font-semibold capitalize text-gray-800">{hospital.type || 'N/A'}</span>

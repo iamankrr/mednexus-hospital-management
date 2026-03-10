@@ -7,17 +7,18 @@ import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
 import { FaSave, FaArrowLeft, FaTrash, FaSync } from 'react-icons/fa';
 import { HOSPITAL_TYPES } from '../../components/HospitalTypeFilter';
-import axios from 'axios'; // ✅ ADDED AXIOS FOR SYNC FEATURE
+import axios from 'axios';
 
 const EditHospital = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false); // ✅ SYNC STATE
+  const [syncing, setSyncing] = useState(false); 
 
   const [formData, setFormData] = useState({
     name: '',
+    category: 'Private', // ✅ ADDED CATEGORY
     type: 'general',
     description: '',
     phone: '',
@@ -25,8 +26,8 @@ const EditHospital = () => {
     website: '',
     themeColor: '#1E40AF',
     googlePlaceId: '',
-    googleRating: 0,       // ✅ ADDED
-    googleReviewCount: 0,  // ✅ ADDED
+    googleRating: 0,       
+    googleReviewCount: 0,  
     establishedDate: '', 
     address: {
       street: '',
@@ -64,6 +65,7 @@ const EditHospital = () => {
       
       setFormData({
         name: hospital.name || '',
+        category: hospital.category || 'Private', // ✅ SET CATEGORY FROM DB
         type: hospital.type || 'general',
         description: hospital.description || '',
         phone: hospital.phone || '',
@@ -71,8 +73,8 @@ const EditHospital = () => {
         website: hospital.website || '',
         themeColor: hospital.themeColor || '#1E40AF',
         googlePlaceId: hospital.googlePlaceId || '',
-        googleRating: hospital.googleRating || 0,             // ✅ SET RATING
-        googleReviewCount: hospital.googleReviewCount || 0,   // ✅ SET REVIEWS
+        googleRating: hospital.googleRating || 0,             
+        googleReviewCount: hospital.googleReviewCount || 0,   
         establishedDate: hospital.establishedDate || '', 
         address: {
           street: hospital.address?.street || '',
@@ -96,7 +98,6 @@ const EditHospital = () => {
     }
   };
 
-  // ✅ NEW FUNCTION: SYNC GOOGLE RATINGS MANUALLY
   const handleSyncGoogle = async () => {
     if (!formData.googlePlaceId) {
       alert("Please enter a Google Place ID first.");
@@ -130,8 +131,8 @@ const EditHospital = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.type) {
-      alert('Name and Type are required!');
+    if (!formData.name || !formData.type || !formData.category) {
+      alert('Name, Category, and Type are required!');
       return;
     }
 
@@ -199,6 +200,14 @@ const EditHospital = () => {
     );
   }
 
+  // Helper for Category Buttons
+  const categories = [
+    { label: 'Government', value: 'Government', icon: '🏛️' },
+    { label: 'Public', value: 'Public', icon: '🏥' },
+    { label: 'Private', value: 'Private', icon: '💼' },
+    { label: 'Charity/NGO', value: 'Charity', icon: '❤️' }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -206,10 +215,7 @@ const EditHospital = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/admin/hospitals')}
-              className="text-gray-600 hover:text-blue-600"
-            >
+            <button onClick={() => navigate('/admin/hospitals')} className="text-gray-600 hover:text-blue-600">
               <FaArrowLeft className="text-xl" />
             </button>
             <div>
@@ -218,25 +224,15 @@ const EditHospital = () => {
             </div>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
-            >
-              <FaTrash />
-              Delete
+            <button onClick={handleDelete} className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition">
+              <FaTrash /> Delete
             </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50"
-            >
-              <FaSave />
-              {saving ? 'Saving...' : 'Save Changes'}
+            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50">
+              <FaSave /> {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
 
-        {/* Warning */}
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-red-800">
             ⚠️ <strong>Admin Note:</strong> To update Google Ratings, paste the Place ID and click the Sync button below.
@@ -248,6 +244,30 @@ const EditHospital = () => {
           {/* Basic Info */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">📝 Basic Information</h2>
+            
+            {/* ✅ NEW: CATEGORY SELECTOR */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category *
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {categories.map(cat => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setFormData({...formData, category: cat.value})}
+                    className={`flex items-center justify-center gap-2 py-3 px-4 border rounded-xl font-medium transition-all ${
+                      formData.category === cat.value || formData.category?.toLowerCase() === cat.value.toLowerCase()
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
+                        : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{cat.icon}</span> {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -260,9 +280,10 @@ const EditHospital = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type *
+                  Hospital Type *
                 </label>
                 <select
                   value={formData.type}
@@ -276,6 +297,7 @@ const EditHospital = () => {
                   ))}
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <input
@@ -317,7 +339,6 @@ const EditHospital = () => {
                 />
               </div>
 
-              {/* ✅ GOOGLE PLACE ID WITH SYNC BUTTON */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Google Place ID (Optional)

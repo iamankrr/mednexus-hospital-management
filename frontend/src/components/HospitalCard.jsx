@@ -8,9 +8,19 @@ import {
   FaHeart,
   FaChevronLeft,
   FaChevronRight,
-  FaExchangeAlt
+  FaExchangeAlt,
+  FaBuilding
 } from 'react-icons/fa';
 import { useComparison } from '../context/ComparisonContext';
+
+// Helper for category icons
+const getCategoryIcon = (category) => {
+  const cat = category?.toLowerCase() || '';
+  if (cat.includes('gov')) return '🏛️';
+  if (cat.includes('public')) return '🏥';
+  if (cat.includes('charity') || cat.includes('ngo')) return '❤️';
+  return '💼'; // Private default
+};
 
 const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
@@ -57,16 +67,15 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
     }
   };
 
-  // ✅ Clean Address Logic
   const displayAddress = [hospital.address?.area, hospital.address?.city]
     .filter(Boolean) 
     .join(', ');     
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full">
       {/* Image Section */}
       <div 
-        className="relative h-56 bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden group cursor-pointer"
+        className="relative h-52 bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden group cursor-pointer flex-shrink-0"
         onClick={() => navigate(`/hospital/${hospital._id}`)}
       >
         {hospital.images && hospital.images.length > 0 ? (
@@ -143,21 +152,22 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
       </div>
 
       {/* Content Section */}
-      <div className="p-5">
+      <div className="p-5 flex flex-col flex-grow">
+        
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-blue-600 transition cursor-pointer"
             onClick={() => navigate(`/hospital/${hospital._id}`)}>
           {hospital.name}
         </h3>
 
-        <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
+        <div className="flex items-center gap-1 text-sm text-gray-600 mb-4">
           <FaMapMarkerAlt className="text-blue-500 flex-shrink-0" />
           <span className="line-clamp-1">
             {displayAddress}
           </span>
         </div>
 
-        {/* Ratings */}
-        <div className="flex items-center justify-between mb-4 pb-4 border-b">
+        {/* Ratings Section */}
+        <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
           <div>
             <div className="flex items-center gap-1 mb-1">
               <FaStar className="text-yellow-400 text-sm" />
@@ -168,11 +178,11 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
                 ({hospital.googleReviewCount || 0})
               </span>
             </div>
-            <p className="text-xs text-gray-500">Google Reviews</p>
+            <p className="text-xs text-gray-500 font-medium">Google Reviews</p>
           </div>
 
           <div>
-            <div className="flex items-center gap-1 mb-1">
+            <div className="flex items-center gap-1 mb-1 justify-end">
               <FaStar className="text-blue-400 text-sm" />
               <span className="font-bold text-gray-900">
                 {hospital.appRating?.toFixed(1) || '0.0'}
@@ -181,13 +191,16 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
                 ({hospital.appReviewCount || 0})
               </span>
             </div>
-            <p className="text-xs text-gray-500">App Reviews</p>
+            <p className="text-xs text-gray-500 font-medium text-right">App Reviews</p>
           </div>
         </div>
 
-        {/* Type Badge */}
-        <div className="mb-4">
-          <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+        {/* ✅ CATEGORY & TYPE TAGS */}
+        <div className="mb-5 flex flex-wrap gap-2 mt-auto">
+          <span className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-xs font-bold uppercase">
+            {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
+          </span>
+          <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-xs font-bold capitalize">
             {hospital.type}
           </span>
         </div>
@@ -197,7 +210,7 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
           {/* View Details */}
           <button
             onClick={() => navigate(`/hospital/${hospital._id}`)}
-            className="col-span-3 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+            className="col-span-3 bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-sm"
           >
             View Details
           </button>
@@ -208,8 +221,8 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
               onClick={handleCompareToggle}
               className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${
                 isInComparison(hospital._id)
-                  ? 'bg-orange-600 text-white hover:bg-orange-700'
-                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                  ? 'bg-orange-600 text-white shadow-sm'
+                  : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
               }`}
             >
               <FaExchangeAlt className="text-sm" />
@@ -221,19 +234,18 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
           <button
             onClick={handleCall}
             disabled={!hospital.phone}
-            className={`flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${
-              comparison ? '' : 'col-span-1'
-            }`}
+            className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${
+              hospital.phone ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            } ${comparison ? '' : 'col-span-1'}`}
           >
             <FaPhone className="text-sm" />
             <span className="text-xs">Call</span>
           </button>
 
-          {/* Directions */}
+          {/* Map */}
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // ✅ OFFICIAL GOOGLE MAPS EXACT LOCATION URL
               if (hospital.googlePlaceId) {
                 window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.googlePlaceId}`, '_blank');
               } else if (hospital.location?.coordinates) {
@@ -244,7 +256,7 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
                 window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
               }
             }}
-            className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${
+            className={`flex items-center justify-center gap-1 bg-purple-50 text-purple-600 py-2 rounded-lg font-medium hover:bg-purple-100 transition ${
               comparison ? '' : 'col-span-2'
             }`}
           >
