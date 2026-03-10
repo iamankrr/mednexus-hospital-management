@@ -280,16 +280,18 @@ router.get('/:id/services', async (req, res) => {
 
     // Group by category
     const grouped = {};
-    hospital.services.forEach(service => {
-      const cat = service.category || 'General';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(service);
-    });
+    if (hospital.services) {
+      hospital.services.forEach(service => {
+        const cat = service.category || 'General';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(service);
+      });
+    }
 
     res.status(200).json({
       success: true,
-      count: hospital.services.length,
-      data: hospital.services,
+      count: hospital.services ? hospital.services.length : 0,
+      data: hospital.services || [],
       grouped
     });
   } catch (error) {
@@ -307,7 +309,6 @@ router.post('/:id/services', protect, async (req, res) => {
 
     const { name, category, price, duration, description, isAvailable } = req.body;
 
-    // ✅ REMOVED !price condition
     if (!name) {
       return res.status(400).json({ success: false, message: 'Service name is required' });
     }
@@ -323,10 +324,15 @@ router.post('/:id/services', protect, async (req, res) => {
       }
     }
 
+    // ✅ FIX: Ensure services array exists before pushing
+    if (!hospital.services) {
+      hospital.services = [];
+    }
+
     hospital.services.push({
       name, 
       category: category || 'General',
-      // ✅ Handle null price
+      // Handle null price
       price: price ? parseFloat(price) : null,
       duration, description,
       isAvailable: isAvailable !== undefined ? isAvailable : true
