@@ -186,6 +186,10 @@ const EditHospital = () => {
         }
       };
 
+      // ✅ FIX: PREVENT OVERWRITING SERVICES ARRAY
+      // ServiceManager directly updates backend. Sending this empty/stale array will delete them!
+      delete payload.services; 
+
       await hospitalAPI.update(id, payload);
       alert('✅ Hospital updated successfully!');
       navigate('/admin/hospitals');
@@ -207,14 +211,19 @@ const EditHospital = () => {
     }
   };
 
-  // Generic Array Item Handlers
+  // ✅ FIX: MULTIPLE ITEMS COMMA SEPARATED ADDITION
   const handleAddArrayItem = (field, value, setter) => {
-    if (value.trim() && !formData[field].includes(value.trim())) {
-      setFormData({
-        ...formData,
-        [field]: [...formData[field], value.trim()]
-      });
-      setter('');
+    if (value.trim()) {
+      // Split by comma, trim spaces, and filter out empty or duplicate items
+      const items = value.split(',').map(item => item.trim()).filter(item => item && !formData[field].includes(item));
+      
+      if (items.length > 0) {
+        setFormData({
+          ...formData,
+          [field]: [...formData[field], ...items]
+        });
+      }
+      setter(''); // Clear input
     }
   };
 
@@ -474,15 +483,13 @@ const EditHospital = () => {
             </div>
           </div>
 
-          {/* ========================================================== */}
-          {/* ✅ FULLY EXPANDED FACILITIES & SERVICES ARRAYS SECTION     */}
-          {/* ========================================================== */}
+          {/* FACILITIES & SERVICES ARRAYS SECTION */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">🩺 General Facilities & Treatments</h2>
             
             {/* Facilities */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (e.g. ICU, WiFi)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (Add comma separated, e.g. ICU, WiFi)</label>
               <div className="flex gap-2 mb-3">
                 <input
                   type="text"
@@ -512,7 +519,7 @@ const EditHospital = () => {
 
             {/* Tests */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tests Available</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tests Available (Add comma separated)</label>
               <div className="flex gap-2 mb-3">
                 <input
                   type="text"
@@ -542,7 +549,7 @@ const EditHospital = () => {
 
             {/* Treatments */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Treatments</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Treatments (Add comma separated)</label>
               <div className="flex gap-2 mb-3">
                 <input
                   type="text"
@@ -572,14 +579,14 @@ const EditHospital = () => {
 
             {/* Surgeries */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Surgeries</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Surgeries (Add comma separated)</label>
               <div className="flex gap-2 mb-3">
                 <input
                   type="text"
                   value={newSurgery}
                   onChange={e => setNewSurgery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('surgeries', newSurgery, setNewSurgery)}
-                  placeholder="e.g., Cardiac Surgery"
+                  placeholder="e.g., Cardiac Surgery, Endoscopy"
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <button

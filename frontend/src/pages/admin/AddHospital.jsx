@@ -5,7 +5,7 @@ import axios from 'axios';
 import { indianStatesAndCities, getAllStates } from '../../data/indianCities'; 
 import ImageUploadManager from '../../components/ImageUploadManager'; 
 import CityStateSelector from '../../components/CityStateSelector'; 
-import ThemeColorPicker from '../../components/ThemeColorPicker'; // ✅ ADDED THEME COLOR
+import ThemeColorPicker from '../../components/ThemeColorPicker'; 
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import API_URL from '../../config/api';
@@ -39,6 +39,9 @@ const AddHospital = () => {
   const [newTest, setNewTest] = useState('');
   const [newTreatment, setNewTreatment] = useState('');
   const [newSurgery, setNewSurgery] = useState('');
+  const [newProcedure, setNewProcedure] = useState('');
+  const [newTherapy, setNewTherapy] = useState('');
+  const [newManagement, setNewManagement] = useState('');
   const [newInsurance, setNewInsurance] = useState('');
   
   // Form state
@@ -47,7 +50,7 @@ const AddHospital = () => {
     category: 'Private', 
     type: 'general',
     googlePlaceId: '',
-    themeColor: '#1E40AF', // ✅ ADDED THEME COLOR
+    themeColor: '#1E40AF', 
     address: {
       street: '',
       area: '',
@@ -91,34 +94,28 @@ const AddHospital = () => {
   });
 
   // =====================================
-  // ✅ FIXED SERVICES ADDITION FUNCTIONS
+  // ✅ FIXED SERVICES ADDITION FUNCTIONS (COMMA SEPARATED)
   // =====================================
-  const addTest = () => {
-    if (newTest.trim() && !formData.tests?.includes(newTest.trim())) {
-      setFormData({ ...formData, tests: [...(formData.tests || []), newTest.trim()] });
-      setNewTest('');
+  const handleAddArrayItem = (field, value, setter) => {
+    if (value.trim()) {
+      // Split by comma, remove extra spaces, and prevent empty or duplicate entries
+      const items = value.split(',').map(item => item.trim()).filter(item => item && !formData[field].includes(item));
+      
+      if (items.length > 0) {
+        setFormData({
+          ...formData,
+          [field]: [...(formData[field] || []), ...items]
+        });
+      }
+      setter(''); // Clear the input field
     }
   };
 
-  const addTreatment = () => {
-    if (newTreatment.trim() && !formData.treatments?.includes(newTreatment.trim())) {
-      setFormData({ ...formData, treatments: [...(formData.treatments || []), newTreatment.trim()] });
-      setNewTreatment('');
-    }
-  };
-
-  const addSurgery = () => {
-    if (newSurgery.trim() && !formData.surgeries?.includes(newSurgery.trim())) {
-      setFormData({ ...formData, surgeries: [...(formData.surgeries || []), newSurgery.trim()] });
-      setNewSurgery('');
-    }
-  };
-
-  const addInsurance = () => {
-    if (newInsurance.trim() && !formData.insuranceAccepted?.includes(newInsurance.trim())) {
-      setFormData({ ...formData, insuranceAccepted: [...(formData.insuranceAccepted || []), newInsurance.trim()] });
-      setNewInsurance('');
-    }
+  const handleRemoveArrayItem = (field, index) => {
+    setFormData({
+      ...formData,
+      [field]: formData[field].filter((_, i) => i !== index)
+    });
   };
 
   useEffect(() => {
@@ -241,7 +238,7 @@ const AddHospital = () => {
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to fetch from Google Places API.");
+      alert("Failed to fetch from Google Places API.");
     } finally {
       setSyncing(false);
     }
@@ -532,53 +529,163 @@ const AddHospital = () => {
               </div>
             </div>
 
-            {/* Theme Color */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">🎨 Theme Color</h2>
-              <ThemeColorPicker
-                value={formData.themeColor}
-                onChange={(color) => setFormData({...formData, themeColor: color})}
-              />
+            {/* Theme Color & Photos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">🎨 Theme Color</h2>
+                <ThemeColorPicker value={formData.themeColor} onChange={(color) => setFormData({...formData, themeColor: color})} />
+              </div>
+              <div className="bg-white rounded-2xl shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">📸 Photos</h2>
+                <ImageUploadManager images={formData.images || []} onImagesChange={(newImages) => setFormData({ ...formData, images: newImages })} maxImages={10} facilityId={null} facilityType="hospital" />
+              </div>
             </div>
 
-            {/* Photos Block */}
+            {/* FACILITIES & SERVICES ARRAYS SECTION */}
             <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">📸 Photos</h2>
-              <ImageUploadManager
-                images={formData.images || []}
-                onImagesChange={(newImages) => setFormData({ ...formData, images: newImages })}
-                maxImages={10}
-                facilityId={null}
-                facilityType="hospital"
-              />
-            </div>
-
-            {/* Facilities Block */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">🏥 Facilities & Amenities</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">🩺 General Facilities & Treatments</h2>
               
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
-                {commonFacilities.map(facility => (
-                  <button key={facility} type="button" onClick={() => toggleFacility(facility)} className={`px-3 py-2 rounded-lg text-sm font-medium transition border ${formData.facilities.includes(facility) ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
-                    {formData.facilities.includes(facility) ? '✓ ' : ''}{facility}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex gap-2 mb-4">
-                <input type="text" value={customFacility} onChange={e => setCustomFacility(e.target.value)} onKeyDown={e => {if (e.key === 'Enter') {e.preventDefault(); if (customFacility.trim() && !formData.facilities.includes(customFacility.trim())) { setFormData({...formData, facilities: [...formData.facilities, customFacility.trim()]}); setCustomFacility('');}}}} placeholder="Add custom facility (e.g., Blood Bank)" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                <button type="button" onClick={() => {if (customFacility.trim() && !formData.facilities.includes(customFacility.trim())) { setFormData({...formData, facilities: [...formData.facilities, customFacility.trim()]}); setCustomFacility('');}}} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">Add</button>
-              </div>
-
-              {formData.facilities.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t">
-                  {formData.facilities.map((fac, i) => (
-                    <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">
-                      {fac} <button type="button" onClick={() => toggleFacility(fac)} className="text-red-500 font-bold hover:text-red-700">×</button>
+              {/* Facilities */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (Add comma separated, e.g. ICU, WiFi)</label>
+                <div className="flex gap-2 mb-3">
+                  <input type="text" value={customFacility} onChange={e => setCustomFacility(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('facilities', customFacility, setCustomFacility)} placeholder="Type facility name and press Enter" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  <button type="button" onClick={() => handleAddArrayItem('facilities', customFacility, setCustomFacility)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"><FaPlus /></button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.facilities.map((item, i) => (
+                    <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm font-medium border border-gray-200">
+                      {item} 
+                      <button type="button" onClick={() => handleRemoveArrayItem('facilities', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
                     </span>
                   ))}
                 </div>
-              )}
+              </div>
+
+              {/* Tests */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tests Available (Add comma separated)</label>
+                <div className="flex gap-2 mb-3">
+                  <input type="text" value={newTest} onChange={e => setNewTest(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('tests', newTest, setNewTest)} placeholder="e.g., Blood Test, X-Ray" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  <button type="button" onClick={() => handleAddArrayItem('tests', newTest, setNewTest)} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"><FaPlus /></button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.tests.map((item, i) => (
+                    <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                      {item} 
+                      <button type="button" onClick={() => handleRemoveArrayItem('tests', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Treatments */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Treatments (Add comma separated)</label>
+                <div className="flex gap-2 mb-3">
+                  <input type="text" value={newTreatment} onChange={e => setNewTreatment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('treatments', newTreatment, setNewTreatment)} placeholder="e.g., Diabetes Management" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  <button type="button" onClick={() => handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"><FaPlus /></button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.treatments.map((item, i) => (
+                    <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
+                      {item} 
+                      <button type="button" onClick={() => handleRemoveArrayItem('treatments', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Surgeries */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Surgeries (Add comma separated)</label>
+                <div className="flex gap-2 mb-3">
+                  <input type="text" value={newSurgery} onChange={e => setNewSurgery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} placeholder="e.g., Cardiac Surgery, Endoscopy" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  <button type="button" onClick={() => handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"><FaPlus /></button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.surgeries.map((item, i) => (
+                    <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium border border-red-200">
+                      {item} 
+                      <button type="button" onClick={() => handleRemoveArrayItem('surgeries', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Procedures & Therapies */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Procedures</label>
+                  <div className="flex gap-2 mb-3">
+                    <input type="text" value={newProcedure} onChange={e => setNewProcedure(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('procedures', newProcedure, setNewProcedure)} placeholder="e.g., Endoscopy" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <button type="button" onClick={() => handleAddArrayItem('procedures', newProcedure, setNewProcedure)} className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700"><FaPlus /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.procedures.map((item, i) => (
+                      <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">
+                        {item} 
+                        <button type="button" onClick={() => handleRemoveArrayItem('procedures', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Therapies</label>
+                  <div className="flex gap-2 mb-3">
+                    <input type="text" value={newTherapy} onChange={e => setNewTherapy(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('therapies', newTherapy, setNewTherapy)} placeholder="e.g., Physiotherapy" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <button type="button" onClick={() => handleAddArrayItem('therapies', newTherapy, setNewTherapy)} className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700"><FaPlus /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.therapies.map((item, i) => (
+                      <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">
+                        {item} 
+                        <button type="button" onClick={() => handleRemoveArrayItem('therapies', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Management & Insurance */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Management Services</label>
+                  <div className="flex gap-2 mb-3">
+                    <input type="text" value={newManagement} onChange={e => setNewManagement(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('managementServices', newManagement, setNewManagement)} placeholder="e.g., Diet Planning" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <button type="button" onClick={() => handleAddArrayItem('managementServices', newManagement, setNewManagement)} className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700"><FaPlus /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.managementServices.map((item, i) => (
+                      <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
+                        {item} 
+                        <button type="button" onClick={() => handleRemoveArrayItem('managementServices', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Insurance Accepted</label>
+                  <div className="flex gap-2 mb-3">
+                    <input type="text" value={newInsurance} onChange={e => setNewInsurance(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('insuranceAccepted', newInsurance, setNewInsurance)} placeholder="e.g., Ayushman Bharat" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <button type="button" onClick={() => handleAddArrayItem('insuranceAccepted', newInsurance, setNewInsurance)} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"><FaPlus /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.insuranceAccepted.map((item, i) => (
+                      <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-200">
+                        {item} 
+                        <button type="button" onClick={() => handleRemoveArrayItem('insuranceAccepted', i)} className="text-red-500 font-bold hover:text-red-700">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Number of Beds */}
+              <div className="border-t border-gray-200 pt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Number of Beds Available</label>
+                <input type="number" value={formData.numberOfBeds || ''} onChange={(e) => setFormData({ ...formData, numberOfBeds: parseInt(e.target.value) || 0 })} min="0" className="w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              </div>
             </div>
 
             {/* Working Hours */}
@@ -588,81 +695,14 @@ const AddHospital = () => {
                 {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => (
                   <div key={day}>
                     <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">{day}</label>
-                    <input type="text" value={formData.operatingHours[day]} onChange={e => setFormData({ ...formData, operatingHours: {...formData.operatingHours, [day]: e.target.value} })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <input type="text" value={formData.operatingHours[day] || ''} onChange={e => setFormData({...formData, operatingHours: {...formData.operatingHours, [day]: e.target.value}})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                   </div>
                 ))}
               </div>
-              
               <label className="flex items-center gap-3 cursor-pointer p-3 bg-red-50 rounded-xl border border-red-100">
                 <input type="checkbox" checked={formData.emergencyAvailable} onChange={e => setFormData({...formData, emergencyAvailable: e.target.checked})} className="w-5 h-5 text-red-600 rounded focus:ring-red-500" />
                 <span className="font-bold text-red-700">🚨 24/7 Emergency Services Available</span>
               </label>
-            </div>
-
-            {/* Services (Tests, Treatments, etc) */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">💰 Services Added (Prices N/A)</h2>
-              
-              {/* Tests */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tests Available</label>
-                <div className="flex gap-2 mb-2">
-                  <input type="text" value={newTest} onChange={(e) => setNewTest(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addTest();}}} placeholder="e.g., Blood Test, X-Ray" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                  <button type="button" onClick={addTest} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.tests?.map((test, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2">{test} <button type="button" onClick={() => setFormData({...formData, tests: formData.tests.filter((_, i) => i !== idx)})} className="text-red-500 font-bold">×</button></span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Treatments */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Treatments</label>
-                <div className="flex gap-2 mb-2">
-                  <input type="text" value={newTreatment} onChange={(e) => setNewTreatment(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addTreatment();}}} placeholder="e.g., Diabetes Management" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                  <button type="button" onClick={addTreatment} className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.treatments?.map((treatment, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm flex items-center gap-2">{treatment} <button type="button" onClick={() => setFormData({...formData, treatments: formData.treatments.filter((_, i) => i !== idx)})} className="text-red-500 font-bold">×</button></span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Surgeries */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Surgeries</label>
-                <div className="flex gap-2 mb-2">
-                  <input type="text" value={newSurgery} onChange={(e) => setNewSurgery(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addSurgery();}}} placeholder="e.g., Cardiac Surgery" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                  <button type="button" onClick={addSurgery} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.surgeries?.map((surgery, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm flex items-center gap-2">{surgery} <button type="button" onClick={() => setFormData({...formData, surgeries: formData.surgeries.filter((_, i) => i !== idx)})} className="text-red-500 font-bold">×</button></span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Insurance */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Insurance</label>
-                <div className="flex gap-2 mb-2">
-                  <input type="text" value={newInsurance} onChange={(e) => setNewInsurance(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault(); addInsurance();}}} placeholder="e.g., Ayushman Bharat" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                  <button type="button" onClick={addInsurance} className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.insuranceAccepted?.map((insurance, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-2">{insurance} <button type="button" onClick={() => setFormData({...formData, insuranceAccepted: formData.insuranceAccepted.filter((_, i) => i !== idx)})} className="text-red-500 font-bold">×</button></span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 border-t pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Number of Beds</label>
-                <input type="number" value={formData.numberOfBeds || ''} onChange={(e) => setFormData({ ...formData, numberOfBeds: parseInt(e.target.value) || 0 })} min="0" className="w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-              </div>
             </div>
 
             {/* Owner Block */}

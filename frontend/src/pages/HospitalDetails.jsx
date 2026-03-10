@@ -30,13 +30,12 @@ const calculateYearsSince = (date) => {
   return `Established ${years} ${years === 1 ? 'year' : 'years'} ago`;
 };
 
-// Helper for category icons
 const getCategoryIcon = (category) => {
   const cat = category?.toLowerCase() || '';
   if (cat.includes('gov')) return '🏛️';
   if (cat.includes('public')) return '🏥';
   if (cat.includes('charity') || cat.includes('ngo')) return '❤️';
-  return '💼'; // Private default
+  return '💼'; 
 };
 
 const HospitalDetails = () => {
@@ -132,10 +131,9 @@ const HospitalDetails = () => {
   };
 
   const scrollToServices = () => {
-    const servicesSection = document.getElementById('price-list-tab');
+    const servicesSection = document.getElementById('services-section');
     if (servicesSection) {
       servicesSection.scrollIntoView({ behavior: 'smooth' });
-      setActiveTab('services');
     }
   };
 
@@ -184,6 +182,9 @@ const HospitalDetails = () => {
     ...(hospital.procedures || []),
     ...unpricedServices.filter(s => ['Dental', 'Eye', 'Orthopedic', 'Maternity', 'Cardiology', 'Neurology'].includes(s.category)).map(s => s.name)
   ]));
+
+  // Total Services calc for Quick Info
+  const totalServicesListed = (hospital.services?.length || 0) + combinedTests.length + combinedTreatments.length + combinedSurgeries.length;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -342,14 +343,12 @@ const HospitalDetails = () => {
                   </div>
                 )}
 
-                {(hospital.tests?.length > 0 || hospital.doctors?.length > 0 || hospital.surgeries?.length > 0 || unpricedServices.length > 0) ? (
-                  <button
-                    onClick={scrollToServices}
-                    className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-sm"
-                  >
-                    <FaClipboardList /> View All Services
-                  </button>
-                ) : null}
+                <button
+                  onClick={scrollToServices}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-sm"
+                >
+                  <FaClipboardList /> View All Services
+                </button>
                 
                 <MapButton hospital={hospital} />
 
@@ -380,7 +379,7 @@ const HospitalDetails = () => {
             </div>
 
             {/* ── TABS ── */}
-            <div id="price-list-tab" className="bg-white rounded-2xl shadow-md overflow-hidden min-h-[400px] scroll-mt-6">
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden min-h-[400px]">
               <div className="flex border-b border-gray-100">
                 {tabs.map(tab => (
                   <button
@@ -392,7 +391,7 @@ const HospitalDetails = () => {
                     style={activeTab === tab ? { backgroundColor: theme } : {}}
                   >
                     {tab === 'overview'  && '📋 Overview'}
-                    {tab === 'services'  && '💰 Services List'}
+                    {tab === 'services'  && '💰 Price List'}
                     {tab === 'reviews'   && '⭐ Reviews'}
                   </button>
                 ))}
@@ -427,25 +426,24 @@ const HospitalDetails = () => {
                       </div>
                     )}
 
-                    {(combinedTests.length > 0 || hospital.doctors?.length > 0) && (
-                      <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                        <button
-                          onClick={scrollToServices}
-                          className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition"
-                        >
-                          <div className="flex items-center gap-4">
-                            <FaClipboardList className="text-3xl text-blue-600" />
-                            <div className="text-left">
-                              <h3 className="font-bold text-gray-900 text-lg">View All Services & Doctors</h3>
-                              <p className="text-sm text-gray-600">
-                                {combinedTests.length} Tests • {hospital.doctors?.length || 0} Doctors • Insurance & More
-                              </p>
-                            </div>
+                    {/* ✅ FIX: BLUE BOX PROMPT SHOWS BEDS AND DOCTORS CORRECTLY */}
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                      <button
+                        onClick={scrollToServices}
+                        className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition"
+                      >
+                        <div className="flex items-center gap-4">
+                          <FaClipboardList className="text-3xl text-blue-600" />
+                          <div className="text-left">
+                            <h3 className="font-bold text-gray-900 text-lg">View All Services & Doctors</h3>
+                            <p className="text-sm text-gray-600">
+                              {combinedTests.length} Tests • {combinedTreatments.length} Treatments • {hospital.doctors?.length || 0} Doctors • {hospital.numberOfBeds || 0} Beds
+                            </p>
                           </div>
-                          <span className="text-blue-600 font-bold text-2xl">→</span>
-                        </button>
-                      </div>
-                    )}
+                        </div>
+                        <span className="text-blue-600 font-bold text-2xl">→</span>
+                      </button>
+                    </div>
 
                     {hospital.operatingHours && (
                       <div>
@@ -471,127 +469,8 @@ const HospitalDetails = () => {
                 )}
 
                 {activeTab === 'services' && (
-                  <div className="animate-fadeIn space-y-10">
+                  <div className="animate-fadeIn">
                     <PriceList services={hospital.services || []} themeColor={theme} />
-
-                    {/* Unpriced Sections (Merged logic) */}
-                    <div className="border-t border-gray-200 pt-10">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Available Services (Prices on Request)</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {combinedTests.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaFlask className="text-xl" style={{ color: theme }} />
-                                        <h3 className="font-bold text-gray-800">Tests / Diagnosis</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {combinedTests.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaCheckCircle className="text-green-500 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-                            
-                            {combinedTreatments.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaPills className="text-xl" style={{ color: theme }} />
-                                        <h3 className="font-bold text-gray-800">Treatments / Consultation</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {combinedTreatments.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaCheckCircle className="text-green-500 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-                            
-                            {combinedSurgeries.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaCut className="text-xl" style={{ color: theme }} />
-                                        <h3 className="font-bold text-gray-800">Surgeries Available</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {combinedSurgeries.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaCheckCircle className="text-green-500 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-
-                            {combinedProcedures.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaClipboardList className="text-xl" style={{ color: theme }} />
-                                        <h3 className="font-bold text-gray-800">Procedures</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {combinedProcedures.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaCheckCircle className="text-green-500 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-
-                            {combinedTherapies.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaSpa className="text-xl" style={{ color: theme }} />
-                                        <h3 className="font-bold text-gray-800">Therapies</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {combinedTherapies.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaCheckCircle className="text-green-500 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-
-                            {hospital.managementServices && hospital.managementServices.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaClipboardList className="text-xl text-orange-600" />
-                                        <h3 className="font-bold text-gray-800">Management</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {hospital.managementServices.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaCheckCircle className="text-green-500 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-
-                            {hospital.insuranceAccepted && hospital.insuranceAccepted.length > 0 && ( 
-                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <FaShieldAlt className="text-xl text-green-600" />
-                                        <h3 className="font-bold text-gray-800">Insurance Accepted</h3>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2">
-                                        {hospital.insuranceAccepted.map((item, i) => (
-                                            <p key={i} className="text-sm text-gray-700 flex items-center gap-2">
-                                                <FaShieldAlt className="text-green-600 text-xs" /> {item}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div> 
-                            )}
-
-                        </div>
-                    </div>
                   </div>
                 )}
 
@@ -675,14 +554,12 @@ const HospitalDetails = () => {
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-4">ℹ️ Quick Info</h3>
               <div className="space-y-3 text-sm">
-                
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Category</span>
                   <span className="font-semibold capitalize text-gray-800 flex items-center gap-1">
                     {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
                   </span>
                 </div>
-
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Type</span>
                   <span className="font-semibold capitalize text-gray-800">{hospital.type || 'N/A'}</span>
@@ -695,7 +572,8 @@ const HospitalDetails = () => {
                 </div>
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Services</span>
-                  <span className="font-semibold text-gray-800">{hospital.services?.length || 0} listed</span>
+                  {/* ✅ FIX: Quick info listed fix */}
+                  <span className="font-semibold text-gray-800">{totalServicesListed} listed</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Pin Code</span>
@@ -706,7 +584,158 @@ const HospitalDetails = () => {
           </div>
         </div>
       </div>
-      
+
+      {/* ========================================== */}
+      {/* SECTION 2: Extra Services & Facilities */}
+      {/* ========================================== */}
+      <div id="services-section" className="max-w-6xl mx-auto px-4 py-12 scroll-mt-6">
+        <h2 className="text-3xl font-bold text-gray-900 mb-8">Services & Facilities</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* Tests Block */}
+          {combinedTests.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><FaFlask className="text-xl text-blue-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Tests / Diagnosis</h3><p className="text-sm text-gray-600">{combinedTests.length} available</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedTests.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><span className="text-green-600">✓</span><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Treatments Block */}
+          {combinedTreatments.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center"><FaPills className="text-xl text-green-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Treatments</h3><p className="text-sm text-gray-600">{combinedTreatments.length} available</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedTreatments.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><span className="text-green-600">✓</span><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Surgeries Block */}
+          {combinedSurgeries.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center"><FaCut className="text-xl text-red-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Surgeries</h3><p className="text-sm text-gray-600">{combinedSurgeries.length} available</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedSurgeries.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><span className="text-green-600">✓</span><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Procedures Block */}
+          {combinedProcedures.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center"><FaClipboardList className="text-xl text-purple-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Procedures</h3><p className="text-sm text-gray-600">{combinedProcedures.length} available</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedProcedures.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><span className="text-green-600">✓</span><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Therapies Block */}
+          {combinedTherapies.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center"><FaSpa className="text-xl text-teal-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Therapies</h3><p className="text-sm text-gray-600">{combinedTherapies.length} available</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {combinedTherapies.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><span className="text-green-600">✓</span><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Management Block */}
+          {hospital.managementServices?.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center"><FaClipboardList className="text-xl text-orange-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Management</h3><p className="text-sm text-gray-600">{hospital.managementServices.length} services</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {hospital.managementServices.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><span className="text-green-600">✓</span><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Insurance Block */}
+          {hospital.insuranceAccepted?.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center"><FaShieldAlt className="text-xl text-green-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Insurance Accepted</h3><p className="text-sm text-gray-600">{hospital.insuranceAccepted.length} providers</p></div>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                {hospital.insuranceAccepted.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm"><FaShieldAlt className="text-green-600 text-xs" /><span className="text-gray-700">{item}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Number of Beds */}
+          {hospital.numberOfBeds > 0 && (
+            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><FaBed className="text-xl text-blue-600" /></div>
+                <div><h3 className="font-bold text-gray-900">Number of Beds</h3><p className="text-sm text-gray-600">Total capacity</p></div>
+              </div>
+              <div className="text-center">
+                <p className="text-4xl font-bold text-blue-600">{hospital.numberOfBeds}</p>
+                <p className="text-sm text-gray-600 mt-1">Beds Available</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Doctors Section */}
+        {hospital.doctors && hospital.doctors.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Our Doctors</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {hospital.doctors.map((doctor, idx) => (
+                <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition">
+                  <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-200">
+                    {doctor.photo ? <img src={doctor.photo} alt={doctor.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><FaUserMd className="text-6xl text-blue-400" /></div>}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-900 mb-1">{doctor.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{doctor.specialization}</p>
+                    {doctor.experience && <p className="text-xs text-gray-500 mb-2">Exp: {doctor.experience}</p>}
+                    {doctor.availability && <p className="text-xs text-gray-600 mb-2">📅 {doctor.availability}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
