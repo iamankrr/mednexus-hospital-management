@@ -142,6 +142,33 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
+    // ✅ DUPLICATE CHECK LOGIC START
+    const { name, phone, googlePlaceId, address } = req.body;
+
+    if (googlePlaceId && googlePlaceId.trim() !== '') {
+      const existingById = await Hospital.findOne({ googlePlaceId });
+      if (existingById) {
+        return res.status(400).json({ success: false, message: 'A hospital with this Google Place ID already exists!' });
+      }
+    }
+
+    if (phone || (name && address?.city)) {
+      const existingByNameOrPhone = await Hospital.findOne({
+        $or: [
+          { phone: phone },
+          { 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+            'address.city': address?.city 
+          }
+        ]
+      });
+
+      if (existingByNameOrPhone) {
+        return res.status(400).json({ success: false, message: 'This hospital already exists (Matching Name & City, or Phone number found).' });
+      }
+    }
+    // ✅ DUPLICATE CHECK LOGIC END
+
     // Create hospital
     const hospital = await Hospital.create(req.body);
     console.log('✅ Hospital created:', hospital.name);

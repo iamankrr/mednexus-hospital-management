@@ -1196,11 +1196,35 @@ router.post('/submissions/:id/approve', protect, admin, async (req, res) => {
       });
     }
 
-    // Create the actual facility
-    const Model = submission.facilityType === 'hospital' 
-      ? require('../models/Hospital')
-      : require('../models/Laboratory');
+    // ✅ DUPLICATE CHECK BEFORE APPROVING SUBMISSION START
+    const { name, phone, googlePlaceId, address } = facilityData;
+    const Model = submission.facilityType === 'hospital' ? Hospital : Laboratory;
 
+    if (googlePlaceId && googlePlaceId.trim() !== '') {
+      const existingById = await Model.findOne({ googlePlaceId });
+      if (existingById) {
+        return res.status(400).json({ success: false, message: 'A facility with this Google Place ID already exists! Cannot approve.' });
+      }
+    }
+
+    if (phone || (name && address?.city)) {
+      const existingByNameOrPhone = await Model.findOne({
+        $or: [
+          { phone: phone },
+          { 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+            'address.city': address?.city 
+          }
+        ]
+      });
+
+      if (existingByNameOrPhone) {
+        return res.status(400).json({ success: false, message: 'This facility already exists (Matching Name & City, or Phone number found). Cannot approve.' });
+      }
+    }
+    // ✅ DUPLICATE CHECK BEFORE APPROVING SUBMISSION END
+
+    // Create the actual facility
     const facility = await Model.create({
       ...facilityData,
       name: submission.name,
@@ -1298,6 +1322,33 @@ router.post('/create-hospital-with-owner', protect, admin, async (req, res) => {
       });
     }
 
+    // ✅ DUPLICATE CHECK BEFORE CREATING HOSPITAL
+    const { name, phone, googlePlaceId, address } = hospitalData;
+
+    if (googlePlaceId && googlePlaceId.trim() !== '') {
+      const existingById = await Hospital.findOne({ googlePlaceId });
+      if (existingById) {
+        return res.status(400).json({ success: false, message: 'A hospital with this Google Place ID already exists!' });
+      }
+    }
+
+    if (phone || (name && address?.city)) {
+      const existingByNameOrPhone = await Hospital.findOne({
+        $or: [
+          { phone: phone },
+          { 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+            'address.city': address?.city 
+          }
+        ]
+      });
+
+      if (existingByNameOrPhone) {
+        return res.status(400).json({ success: false, message: 'This hospital already exists (Matching Name & City, or Phone number found).' });
+      }
+    }
+    // ✅ END DUPLICATE CHECK
+
     // Create hospital first
     const hospital = await Hospital.create(hospitalData);
     console.log('✅ Hospital created:', hospital.name);
@@ -1387,6 +1438,33 @@ router.post('/create-lab-with-owner', protect, admin, async (req, res) => {
         message: 'Lab name is required'
       });
     }
+
+    // ✅ DUPLICATE CHECK BEFORE CREATING LAB
+    const { name, phone, googlePlaceId, address } = labData;
+
+    if (googlePlaceId && googlePlaceId.trim() !== '') {
+      const existingById = await Laboratory.findOne({ googlePlaceId });
+      if (existingById) {
+        return res.status(400).json({ success: false, message: 'A laboratory with this Google Place ID already exists!' });
+      }
+    }
+
+    if (phone || (name && address?.city)) {
+      const existingByNameOrPhone = await Laboratory.findOne({
+        $or: [
+          { phone: phone },
+          { 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+            'address.city': address?.city 
+          }
+        ]
+      });
+
+      if (existingByNameOrPhone) {
+        return res.status(400).json({ success: false, message: 'This laboratory already exists (Matching Name & City, or Phone number found).' });
+      }
+    }
+    // ✅ END DUPLICATE CHECK
 
     // Create lab first
     const lab = await Laboratory.create(labData);

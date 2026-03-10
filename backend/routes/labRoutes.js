@@ -133,6 +133,33 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
+    // ✅ DUPLICATE CHECK LOGIC START
+    const { name, phone, googlePlaceId, address } = req.body;
+
+    if (googlePlaceId && googlePlaceId.trim() !== '') {
+      const existingById = await Laboratory.findOne({ googlePlaceId });
+      if (existingById) {
+        return res.status(400).json({ success: false, message: 'A laboratory with this Google Place ID already exists!' });
+      }
+    }
+
+    if (phone || (name && address?.city)) {
+      const existingByNameOrPhone = await Laboratory.findOne({
+        $or: [
+          { phone: phone },
+          { 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }, 
+            'address.city': address?.city 
+          }
+        ]
+      });
+
+      if (existingByNameOrPhone) {
+        return res.status(400).json({ success: false, message: 'This laboratory already exists (Matching Name & City, or Phone number found).' });
+      }
+    }
+    // ✅ DUPLICATE CHECK LOGIC END
+
     const lab = await Laboratory.create(req.body);
     console.log('✅ Laboratory created:', lab.name);
 
