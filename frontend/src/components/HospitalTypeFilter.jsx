@@ -17,7 +17,8 @@ const HOSPITAL_TYPES = [
   { label: 'IVF/Fertility', value: 'ivf',            icon: '👶', color: 'pink'   },
   { label: 'Dermatology',   value: 'dermatology',    icon: '🩺', color: 'orange' },
   { label: 'Military',      value: 'military',       icon: '⚕️', color: 'green'  },
-  { label: 'Multispecialty',value: 'multispecialty', icon: '🌟', color: 'yellow' },
+  // ✅ FIX: Changed label from "Multispecialty" to "Private Multispecialty"
+  { label: 'Private Multispecialty', value: 'multispecialty', icon: '🌟', color: 'yellow' }, 
 ];
 
 // Show only first 8, rest in dropdown

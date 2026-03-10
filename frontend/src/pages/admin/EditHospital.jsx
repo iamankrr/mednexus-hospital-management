@@ -317,7 +317,7 @@ const EditHospital = () => {
                 />
               </div>
 
-              {/* ✅ NEW: GOOGLE PLACE ID WITH SYNC BUTTON */}
+              {/* ✅ GOOGLE PLACE ID WITH SYNC BUTTON */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Google Place ID (Optional)
@@ -340,7 +340,6 @@ const EditHospital = () => {
                     {syncing ? 'Fetching...' : 'Sync Ratings'}
                   </button>
                 </div>
-                {/* Visual confirmation of current ratings */}
                 {formData.googleReviewCount > 0 && (
                   <p className="text-sm text-green-600 mt-2 font-semibold">
                     ⭐ Synced Data: {formData.googleRating} Rating ({formData.googleReviewCount} Reviews)
