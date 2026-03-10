@@ -14,27 +14,20 @@ const laboratorySchema = new mongoose.Schema({
     default: '#059669' // Default Green for Labs
   },
 
+  // ✅ FIX: Removed strict 'enum' validation from category
   category: {
     type: String,
-    enum: ['government', 'public', 'private', 'charity'],
     default: 'private',
-    required: false
+    required: false,
+    trim: true
   },
 
-  // Laboratory Type
+  // ✅ FIX: Removed strict 'enum' validation from type
   type: {
     type: String,
     required: true,
-    enum: [
-      'government',        
-      'private',           
-      'franchise',         
-      'independent',       
-      'hospital-attached', 
-      'radiology',         
-      'pathology'          
-    ],
-    default: 'independent'
+    default: 'independent',
+    trim: true
   },
 
   email: {
@@ -103,9 +96,9 @@ const laboratorySchema = new mongoose.Schema({
   
   services: [{
     name: { type: String, required: true },
+    // ✅ FIX: Removed enum here too so custom service categories don't fail
     category: { 
       type: String, 
-      enum: ['Pathology', 'Radiology', 'Cardiology', 'Other'],
       default: 'Pathology'
     },
     price: { type: Number, required: true },
@@ -186,9 +179,6 @@ const laboratorySchema = new mongoose.Schema({
     required: false
   },
 
-  // =====================================
-  //       ✅ FIXED FIELDS HERE
-  // =====================================
   doctors: [{
     name: { type: String, required: true },
     photo: { type: String },
@@ -200,7 +190,6 @@ const laboratorySchema = new mongoose.Schema({
     consultationFee: { type: Number }
   }],
 
-  // ✅ Changed this to a simple String Array
   tests: [{ type: String }],
   treatments: [{ type: String }],
   surgeries: [{ type: String }],
@@ -218,7 +207,6 @@ const laboratorySchema = new mongoose.Schema({
     category: { type: String },
     name: { type: String }
   }],
-  // =====================================
   
   isApproved: {
     type: Boolean,

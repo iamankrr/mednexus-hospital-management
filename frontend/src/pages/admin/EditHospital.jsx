@@ -18,7 +18,7 @@ const EditHospital = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Private', // ✅ ADDED CATEGORY
+    category: 'Private', 
     type: 'general',
     description: '',
     phone: '',
@@ -65,7 +65,7 @@ const EditHospital = () => {
       
       setFormData({
         name: hospital.name || '',
-        category: hospital.category || 'Private', // ✅ SET CATEGORY FROM DB
+        category: hospital.category || 'Private', 
         type: hospital.type || 'general',
         description: hospital.description || '',
         phone: hospital.phone || '',
@@ -200,7 +200,6 @@ const EditHospital = () => {
     );
   }
 
-  // Helper for Category Buttons
   const categories = [
     { label: 'Government', value: 'Government', icon: '🏛️' },
     { label: 'Public', value: 'Public', icon: '🏥' },
@@ -245,7 +244,6 @@ const EditHospital = () => {
           <div className="bg-white rounded-2xl shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">📝 Basic Information</h2>
             
-            {/* ✅ NEW: CATEGORY SELECTOR */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category *
@@ -270,112 +268,53 @@ const EditHospital = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hospital Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Name *</label>
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hospital Type *
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData({...formData, type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Type *</label>
+                <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                   {HOSPITAL_TYPES.filter(t => t.value !== 'all').map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.icon} {type.label}
-                    </option>
+                    <option key={type.value} value={type.value}>{type.icon} {type.label}</option>
                   ))}
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                <input
-                  type="text"
-                  value={formData.website}
-                  onChange={e => setFormData({...formData, website: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.website} onChange={e => setFormData({...formData, website: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Established Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={formData.establishedDate ? new Date(formData.establishedDate).toISOString().split('T')[0] : ''}
-                  onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Established Date (Optional)</label>
+                <input type="date" value={formData.establishedDate ? new Date(formData.establishedDate).toISOString().split('T')[0] : ''} onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })} max={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Google Place ID (Optional)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Google Place ID (Optional)</label>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={formData.googlePlaceId}
-                    onChange={e => setFormData({...formData, googlePlaceId: e.target.value})}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="ChIJ..."
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSyncGoogle}
-                    disabled={syncing || !formData.googlePlaceId}
-                    className="px-6 py-2 bg-blue-100 text-blue-700 font-bold rounded-lg hover:bg-blue-200 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <FaSync className={syncing ? "animate-spin" : ""} />
-                    {syncing ? 'Fetching...' : 'Sync Ratings'}
+                  <input type="text" value={formData.googlePlaceId} onChange={e => setFormData({...formData, googlePlaceId: e.target.value})} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="ChIJ..." />
+                  <button type="button" onClick={handleSyncGoogle} disabled={syncing || !formData.googlePlaceId} className="px-6 py-2 bg-blue-100 text-blue-700 font-bold rounded-lg hover:bg-blue-200 transition flex items-center justify-center gap-2 disabled:opacity-50">
+                    <FaSync className={syncing ? "animate-spin" : ""} /> {syncing ? 'Fetching...' : 'Sync Ratings'}
                   </button>
                 </div>
                 {formData.googleReviewCount > 0 && (
-                  <p className="text-sm text-green-600 mt-2 font-semibold">
-                    ⭐ Synced Data: {formData.googleRating} Rating ({formData.googleReviewCount} Reviews)
-                  </p>
+                  <p className="text-sm text-green-600 mt-2 font-semibold">⭐ Synced Data: {formData.googleRating} Rating ({formData.googleReviewCount} Reviews)</p>
                 )}
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={4} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
           </div>
@@ -388,64 +327,25 @@ const EditHospital = () => {
                 <CityStateSelector
                   selectedState={formData.address.state}
                   selectedCity={formData.address.city}
-                  onStateChange={(val) => setFormData({
-                    ...formData,
-                    address: {...formData.address, state: val}
-                  })}
-                  onCityChange={(val) => setFormData({
-                    ...formData,
-                    address: {...formData.address, city: val}
-                  })}
+                  onStateChange={(val) => setFormData({...formData, address: {...formData.address, state: val}})}
+                  onCityChange={(val) => setFormData({...formData, address: {...formData.address, city: val}})}
                 />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
-                <input
-                  type="text"
-                  value={formData.address.street}
-                  onChange={e => setFormData({
-                    ...formData,
-                    address: {...formData.address, street: e.target.value}
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.address.street} onChange={e => setFormData({...formData, address: {...formData.address, street: e.target.value}})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
-                <input
-                  type="text"
-                  value={formData.address.area}
-                  onChange={e => setFormData({
-                    ...formData,
-                    address: {...formData.address, area: e.target.value}
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.address.area} onChange={e => setFormData({...formData, address: {...formData.address, area: e.target.value}})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
-                <input
-                  type="text"
-                  value={formData.address.pincode}
-                  maxLength={6}
-                  onChange={e => setFormData({
-                    ...formData,
-                    address: {...formData.address, pincode: e.target.value}
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.address.pincode} maxLength={6} onChange={e => setFormData({...formData, address: {...formData.address, pincode: e.target.value}})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Landmark</label>
-                <input
-                  type="text"
-                  value={formData.address.landmark}
-                  onChange={e => setFormData({
-                    ...formData,
-                    address: {...formData.address, landmark: e.target.value}
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.address.landmark} onChange={e => setFormData({...formData, address: {...formData.address, landmark: e.target.value}})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
           </div>
@@ -464,9 +364,7 @@ const EditHospital = () => {
             <h2 className="text-xl font-bold text-gray-800 mb-4">📸 Photos</h2>
             <ImageUploadManager
               images={formData.images || []}
-              onImagesChange={(newImages) => {
-                setFormData({ ...formData, images: newImages });
-              }}
+              onImagesChange={(newImages) => setFormData({ ...formData, images: newImages })}
               maxImages={10}
               facilityId={id}
               facilityType="hospital"
@@ -477,34 +375,13 @@ const EditHospital = () => {
           <div className="bg-white rounded-2xl shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">🏥 Facilities & Amenities</h2>
             <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newFacility}
-                onChange={e => setNewFacility(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddFacility()}
-                placeholder="Add facility (e.g., ICU, OT, MRI)"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleAddFacility}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
-                Add
-              </button>
+              <input type="text" value={newFacility} onChange={e => setNewFacility(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddFacility()} placeholder="Add facility (e.g., ICU, OT, MRI)" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+              <button onClick={handleAddFacility} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">Add</button>
             </div>
             <div className="flex flex-wrap gap-2">
               {formData.facilities.map((fac, i) => (
-                <span
-                  key={i}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200"
-                >
-                  {fac}
-                  <button
-                    onClick={() => handleRemoveFacility(i)}
-                    className="text-red-500 hover:text-red-700 font-bold"
-                  >
-                    ×
-                  </button>
+                <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">
+                  {fac} <button onClick={() => handleRemoveFacility(i)} className="text-red-500 hover:text-red-700 font-bold">×</button>
                 </span>
               ))}
             </div>
@@ -516,18 +393,8 @@ const EditHospital = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => (
                 <div key={day}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
-                    {day}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.operatingHours[day] || ''}
-                    onChange={e => setFormData({
-                      ...formData,
-                      operatingHours: {...formData.operatingHours, [day]: e.target.value}
-                    })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">{day}</label>
+                  <input type="text" value={formData.operatingHours[day] || ''} onChange={e => setFormData({...formData, operatingHours: {...formData.operatingHours, [day]: e.target.value}})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                 </div>
               ))}
             </div>
@@ -536,12 +403,7 @@ const EditHospital = () => {
           {/* Emergency Toggle */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.emergencyAvailable}
-                onChange={e => setFormData({...formData, emergencyAvailable: e.target.checked})}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
+              <input type="checkbox" checked={formData.emergencyAvailable} onChange={e => setFormData({...formData, emergencyAvailable: e.target.checked})} className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
               <span className="font-medium text-gray-700">🚨 24/7 Emergency Services Available</span>
             </label>
           </div>
@@ -561,20 +423,11 @@ const EditHospital = () => {
 
         {/* Bottom Actions */}
         <div className="mt-8 flex justify-between">
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition shadow-lg"
-          >
-            <FaTrash />
-            Delete Hospital
+          <button onClick={handleDelete} className="flex items-center gap-2 px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition shadow-lg">
+            <FaTrash /> Delete Hospital
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 shadow-lg"
-          >
-            <FaSave />
-            {saving ? 'Saving...' : 'Save All Changes'}
+          <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 shadow-lg">
+            <FaSave /> {saving ? 'Saving...' : 'Save All Changes'}
           </button>
         </div>
 
