@@ -14,10 +14,10 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, 'Invalid email format']
   },
-  // ✅ Fixed: Phone is properly made optional
+  // ✅ FIX: Made Phone Number strictly required
   phone: {
     type: String,
-    required: false,
+    required: [true, 'Phone number is required'],
     match: [/^[0-9]{10}$/, 'Phone must be 10 digits']
   },
   password: {
@@ -57,7 +57,7 @@ const userSchema = new mongoose.Schema({
     businessLicense: String,
     registrationNumber: String
   },
-  // ✅ Favorites field pehle se hi yahan perfectly added hai
+  // Favorites field pehle se hi yahan perfectly added hai
   favorites: {
     hospitals: [{
       type: mongoose.Schema.Types.ObjectId,

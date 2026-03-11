@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaArrowLeft, FaPhone } from 'react-icons/fa'; // ✅ FIX: Added FaPhone
 import axios from 'axios';
 
 const RegisterUser = () => {
@@ -9,6 +9,7 @@ const RegisterUser = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '', // ✅ FIX: Added phone to state
     password: '',
     confirmPassword: ''
   });
@@ -26,12 +27,13 @@ const RegisterUser = () => {
       const response = await axios.post('http://localhost:3000/api/users/register', {
         name: formData.name,
         email: formData.email,
+        phone: formData.phone, // ✅ FIX: Sending phone to backend
         password: formData.password
       });
 
       if (response.data.success) {
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('user', JSON.stringify(response.data.data || response.data.user));
         
         alert('✅ Registration successful!');
         navigate('/');
@@ -86,6 +88,21 @@ const RegisterUser = () => {
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
               placeholder="your@email.com"
+            />
+          </div>
+
+          {/* ✅ FIX: Phone Number Input Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              required
+              pattern="[0-9]{10}"
+              maxLength="10"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+              placeholder="10-digit mobile number"
             />
           </div>
 

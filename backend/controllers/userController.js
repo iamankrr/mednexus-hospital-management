@@ -4,7 +4,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
 // ========== Generate JWT Token ==========
-// ✅ ADDED: role parameter to determine expiration time
+// ADDED: role parameter to determine expiration time
 const generateToken = (userId, role) => {
   const expiresIn = role === 'admin' ? '1h' : '30d'; // Admin ke liye 1 hour, baakiyon ke liye 30 days
   return jwt.sign(
@@ -21,6 +21,14 @@ exports.registerUser = async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
     
+    // ✅ FIX: Strict validation checking for phone number
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide name, email, contact number and password'
+      });
+    }
+
     // Check if user already exists
     const userExists = await User.findOne({ $or: [{ email }, { phone }] });
     
@@ -40,7 +48,7 @@ exports.registerUser = async (req, res) => {
     });
     
     // Generate token
-    // ✅ ADDED: Pass role to generateToken
+    // ADDED: Pass role to generateToken
     const token = generateToken(user._id, user.role);
     
     res.status(201).json({
@@ -93,7 +101,7 @@ exports.loginUser = async (req, res) => {
     // Find user (include password for comparison)
     const user = await User.findOne({ email }).select('+password');
 
-    // ✅ ADDED DEACTIVATION CHECK HERE (Password check se pehle)
+    // ADDED DEACTIVATION CHECK HERE (Password check se pehle)
     if (user && user.isActive === false) {
       console.log('❌ Account deactivated login attempt:', email);
       return res.status(401).json({
@@ -144,7 +152,7 @@ exports.loginUser = async (req, res) => {
     }
 
     // Generate JWT token
-    // ✅ ADDED: Dynamic expiration logic based on user role
+    // ADDED: Dynamic expiration logic based on user role
     const expiresIn = user.role === 'admin' ? '1h' : '30d'; // Admin ke liye 1 hour, baakiyon ke liye 30 days
     const token = jwt.sign(
       { 
