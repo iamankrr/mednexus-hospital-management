@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaStar, FaPhone, FaEnvelope, FaEdit, FaTrash } from 'react-icons/fa';
 import { reviewAPI } from '../services/api';
 import ReviewAge from './ReviewAge';
-import axios from 'axios'; // For direct edit/delete calls if not in reviewAPI
+import axios from 'axios'; 
 
 const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
   const navigate = useNavigate();
@@ -112,7 +112,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
     });
   };
 
-  // ✅ EDIT REVIEW LOGIC
   const handleEditClick = () => {
     setFormData({
       rating: existingReview.rating,
@@ -127,7 +126,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
     setFormData({ rating: 5, comment: '', title: '' });
   };
 
-  // ✅ DELETE REVIEW LOGIC
   const handleDeleteReview = async () => {
     if (!window.confirm("Are you sure you want to delete your review?")) return;
     
@@ -142,6 +140,7 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
       setExistingReview(null);
       setFormData({ rating: 5, comment: '', title: '' });
       fetchReviews();
+      if (onReviewSubmitted) onReviewSubmitted();
       
     } catch (error) {
       console.error('Delete review error:', error);
@@ -170,7 +169,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
       
       let response;
       if (isEditing) {
-        // Update existing review
         response = await axios.put(`http://localhost:3000/api/reviews/${existingReview._id}`, {
           rating: formData.rating,
           comment: formData.comment,
@@ -179,7 +177,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        // Create new review
         response = await reviewAPI.create({
           facilityType,
           facilityId,
@@ -194,12 +191,11 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
         
         setIsEditing(false);
         setHasReviewed(true);
-        setExistingReview(response.data.data); // Update with new data
+        setExistingReview(response.data.data); 
         
-        // Clear form after slight delay to show transition
         setTimeout(() => setFormData({ rating: 5, comment: '', title: '' }), 100);
 
-        fetchReviews(); // Refresh review list
+        fetchReviews(); 
         
         if (onReviewSubmitted) {
           onReviewSubmitted();
@@ -219,17 +215,24 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
     }
   };
 
-  // ✅ FIX: Toggle Function for Patient Info
   const toggleContactInfo = (reviewId) => {
     setExpandedContacts(prev => 
       prev.includes(reviewId) ? prev.filter(id => id !== reviewId) : [...prev, reviewId]
     );
   };
 
+  // ✅ FIX: Check if current user is admin or owner to restrict review writing
+  const isRestrictedRole = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
+
   return (
     <div className="space-y-8">
       {/* ── FORM SECTION ── */}
-      {!isLoggedIn ? (
+      {isRestrictedRole ? (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center shadow-sm">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Review Access Restricted</h3>
+          <p className="text-gray-600">You are logged in as an <b>{currentUser.role.toUpperCase()}</b>. Only standard users can post reviews.</p>
+        </div>
+      ) : !isLoggedIn ? (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Want to write a review?</h3>
           <p className="text-gray-600 mb-4">Please login to share your experience</p>
@@ -258,7 +261,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
       ) : hasReviewed && existingReview && !isEditing ? (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 relative">
           
-          {/* ✅ USER CONTROLS: Edit and Delete Buttons */}
           <div className="absolute top-4 right-4 flex gap-2">
             <button onClick={handleEditClick} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50 transition" title="Edit Review">
               <FaEdit />
@@ -291,7 +293,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg p-6 relative">
-          {/* Cancel Edit Button */}
           {isEditing && (
             <button onClick={handleCancelEdit} className="absolute top-4 right-4 text-sm font-bold text-gray-500 hover:text-gray-800 underline">
               Cancel Edit
@@ -301,7 +302,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
           <h3 className="text-xl font-semibold text-gray-800 mb-4">{isEditing ? 'Edit Your Review' : 'Write a Review'}</h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Rating */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Your Rating *
@@ -331,7 +331,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
               </div>
             </div>
 
-            {/* Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Review Title (Optional)
@@ -346,7 +345,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
               />
             </div>
 
-            {/* Comment */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Your Review *
@@ -365,7 +363,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
               </p>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={submitting || formData.comment.length < 10}
@@ -387,7 +384,7 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
           <h3 className="text-xl font-bold text-gray-800 border-b pb-3">Patient Reviews</h3>
           <div className="space-y-4">
             {reviews.map(review => (
-              <div key={review._id} className="border border-gray-100 bg-white p-4 rounded-xl shadow-sm">
+              <div key={review._id} className="border border-gray-100 bg-white p-4 rounded-xl shadow-sm hover:shadow transition">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold mt-1">
@@ -396,12 +393,12 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
                     <div>
                       <p className="font-semibold text-gray-800">{review.user?.name || 'Anonymous'}</p>
                       
-                      {/* ✅ FIX: ADMIN ONLY TOGGLE VIEW */}
+                      {/* ✅ FIX: Admin Toggle Button is working fine now because onClickCapture is removed! */}
                       {currentUser && currentUser.role === 'admin' && (
                         <div className="mt-1 mb-1">
                           <button 
                             onClick={() => toggleContactInfo(review._id)}
-                            className="text-[10px] font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition border border-gray-200 uppercase tracking-wide"
+                            className="text-[10px] font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition border border-gray-200 uppercase tracking-wide cursor-pointer"
                           >
                             {expandedContacts.includes(review._id) ? 'Hide Contact Info' : 'Patient Contact Info'}
                           </button>
@@ -421,7 +418,6 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
                         </div>
                       )}
                       
-                      {/* ⬅️ REVIEW AGE DISPLAYED HERE */}
                       <ReviewAge timestamp={review.createdAt} />
                     </div>
                   </div>

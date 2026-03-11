@@ -14,7 +14,6 @@ const laboratorySchema = new mongoose.Schema({
     default: '#059669' // Default Green for Labs
   },
 
-  // ✅ FIX: Removed strict 'enum' validation from category
   category: {
     type: String,
     default: 'private',
@@ -22,7 +21,6 @@ const laboratorySchema = new mongoose.Schema({
     trim: true
   },
 
-  // ✅ FIX: Removed strict 'enum' validation from type
   type: {
     type: String,
     required: true,
@@ -96,7 +94,6 @@ const laboratorySchema = new mongoose.Schema({
   
   services: [{
     name: { type: String, required: true },
-    // ✅ FIX: Removed enum here too so custom service categories don't fail
     category: { 
       type: String, 
       default: 'Pathology'
@@ -157,6 +154,19 @@ const laboratorySchema = new mongoose.Schema({
   },
   
   totalReviews: {
+    type: Number,
+    default: 0
+  },
+
+  // ✅ FIX: ADDED APP RATING FIELDS FOR LAB CARD MAPPING ON HOME SCREEN
+  appRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  
+  appReviewCount: {
     type: Number,
     default: 0
   },
@@ -255,10 +265,14 @@ laboratorySchema.methods.updateRating = async function() {
   
   if (stats.length > 0) {
     this.websiteRating = Math.round(stats[0].avgRating * 10) / 10;
+    this.appRating = this.websiteRating;
     this.totalReviews = stats[0].count;
+    this.appReviewCount = stats[0].count;
   } else {
     this.websiteRating = 0;
+    this.appRating = 0;
     this.totalReviews = 0;
+    this.appReviewCount = 0;
   }
   
   await this.save();

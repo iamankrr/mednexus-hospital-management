@@ -56,7 +56,6 @@ const OwnerDashboard = () => {
         
         setFacility(facilityData);
 
-        // ✅ FIX: Fetch Appointments count correctly for dashboard
         let totalAppts = 0;
         try {
           const aptRes = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
@@ -67,16 +66,24 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // ✅ FIX: Use direct database fields for exact counts!
-        const calcTotalReviews = facilityType === 'hospital' 
-          ? (facilityData.appReviewCount || 0) 
-          : (facilityData.totalReviews || 0);
+        // ✅ FIX: DYNAMICALLY FETCH REVIEWS DIRECTLY FROM API TO GUARANTEE LIVE DATA
+        let calcTotalReviews = 0;
+        let calcRating = 0;
+        try {
+          // This fetches live reviews from the database directly, bypassing old model cache
+          const revRes = await axios.get(`http://localhost:3000/api/reviews?${facilityType}=${facilityId}`);
+          const fetchedReviews = revRes.data.data || [];
+          const approvedReviews = fetchedReviews.filter(r => r.isApproved);
           
-        const calcRating = facilityType === 'hospital' 
-          ? (facilityData.appRating || 0) 
-          : (facilityData.websiteRating || 0);
+          calcTotalReviews = approvedReviews.length;
+          if (calcTotalReviews > 0) {
+            const sum = approvedReviews.reduce((acc, rev) => acc + (rev.rating || 0), 0);
+            calcRating = (sum / calcTotalReviews).toFixed(1);
+          }
+        } catch (e) {
+          console.error('Failed to fetch live reviews for dashboard', e);
+        }
 
-        // ✅ FIX: Calculate Dynamic Listed Services securely
         let calcServices = 0;
         if (facilityType === 'hospital') {
           calcServices = 
@@ -149,13 +156,11 @@ const OwnerDashboard = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Owner Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user.name}!</p>
         </div>
 
-        {/* Facility Info Card */}
         <div className="bg-white rounded-2xl shadow-md p-6 mb-8 border-l-4" style={{ borderColor: facility?.themeColor || '#1E40AF' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -179,10 +184,8 @@ const OwnerDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           
-          {/* Total Reviews */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-yellow-400" />
@@ -192,17 +195,15 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Total Reviews</p>
           </div>
 
-          {/* Average Rating */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-green-500" />
               <span className="text-xs text-gray-500 uppercase font-semibold">Rating</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.averageRating.toFixed(1)}</p>
+            <p className="text-3xl font-bold text-gray-900">{stats.averageRating}</p>
             <p className="text-sm text-gray-500 mt-1">Average Rating</p>
           </div>
 
-          {/* Services */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <div className="text-3xl">💰</div>
@@ -212,7 +213,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Listed Services</p>
           </div>
 
-          {/* Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaCalendarAlt className="text-3xl text-blue-500" />
@@ -224,10 +224,8 @@ const OwnerDashboard = () => {
 
         </div>
 
-        {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Manage Facility */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/facility')}>
             <div className="flex items-center justify-between">
               <div>
@@ -240,7 +238,6 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
-          {/* View Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/appointments')}>
             <div className="flex items-center justify-between">
               <div>
@@ -253,7 +250,6 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
-          {/* Manage Services Card */}
           <div 
             onClick={() => navigate('/owner/manage-services')}
             className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer"

@@ -172,9 +172,6 @@ const HospitalDetails = () => {
   const tabs  = ['overview', 'services', 'reviews'];
   const isCompared = compareList.some(h => h.id === hospital._id || h.id === hospital.id);
 
-  // ==========================================
-  // ✅ LOGIC: MERGE UNPRICED SERVICES INTO ARRAYS
-  // ==========================================
   const unpricedServices = hospital.services?.filter(s => !s.price || s.price <= 0) || [];
   
   const combinedTests = Array.from(new Set([
@@ -202,7 +199,6 @@ const HospitalDetails = () => {
     ...unpricedServices.filter(s => ['Dental', 'Eye', 'Orthopedic', 'Maternity', 'Cardiology', 'Neurology'].includes(s.category)).map(s => s.name)
   ]));
 
-  // ✅ FIX: TOTAL SERVICES CALCULATION NOW INCLUDES ALL ARRAYS
   const totalServicesListed = 
     (hospital.services?.length || 0) + 
     combinedTests.length + 
@@ -215,11 +211,8 @@ const HospitalDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-
-      {/* ── TOP COLOR BAND ── */}
       <div className="h-2 w-full" style={{ backgroundColor: theme }} />
 
-      {/* ── BACK BUTTON ── */}
       <div className="max-w-6xl mx-auto px-4 pt-4">
         <button
           onClick={() => navigate(-1)}
@@ -229,39 +222,22 @@ const HospitalDetails = () => {
         </button>
       </div>
 
-      {/* ── PHOTO GALLERY ── */}
       <div className="max-w-6xl mx-auto px-4 mb-6">
-        <PhotoGallery 
-          images={hospital.images || []} 
-          name={hospital.name} 
-        />
+        <PhotoGallery images={hospital.images || []} name={hospital.name} />
       </div>
 
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* ── LEFT COLUMN (Details) ── */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* ── HOSPITAL INFO CARD ── */}
             <div className="bg-white rounded-2xl shadow-md p-6">
-              
-              {/* UPDATED BADGES: Category & Type both shown properly */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                {/* Category Badge */}
                 <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 shadow-sm border border-gray-200 uppercase tracking-wide">
                   {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
                 </span>
-                
-                {/* Type Badge */}
-                <span
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white capitalize shadow-sm"
-                  style={{ backgroundColor: theme }}
-                >
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white capitalize shadow-sm" style={{ backgroundColor: theme }}>
                   🏥 {hospital.type || 'Hospital'}
                 </span>
-
-                {/* Verification Badge */}
                 {hospital.isVerified && (
                   <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
                     <FaCheckCircle /> Verified
@@ -287,9 +263,7 @@ const HospitalDetails = () => {
                     <p className="text-sm font-semibold text-gray-700">Established</p>
                     <p className="text-sm text-gray-900 font-medium">
                       {new Date(hospital.establishedDate).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
+                        day: 'numeric', month: 'long', year: 'numeric'
                       })}
                     </p>
                     <p className="text-xs text-gray-500 mt-1 font-medium">
@@ -344,14 +318,9 @@ const HospitalDetails = () => {
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
                 {hospital.owner && hospital.appointmentsEnabled && (
-                  <button
-                    onClick={handleBookAppointment}
-                    className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition hover:opacity-90 shadow-sm"
-                    style={{ backgroundColor: theme }}
-                  >
+                  <button onClick={handleBookAppointment} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition hover:opacity-90 shadow-sm" style={{ backgroundColor: theme }}>
                     📅 Book Appointment
                   </button>
                 )}
@@ -368,53 +337,28 @@ const HospitalDetails = () => {
                   </div>
                 )}
 
-                <button
-                  onClick={scrollToServices}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-sm"
-                >
+                <button onClick={scrollToServices} className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-sm">
                   <FaClipboardList /> View All Services
                 </button>
                 
                 <MapButton hospital={hospital} />
 
-                <button
-                  onClick={handleToggleFavorite}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${
-                    isFavorite
-                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
+                <button onClick={handleToggleFavorite} className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${isFavorite ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                   <FaHeart className={isFavorite ? 'text-red-500' : 'text-gray-400'} />
                   {isFavorite ? 'Saved' : 'Save'}
                 </button>
                 
-                <button
-                  onClick={handleAddToCompare}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${
-                    isCompared
-                      ? 'bg-orange-500 text-white border-orange-500'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
+                <button onClick={handleAddToCompare} className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${isCompared ? 'bg-orange-500 text-white border-orange-500' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                   <FaBalanceScale />
                   {isCompared ? 'Added' : 'Compare'}
                 </button>
               </div>
             </div>
 
-            {/* ── TABS ── */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden min-h-[400px]">
               <div className="flex border-b border-gray-100">
                 {tabs.map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 py-4 text-sm font-semibold capitalize transition-colors duration-200 ${
-                      activeTab === tab ? 'text-white' : 'text-gray-500 hover:bg-gray-50'
-                    }`}
-                    style={activeTab === tab ? { backgroundColor: theme } : {}}
-                  >
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-4 text-sm font-semibold capitalize transition-colors duration-200 ${activeTab === tab ? 'text-white' : 'text-gray-500 hover:bg-gray-50'}`} style={activeTab === tab ? { backgroundColor: theme } : {}}>
                     {tab === 'overview'  && '📋 Overview'}
                     {tab === 'services'  && '💰 Price List'}
                     {tab === 'reviews'   && '⭐ Reviews'}
@@ -439,11 +383,7 @@ const HospitalDetails = () => {
                         <h3 className="font-bold text-gray-800 mb-3 text-lg">Facilities</h3>
                         <div className="flex flex-wrap gap-2">
                           {hospital.facilities.map((f, i) => (
-                            <span
-                              key={i}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold"
-                              style={{ backgroundColor: `${theme}15`, color: theme }}
-                            >
+                            <span key={i} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${theme}15`, color: theme }}>
                               <FaCheckCircle className="text-xs" /> {f}
                             </span>
                           ))}
@@ -451,12 +391,8 @@ const HospitalDetails = () => {
                       </div>
                     )}
 
-                    {/* ✅ FIX: BLUE BOX PROMPT SHOWS BEDS AND DOCTORS CORRECTLY */}
                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                      <button
-                        onClick={scrollToServices}
-                        className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition"
-                      >
+                      <button onClick={scrollToServices} className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition">
                         <div className="flex items-center gap-4">
                           <FaClipboardList className="text-3xl text-blue-600" />
                           <div className="text-left">
@@ -476,13 +412,10 @@ const HospitalDetails = () => {
                           <FaClock style={{ color: theme }} /> Working Hours
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                          {['monday','tuesday','wednesday','thursday',
-                            'friday','saturday','sunday'].map(day => (
+                          {['monday','tuesday','wednesday','thursday', 'friday','saturday','sunday'].map(day => (
                             <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100">
                               <span className="text-sm text-gray-500 capitalize font-medium">{day}</span>
-                              <span className={`text-sm font-semibold ${
-                                hospital.operatingHours && hospital.operatingHours[day] === 'Closed' ? 'text-red-500' : 'text-gray-800'
-                              }`}>
+                              <span className={`text-sm font-semibold ${hospital.operatingHours && hospital.operatingHours[day] === 'Closed' ? 'text-red-500' : 'text-gray-800'}`}>
                                 {(hospital.operatingHours && hospital.operatingHours[day]) || 'N/A'}
                               </span>
                             </div>
@@ -499,26 +432,13 @@ const HospitalDetails = () => {
                   </div>
                 )}
 
-                {/* ✅ REVIEWS TAB RESTRICTED */}
+                {/* ✅ FIX: Removed onClickCapture restriction from here */}
                 {activeTab === 'reviews' && (
-                  <div className="animate-fadeIn" onClickCapture={(e) => {
-                    const userStr = localStorage.getItem('user');
-                    if (userStr) {
-                      const user = JSON.parse(userStr);
-                      if (user.role === 'admin' || user.role === 'owner') {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        alert("You are logged in as Admin/Owner. Please login with a user account to post a review.");
-                      }
-                    }
-                  }}>
+                  <div className="animate-fadeIn">
                     <ReviewForm
                       facilityId={hospital._id || hospital.id}
                       facilityType="hospital"
-                      onReviewSubmitted={() => {
-                        alert('Review submitted for moderation!');
-                        fetchHospital(); 
-                      }}
+                      onReviewSubmitted={() => { fetchHospital(); }}
                     />
                   </div>
                 )}
@@ -526,7 +446,6 @@ const HospitalDetails = () => {
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN (Sidebar) ── */}
           <div className="space-y-4">
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -590,14 +509,12 @@ const HospitalDetails = () => {
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-4">ℹ️ Quick Info</h3>
               <div className="space-y-3 text-sm">
-                
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Category</span>
                   <span className="font-semibold capitalize text-gray-800 flex items-center gap-1">
                     {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
                   </span>
                 </div>
-
                 <div className="flex justify-between items-center pb-2 border-b border-gray-50">
                   <span className="text-gray-500">Type</span>
                   <span className="font-semibold capitalize text-gray-800">{hospital.type || 'N/A'}</span>
@@ -622,15 +539,10 @@ const HospitalDetails = () => {
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* SECTION 2: Extra Services & Facilities */}
-      {/* ========================================== */}
       <div id="services-section" className="max-w-6xl mx-auto px-4 py-12 scroll-mt-6">
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Services & Facilities</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Tests Block */}
           {combinedTests.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -645,7 +557,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Treatments Block */}
           {combinedTreatments.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -660,7 +571,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Surgeries Block */}
           {combinedSurgeries.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -675,7 +585,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Procedures Block */}
           {combinedProcedures.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -690,7 +599,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Therapies Block */}
           {combinedTherapies.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -705,7 +613,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Management Block */}
           {hospital.managementServices?.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -720,7 +627,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Insurance Block */}
           {hospital.insuranceAccepted?.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -735,7 +641,6 @@ const HospitalDetails = () => {
             </div>
           )}
 
-          {/* Number of Beds */}
           {hospital.numberOfBeds > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -750,7 +655,6 @@ const HospitalDetails = () => {
           )}
         </div>
 
-        {/* Doctors Section */}
         {hospital.doctors && hospital.doctors.length > 0 && (
           <div className="mt-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Our Doctors</h2>

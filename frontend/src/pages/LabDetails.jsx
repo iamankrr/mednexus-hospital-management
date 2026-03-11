@@ -60,7 +60,6 @@ const LabDetails = () => {
     }
   };
 
-  // ✅ CHECK ROLE LOGIC
   const checkUserRole = () => {
     const userStr = localStorage.getItem('user');
     if (!userStr) return true; 
@@ -73,7 +72,7 @@ const LabDetails = () => {
   };
 
   const handleToggleFavorite = async () => {
-    if (!checkUserRole()) return; // Restricted Access
+    if (!checkUserRole()) return; 
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -98,7 +97,7 @@ const LabDetails = () => {
   };
 
   const handleBookTest = () => {
-    if (!checkUserRole()) return; // Restricted Access
+    if (!checkUserRole()) return; 
     navigate(`/appointments/book?lab=${lab._id}`);
   };
 
@@ -173,7 +172,6 @@ const LabDetails = () => {
       <div className="h-2 w-full" style={{ backgroundColor: themeColor }} />
 
       <div className="flex-1">
-        {/* Hero Section with Image Gallery */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <button onClick={() => navigate(-1)} className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-2 font-medium">
@@ -210,7 +208,6 @@ const LabDetails = () => {
           </div>
         </div>
 
-        {/* Header Info Bar */}
         <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-start justify-between">
@@ -283,7 +280,6 @@ const LabDetails = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-8">
@@ -298,14 +294,11 @@ const LabDetails = () => {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
               
-              {/* ===== TAB 1: OVERVIEW ===== */}
               {activeTab === 'overview' && (
                 <div className="space-y-6">
                   {lab.description && (
@@ -328,7 +321,6 @@ const LabDetails = () => {
                     </div>
                   )}
 
-                  {/* Tests Summary with Unpriced Merged logic */}
                   {combinedTests.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-md p-6">
                       <div className="flex items-center justify-between mb-4">
@@ -372,33 +364,21 @@ const LabDetails = () => {
                 </div>
               )}
 
-              {/* ===== TAB 2: PRICING ===== */}
               {activeTab === 'pricing' && (
                 <div className="animate-fadeIn">
                   <PriceList services={lab.services || []} themeColor={themeColor} />
                 </div>
               )}
 
-              {/* ===== TAB 3: REVIEWS (RESTRICTED FOR ADMIN/OWNER) ===== */}
+              {/* ✅ FIX: Removed onClickCapture from here as well */}
               {activeTab === 'reviews' && (
-                <div className="animate-fadeIn" onClickCapture={(e) => {
-                  const userStr = localStorage.getItem('user');
-                  if (userStr) {
-                    const user = JSON.parse(userStr);
-                    if (user.role === 'admin' || user.role === 'owner') {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      alert("You are logged in as Admin/Owner. Please login with a user account to post a review.");
-                    }
-                  }
-                }}>
-                   <ReviewForm facilityId={lab._id || lab.id} facilityType="laboratory" onReviewSubmitted={() => { alert('Review submitted!'); fetchLab(); }} />
+                <div className="animate-fadeIn">
+                   <ReviewForm facilityId={lab._id || lab.id} facilityType="laboratory" onReviewSubmitted={() => { fetchLab(); }} />
                 </div>
               )}
 
             </div>
 
-            {/* Right Sidebar */}
             <div className="space-y-6">
               <div className="bg-white rounded-2xl shadow-md overflow-hidden h-64 relative border border-gray-100">
                 {lab.location?.coordinates?.length === 2 ? (

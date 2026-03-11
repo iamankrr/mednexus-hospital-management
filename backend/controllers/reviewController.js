@@ -4,7 +4,7 @@ const Review = require('../models/Review');
 const Hospital = require('../models/Hospital');
 const Laboratory = require('../models/Laboratory');
 
-// ✅ FIX: HELPER FUNCTION TO AUTO-UPDATE RATINGS
+// ✅ FIX: HELPER FUNCTION TO AUTO-UPDATE ALL RATINGS
 const updateFacilityRating = async (hospitalId, labId) => {
   try {
     const matchQuery = { isApproved: true };
@@ -20,10 +20,18 @@ const updateFacilityRating = async (hospitalId, labId) => {
     const count = stats.length > 0 ? stats[0].count : 0;
 
     if (hospitalId) {
-      await Hospital.findByIdAndUpdate(hospitalId, { appRating: avgRating, appReviewCount: count });
+      await Hospital.findByIdAndUpdate(hospitalId, { 
+        appRating: avgRating, 
+        appReviewCount: count 
+      });
     }
     if (labId) {
-      await Laboratory.findByIdAndUpdate(labId, { websiteRating: avgRating, totalReviews: count });
+      await Laboratory.findByIdAndUpdate(labId, { 
+        websiteRating: avgRating, 
+        totalReviews: count,
+        appRating: avgRating,       
+        appReviewCount: count       
+      });
     }
   } catch (error) {
     console.error('Error auto-updating facility rating:', error);
@@ -97,7 +105,7 @@ exports.addReview = async (req, res) => {
       title
     });
     
-    // ✅ FIX: Added phone and email so Admin/Owner can see contact info
+    // Populate user details
     await review.populate('user', 'name avatar phone email');
     
     // Auto Update Rating (in case reviews are auto-approved)
@@ -144,7 +152,6 @@ exports.getReviews = async (req, res) => {
     if (hospital) filter.hospital = hospital;
     if (laboratory) filter.laboratory = laboratory;
     
-    // ✅ FIX: Populate phone and email here too for the frontend to handle Owner View
     const reviews = await Review.find(filter)
       .populate('user', 'name avatar phone email')
       .sort({ createdAt: -1 })
@@ -403,7 +410,6 @@ exports.getAllReviewsAdmin = async (req, res) => {
     if (status === 'pending') filter.isApproved = false;
     if (status === 'approved') filter.isApproved = true;
     
-    // ✅ FIX: Populated phone and email for Admin view
     const reviews = await Review.find(filter)
       .populate('user', 'name email phone avatar')
       .populate('hospital', 'name')
