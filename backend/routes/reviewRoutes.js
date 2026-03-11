@@ -5,18 +5,25 @@ const router = express.Router();
 const Review = require('../models/Review');
 const { protect } = require('../middleware/authMiddleware');
 
-// ========== @desc    Get ALL reviews (Admin only - MISSING ROUTE ADDED)
-// ========== @route   GET /api/reviews
+// ========== @desc    Get ALL reviews (Admin only - FIXED ROUTE)
+// ========== @route   GET /api/reviews/admin/all
 // ========== @access  Private/Admin
-router.get('/', protect, async (req, res) => {
+router.get('/admin/all', protect, async (req, res) => {
   try {
-    // Only allow admins to fetch all reviews
     if (req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Admin access required' });
     }
 
-    const reviews = await Review.find()
-      .populate('user', 'name email')
+    const { status } = req.query;
+    let filter = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    // Populate user and the dynamic facilityId
+    const reviews = await Review.find(filter)
+      .populate('user', 'name email phone')
+      .populate('facilityId', 'name')
       .sort('-createdAt');
 
     res.status(200).json({
@@ -40,22 +47,14 @@ router.post('/', protect, async (req, res) => {
   try {
     const { facilityType, facilityId, rating, title, comment } = req.body;
 
-    // Validate inputs
     if (!facilityType || !facilityId || !rating || !comment) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields'
-      });
+      return res.status(400).json({ success: false, message: 'Please provide all required fields' });
     }
 
     if (comment.length < 10) {
-      return res.status(400).json({
-        success: false,
-        message: 'Review must be at least 10 characters'
-      });
+      return res.status(400).json({ success: false, message: 'Review must be at least 10 characters' });
     }
 
-    // ✅ CHECK FAKE RATING - One review per user per facility
     const existingReview = await Review.findOne({
       user: req.user.id,
       facilityType,
@@ -70,7 +69,6 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
-    // Create review
     const review = await Review.create({
       user: req.user.id,
       facilityType,
@@ -80,7 +78,6 @@ router.post('/', protect, async (req, res) => {
       comment
     });
 
-    // Populate user info
     await review.populate('user', 'name');
 
     res.status(201).json({
@@ -89,20 +86,10 @@ router.post('/', protect, async (req, res) => {
       data: review
     });
   } catch (error) {
-    // Handle duplicate key error (backup check)
     if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already reviewed this facility.',
-        alreadyReviewed: true
-      });
+      return res.status(400).json({ success: false, message: 'You have already reviewed this facility.', alreadyReviewed: true });
     }
-
-    res.status(500).json({
-      success: false,
-      message: 'Error submitting review',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error submitting review', error: error.message });
   }
 });
 
@@ -116,7 +103,7 @@ router.get('/:type/:id', async (req, res) => {
     const reviews = await Review.find({
       facilityType: type,
       facilityId: id,
-      isApproved: true
+      status: 'approved' // Only show approved to public!
     })
       .populate('user', 'name')
       .sort('-createdAt');
@@ -127,11 +114,7 @@ router.get('/:type/:id', async (req, res) => {
       data: reviews
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching reviews',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching reviews', error: error.message });
   }
 });
 
@@ -141,106 +124,82 @@ router.get('/:type/:id', async (req, res) => {
 router.get('/check/:type/:id', protect, async (req, res) => {
   try {
     const { type, id } = req.params;
+    const existingReview = await Review.findOne({ user: req.user.id, facilityType: type, facilityId: id });
 
-    const existingReview = await Review.findOne({
-      user: req.user.id,
-      facilityType: type,
-      facilityId: id
-    });
-
-    res.status(200).json({
-      success: true,
-      hasReviewed: !!existingReview,
-      review: existingReview || null
-    });
+    res.status(200).json({ success: true, hasReviewed: !!existingReview, review: existingReview || null });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error checking review status',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error checking review status', error: error.message });
   }
 });
 
-// ========== @desc    Mark review as helpful
-// ========== @route   POST /api/reviews/:id/helpful
-// ========== @access  Private
-router.post('/:id/helpful', protect, async (req, res) => {
+// ========== @desc    Admin Approve/Reject Route
+// ========== @route   PUT /api/reviews/:id/status
+// ========== @access  Private/Admin
+router.put('/:id/status', protect, async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
-
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        message: 'Review not found'
-      });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+    
+    const { status } = req.body;
+    const review = await Review.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
 
-    // Check if already voted
-    const alreadyVoted = review.helpfulVotes.includes(req.user.id);
+    // Update the average rating on the facility immediately
+    await Review.updateFacilityRating(review.facilityType, review.facilityId);
 
-    if (alreadyVoted) {
-      // Remove vote
-      review.helpfulVotes = review.helpfulVotes.filter(
-        id => id.toString() !== req.user.id
-      );
-      review.helpfulCount = Math.max(0, review.helpfulCount - 1);
-    } else {
-      // Add vote
-      review.helpfulVotes.push(req.user.id);
-      review.helpfulCount += 1;
-    }
-
-    await review.save();
-
-    res.status(200).json({
-      success: true,
-      message: alreadyVoted ? 'Removed helpful vote' : 'Marked as helpful',
-      helpfulCount: review.helpfulCount
-    });
+    res.status(200).json({ success: true, message: `Review ${status} successfully`, data: review });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error updating helpful count',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error updating status', error: error.message });
   }
 });
 
-// ========== @desc    Delete review (user's own)
+// ========== @desc    Owner Reply Route
+// ========== @route   POST /api/reviews/:id/reply
+// ========== @access  Private/Owner
+router.post('/:id/reply', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    
+    const { text } = req.body;
+    const review = await Review.findByIdAndUpdate(req.params.id, { 
+      ownerReply: { text, date: new Date() } 
+    }, { new: true });
+    
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
+
+    res.status(200).json({ success: true, message: 'Reply posted successfully', data: review });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error posting reply', error: error.message });
+  }
+});
+
+// ========== @desc    Delete review (user's own or Admin)
 // ========== @route   DELETE /api/reviews/:id
 // ========== @access  Private
 router.delete('/:id', protect, async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
+    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
 
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        message: 'Review not found'
-      });
-    }
-
-    // Check ownership
     if (review.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this review'
-      });
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this review' });
     }
 
-    await review.deleteOne();
+    const facilityType = review.facilityType;
+    const facilityId = review.facilityId;
 
-    res.status(200).json({
-      success: true,
-      message: 'Review deleted successfully'
-    });
+    await review.deleteOne(); // triggers middleware
+    
+    // Safety check recalculation
+    await Review.updateFacilityRating(facilityType, facilityId);
+
+    res.status(200).json({ success: true, message: 'Review deleted successfully' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting review',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error deleting review', error: error.message });
   }
 });
 

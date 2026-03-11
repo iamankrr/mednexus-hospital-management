@@ -21,7 +21,7 @@ const reviewSchema = new mongoose.Schema(
     facilityId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, 'Facility ID is required'],
-      refPath: 'facilityType' // Dynamic reference based on facilityType
+      refPath: 'facilityType' 
     },
 
     // Rating (1-5 stars)
@@ -49,10 +49,11 @@ const reviewSchema = new mongoose.Schema(
       maxlength: [500, 'Review cannot exceed 500 characters']
     },
 
-    // Admin approval
-    isApproved: {
-      type: Boolean,
-      default: true // Auto-approve
+    // ✅ FIX: Changed to status for Admin Flow (Pending -> Approve/Reject)
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
     },
 
     // Helpful count
@@ -67,10 +68,10 @@ const reviewSchema = new mongoose.Schema(
       ref: 'User'
     }],
 
-    // Admin response (optional)
-    adminResponse: {
-      type: String,
-      maxlength: 500
+    // ✅ FIX: Added Owner Reply field
+    ownerReply: {
+      text: { type: String, maxlength: 500 },
+      date: { type: Date }
     }
   },
   {
@@ -78,7 +79,6 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// ✅ FAKE RATING PREVENTION
 // One review per user per facility
 reviewSchema.index(
   { user: 1, facilityType: 1, facilityId: 1 },
@@ -89,41 +89,19 @@ reviewSchema.index(
 reviewSchema.index({ facilityType: 1, facilityId: 1 });
 reviewSchema.index({ createdAt: -1 });
 
-// ========== MIDDLEWARE ==========
 
-// Auto update facility rating AFTER saving a review
-reviewSchema.post('save', async function() {
-  await updateFacilityRating(this.facilityType, this.facilityId);
-});
-
-// Auto update facility rating AFTER deleting a review
-// Note: 'deleteOne' document middleware works when document.deleteOne() is called
-reviewSchema.post('deleteOne', { document: true, query: false }, async function() {
-  await updateFacilityRating(this.facilityType, this.facilityId);
-});
-
-// Also handle query middleware for findOneAndDelete / findByIdAndDelete
-reviewSchema.post('findOneAndDelete', async function(doc) {
-  if (doc) {
-    await updateFacilityRating(doc.facilityType, doc.facilityId);
-  }
-});
-
-// ========== HELPER FUNCTIONS ==========
-
-// Calculate and update facility rating
-async function updateFacilityRating(facilityType, facilityId) {
+// ========== STATIC HELPER FUNCTION ==========
+// Calculate and update facility rating correctly
+reviewSchema.statics.updateFacilityRating = async function(facilityType, facilityId) {
   try {
-    // We need to access the model directly to run aggregate
-    // Note: 'this' inside static context or accessing via mongoose.model
-    const Review = mongoose.model('Review');
-    
-    const stats = await Review.aggregate([
+    const objectId = typeof facilityId === 'string' ? new mongoose.Types.ObjectId(facilityId) : facilityId;
+
+    const stats = await this.aggregate([
       {
         $match: {
-          facilityId: new mongoose.Types.ObjectId(facilityId), // Ensure ID is ObjectId
+          facilityId: objectId,
           facilityType: facilityType,
-          isApproved: true
+          status: 'approved' // Only count approved reviews!
         }
       },
       {
@@ -140,15 +118,19 @@ async function updateFacilityRating(facilityType, facilityId) {
 
     if (facilityType === 'hospital') {
       const Hospital = mongoose.model('Hospital');
-      await Hospital.findByIdAndUpdate(facilityId, {
+      await Hospital.findByIdAndUpdate(objectId, {
         websiteRating: avgRating,
-        totalReviews: totalReviews
+        totalReviews: totalReviews,
+        appRating: avgRating,       // Sync for Home Screen
+        appReviewCount: totalReviews // Sync for Home Screen
       });
     } else if (facilityType === 'laboratory') {
       const Laboratory = mongoose.model('Laboratory');
-      await Laboratory.findByIdAndUpdate(facilityId, {
+      await Laboratory.findByIdAndUpdate(objectId, {
         websiteRating: avgRating,
-        totalReviews: totalReviews
+        totalReviews: totalReviews,
+        appRating: avgRating,       // Sync for Home Screen
+        appReviewCount: totalReviews // Sync for Home Screen
       });
     }
 
@@ -156,6 +138,21 @@ async function updateFacilityRating(facilityType, facilityId) {
   } catch (error) {
     console.error('Error updating facility rating:', error);
   }
-}
+};
+
+// ========== MIDDLEWARE ==========
+reviewSchema.post('save', async function() {
+  await this.constructor.updateFacilityRating(this.facilityType, this.facilityId);
+});
+
+reviewSchema.post('deleteOne', { document: true, query: false }, async function() {
+  await this.constructor.updateFacilityRating(this.facilityType, this.facilityId);
+});
+
+reviewSchema.post('findOneAndDelete', async function(doc) {
+  if (doc) {
+    await doc.constructor.updateFacilityRating(doc.facilityType, doc.facilityId);
+  }
+});
 
 module.exports = mongoose.model('Review', reviewSchema);

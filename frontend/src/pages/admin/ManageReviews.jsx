@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaStar, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { FaStar, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser, FaPhone, FaEnvelope, FaTrash, FaClock } from 'react-icons/fa';
 import axios from 'axios';
 
 const ManageReviews = () => {
@@ -8,7 +8,7 @@ const ManageReviews = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('pending'); // Start with pending by default
 
   useEffect(() => {
     fetchReviews();
@@ -17,51 +17,30 @@ const ManageReviews = () => {
   const fetchReviews = async () => {
     try {
       setLoading(true);
+      setError('');
       const token = localStorage.getItem('token');
       
-      // ✅ FIX: Changed from /api/reviews to /api/reviews/admin/all to fetch populated facility data
-      const url = 'http://localhost:3000/api/reviews/admin/all';
+      // Pass the filter to the API
+      const url = `http://localhost:3000/api/reviews/admin/all?status=${filter}`;
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
-        let reviewsData = response.data.data;
-        
-        // Apply filter
-        if (filter === 'approved') {
-          reviewsData = reviewsData.filter(r => r.isApproved);
-        } else if (filter === 'pending') {
-          reviewsData = reviewsData.filter(r => !r.isApproved);
-        }
-        
-        setReviews(reviewsData);
+        setReviews(response.data.data);
       }
     } catch (err) {
       console.error('Error fetching reviews:', err);
-      // Fallback in case route mapping is slightly different on your backend
-      if (err.response?.status === 404) {
-         try {
-           const fallbackUrl = 'http://localhost:3000/api/admin/reviews/all';
-           const fallbackResponse = await axios.get(fallbackUrl, {
-             headers: { Authorization: `Bearer ${token}` }
-           });
-           setReviews(fallbackResponse.data.data || []);
-           setLoading(false);
-           return;
-         } catch(e) {}
-      }
       setError(err.response?.data?.message || 'Failed to load reviews');
-      setReviews([]); // Set empty array on error
+      setReviews([]); 
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async (reviewId, currentStatus) => {
-    const action = currentStatus ? 'reject' : 'approve';
-    if (!window.confirm(`Are you sure you want to ${action} this review?`)) {
+  const handleStatusChange = async (reviewId, newStatus) => {
+    if (!window.confirm(`Are you sure you want to mark this review as ${newStatus}?`)) {
       return;
     }
 
@@ -69,27 +48,27 @@ const ManageReviews = () => {
       const token = localStorage.getItem('token');
       
       await axios.put(
-        `http://localhost:3000/api/admin/reviews/${reviewId}/approve`,
-        { isApproved: !currentStatus },
+        `http://localhost:3000/api/reviews/${reviewId}/status`,
+        { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert(`Review ${action}d successfully!`);
+      alert(`Review ${newStatus} successfully!`);
       fetchReviews();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update review');
+      alert(err.response?.data?.message || 'Failed to update review status');
     }
   };
 
   const handleDelete = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone!')) {
+    if (!window.confirm('Are you sure you want to permanently delete this review? This action cannot be undone!')) {
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
       
-      await axios.delete(`http://localhost:3000/api/admin/reviews/${reviewId}`, {
+      await axios.delete(`http://localhost:3000/api/reviews/${reviewId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -135,18 +114,18 @@ const ManageReviews = () => {
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="flex gap-4">
             <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === 'all'
-                  ? 'bg-yellow-500 text-white'
+              onClick={() => setFilter('pending')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                filter === 'pending'
+                  ? 'bg-orange-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              All ({reviews.length})
+              Pending Approval
             </button>
             <button
               onClick={() => setFilter('approved')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-4 py-2 rounded-lg font-medium transition ${
                 filter === 'approved'
                   ? 'bg-green-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -155,14 +134,24 @@ const ManageReviews = () => {
               Approved
             </button>
             <button
-              onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === 'pending'
-                  ? 'bg-orange-500 text-white'
+              onClick={() => setFilter('rejected')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                filter === 'rejected'
+                  ? 'bg-red-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Pending Approval
+              Rejected
+            </button>
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                filter === 'all'
+                  ? 'bg-yellow-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Reviews
             </button>
           </div>
         </div>
@@ -182,19 +171,19 @@ const ManageReviews = () => {
         ) : reviews.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-md">
             <FaStar className="text-6xl text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No reviews found</p>
+            <p className="text-gray-500">No reviews found in this category</p>
           </div>
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => (
-              <div key={review._id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-300">
+              <div key={review._id} className="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-200 hover:shadow-lg transition duration-300"
+                   style={{ borderLeftColor: review.status === 'approved' ? '#22c55e' : review.status === 'rejected' ? '#ef4444' : '#f59e0b' }}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3">
                     <div className="bg-blue-100 p-3 rounded-full mt-1">
                       <FaUser className="text-blue-600 text-xl" />
                     </div>
                     <div>
-                      {/* ✅ FIX: Added Email and Phone for Admin visibility */}
                       <h3 className="font-semibold text-gray-800">{review.user?.name || 'Anonymous'}</h3>
                       {review.user?.phone && (
                         <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
@@ -227,33 +216,54 @@ const ManageReviews = () => {
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="text-sm text-gray-500">
-                    {/* ✅ FIX: Populated facility data will correctly show here now */}
-                    For: <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded">
-                      {review.hospital?.name || review.laboratory?.name || 'Unknown Facility'}
+                    For: <span className="font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded capitalize">
+                      {review.facilityId?.name || 'Unknown Facility'} ({review.facilityType})
                     </span>
                   </div>
-                  <div className="flex gap-2">
-                    {review.isApproved ? (
-                      <FaCheckCircle className="text-green-500 text-2xl" />
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Status Badge */}
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mr-2 ${
+                      review.status === 'approved' ? 'bg-green-100 text-green-700' :
+                      review.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-orange-100 text-orange-700'
+                    }`}>
+                      {review.status}
+                    </span>
+
+                    {/* ✅ LOGIC: If Pending -> Show Approve/Reject. If Approved/Rejected -> Show Delete */}
+                    {review.status === 'pending' ? (
+                      <>
+                        <button
+                          onClick={() => handleStatusChange(review._id, 'approved')}
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-200 font-medium flex items-center gap-1"
+                        >
+                          <FaCheckCircle /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(review._id, 'rejected')}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-medium flex items-center gap-1"
+                        >
+                          <FaTimesCircle /> Reject
+                        </button>
+                      </>
                     ) : (
-                      <FaTimesCircle className="text-orange-500 text-2xl" />
+                      <>
+                        {/* Option to revert back to pending if they made a mistake */}
+                        <button
+                          onClick={() => handleStatusChange(review._id, 'pending')}
+                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition duration-200 font-medium flex items-center gap-1 text-sm"
+                        >
+                          <FaClock /> Revert to Pending
+                        </button>
+                        <button
+                          onClick={() => handleDelete(review._id)}
+                          className="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded-lg transition duration-200 font-medium flex items-center gap-1 ml-2"
+                        >
+                          <FaTrash /> Delete
+                        </button>
+                      </>
                     )}
-                    <button
-                      onClick={() => handleApprove(review._id, review.isApproved)}
-                      className={`${
-                        review.isApproved
-                          ? 'bg-orange-500 hover:bg-orange-600'
-                          : 'bg-green-500 hover:bg-green-600'
-                      } text-white px-4 py-2 rounded-lg transition duration-200 font-medium`}
-                    >
-                      {review.isApproved ? 'Reject' : 'Approve'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(review._id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
               </div>
