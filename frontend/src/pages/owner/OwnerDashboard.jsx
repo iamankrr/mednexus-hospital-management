@@ -56,7 +56,7 @@ const OwnerDashboard = () => {
         
         setFacility(facilityData);
 
-        // ✅ FIX: Fetch Appointments count correctly for dashboard
+        // Fetch Appointments count
         let totalAppts = 0;
         try {
           const aptRes = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
@@ -67,18 +67,35 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // ✅ FIX: Calculate Average Rating and Reviews accurately
-        const reviews = facilityData.reviews || [];
-        const calcTotalReviews = reviews.length > 0 ? reviews.length : (facilityData.totalReviews || facilityData.reviewCount || 0);
+        // ✅ FIX: Only calculate stats based on APPROVED reviews
+        const allReviews = facilityData.reviews || [];
+        const approvedReviews = allReviews.filter(r => r.isApproved === true);
+        
+        const calcTotalReviews = approvedReviews.length > 0 ? approvedReviews.length : (facilityData.totalReviews || facilityData.reviewCount || 0);
         let calcRating = facilityData.websiteRating || facilityData.appRating || facilityData.rating || 0;
 
-        if (reviews.length > 0) {
-            const sum = reviews.reduce((acc, rev) => acc + (rev.rating || 0), 0);
-            calcRating = sum / reviews.length;
+        if (approvedReviews.length > 0) {
+            const sum = approvedReviews.reduce((acc, rev) => acc + (rev.rating || 0), 0);
+            calcRating = sum / approvedReviews.length;
         }
 
-        // ✅ FIX: Calculate Listed Services accurately (Checking multiple potential fields)
-        const calcServices = facilityData.services?.length || facilityData.treatments?.length || facilityData.labTests?.length || 0;
+        // ✅ FIX: Calculate Dynamic Listed Services securely
+        let calcServices = 0;
+        if (facilityType === 'hospital') {
+          calcServices = 
+            (facilityData.services?.length || 0) + 
+            (facilityData.tests?.length || 0) + 
+            (facilityData.treatments?.length || 0) + 
+            (facilityData.surgeries?.length || 0) +
+            (facilityData.therapies?.length || 0) + 
+            (facilityData.procedures?.length || 0) +
+            (facilityData.managementServices?.length || 0) +
+            (facilityData.insuranceAccepted?.length || 0);
+        } else {
+          calcServices = 
+            (facilityData.services?.length || 0) + 
+            (facilityData.tests?.length || facilityData.labTests?.length || 0);
+        }
 
         setStats({
           totalReviews: calcTotalReviews,
@@ -239,7 +256,7 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
-          {/* New Manage Services Card */}
+          {/* Manage Services Card */}
           <div 
             onClick={() => navigate('/owner/manage-services')}
             className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer"

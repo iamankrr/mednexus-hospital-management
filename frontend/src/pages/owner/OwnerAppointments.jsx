@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaCheckCircle, FaTimesCircle, FaEnvelope } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaCheckCircle, FaTimesCircle, FaEnvelope, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 
 const OwnerAppointments = () => {
@@ -74,6 +74,23 @@ const OwnerAppointments = () => {
     }
   };
 
+  // ✅ FIX: Added Delete logic
+  const handleDeleteAppointment = async (id) => {
+    if (!window.confirm("Are you sure you want to completely delete this appointment? This action cannot be undone.")) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:3000/api/appointments/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('🗑️ Appointment deleted successfully!');
+      fetchAppointments();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete appointment');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', { 
@@ -83,7 +100,6 @@ const OwnerAppointments = () => {
     });
   };
 
-  // ✅ FIX: 48 Hour Removal Logic Match
   const now = new Date().getTime();
   const fortyEightHoursMs = 48 * 60 * 60 * 1000;
 
@@ -91,21 +107,17 @@ const OwnerAppointments = () => {
     // Keep pending forever until action is taken
     if (apt.status === 'pending') return true;
 
-    // Convert string to timestamp
     const aptDate = new Date(apt.appointmentDate).getTime();
-    
-    // Check when it was accepted/declined (updatedAt). Fallback to aptDate if not present.
     const actionDate = apt.updatedAt ? new Date(apt.updatedAt).getTime() : aptDate;
     
-    // Choose whichever date is in the future. (Appointment Date OR Action Date)
+    // Choose whichever date is in the future.
     const baseDate = Math.max(aptDate, actionDate);
 
-    // Filter it out if current time has passed baseDate + 48 hours
     if (now > baseDate + fortyEightHoursMs) {
       return false; // Remove
     }
     
-    return true; // Keep
+    return true; 
   });
 
   const filteredAppointments = activeAppointments.filter(apt => {
@@ -141,7 +153,7 @@ const OwnerAppointments = () => {
           <p className="text-gray-600">Review and manage patient appointment requests</p>
         </div>
 
-        {/* Filter Tabs - ✅ FIX: Connected length calculation to activeAppointments array */}
+        {/* Filter Tabs */}
         <div className="flex gap-4 mb-6 border-b border-gray-200 overflow-x-auto whitespace-nowrap">
           <button
             onClick={() => setFilter('all')}
@@ -270,33 +282,43 @@ const OwnerAppointments = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  {appointment.status === 'pending' && (
-                    <div className="flex flex-col gap-2 ml-4">
-                      <button
-                        onClick={() => handleStatusChange(appointment._id, 'confirmed')}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition whitespace-nowrap"
-                      >
-                        <FaCheckCircle /> Confirm
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(appointment._id, 'cancelled')}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition whitespace-nowrap"
-                      >
-                        <FaTimesCircle /> Decline
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-2 ml-4">
+                    {appointment.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleStatusChange(appointment._id, 'confirmed')}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition whitespace-nowrap"
+                        >
+                          <FaCheckCircle /> Confirm
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(appointment._id, 'cancelled')}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition whitespace-nowrap"
+                        >
+                          <FaTimesCircle /> Decline
+                        </button>
+                      </>
+                    )}
 
-                  {appointment.status === 'confirmed' && (
-                    <div className="ml-4">
+                    {appointment.status === 'confirmed' && (
                       <button
                         onClick={() => handleStatusChange(appointment._id, 'completed')}
                         className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition whitespace-nowrap"
                       >
                         Mark Complete
                       </button>
-                    </div>
-                  )}
+                    )}
+
+                    {/* ✅ FIX: Delete button available only after action is taken */}
+                    {appointment.status !== 'pending' && (
+                      <button
+                        onClick={() => handleDeleteAppointment(appointment._id)}
+                        className="flex items-center justify-center gap-2 px-4 py-2 mt-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition whitespace-nowrap"
+                      >
+                        <FaTrash /> Delete
+                      </button>
+                    )}
+                  </div>
 
                 </div>
               </div>

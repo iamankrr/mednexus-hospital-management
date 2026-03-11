@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaStar, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser } from 'react-icons/fa';
+import { FaStar, FaCheckCircle, FaTimesCircle, FaArrowLeft, FaUser, FaPhone, FaEnvelope } from 'react-icons/fa';
 import axios from 'axios';
 
 const ManageReviews = () => {
@@ -19,7 +19,8 @@ const ManageReviews = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const url = 'http://localhost:3000/api/reviews';
+      // ✅ FIX: Changed from /api/reviews to /api/reviews/admin/all to fetch populated facility data
+      const url = 'http://localhost:3000/api/reviews/admin/all';
       
       const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -39,6 +40,18 @@ const ManageReviews = () => {
       }
     } catch (err) {
       console.error('Error fetching reviews:', err);
+      // Fallback in case route mapping is slightly different on your backend
+      if (err.response?.status === 404) {
+         try {
+           const fallbackUrl = 'http://localhost:3000/api/admin/reviews/all';
+           const fallbackResponse = await axios.get(fallbackUrl, {
+             headers: { Authorization: `Bearer ${token}` }
+           });
+           setReviews(fallbackResponse.data.data || []);
+           setLoading(false);
+           return;
+         } catch(e) {}
+      }
       setError(err.response?.data?.message || 'Failed to load reviews');
       setReviews([]); // Set empty array on error
     } finally {
@@ -55,7 +68,6 @@ const ManageReviews = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // FIX: Changed API URL to match the backend admin route
       await axios.put(
         `http://localhost:3000/api/admin/reviews/${reviewId}/approve`,
         { isApproved: !currentStatus },
@@ -77,7 +89,6 @@ const ManageReviews = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // FIX: Changed API URL to match the backend admin route
       await axios.delete(`http://localhost:3000/api/admin/reviews/${reviewId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -178,13 +189,24 @@ const ManageReviews = () => {
             {reviews.map((review) => (
               <div key={review._id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-300">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 p-3 rounded-full">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-blue-100 p-3 rounded-full mt-1">
                       <FaUser className="text-blue-600 text-xl" />
                     </div>
                     <div>
+                      {/* ✅ FIX: Added Email and Phone for Admin visibility */}
                       <h3 className="font-semibold text-gray-800">{review.user?.name || 'Anonymous'}</h3>
-                      <p className="text-sm text-gray-500">{formatDate(review.createdAt)}</p>
+                      {review.user?.phone && (
+                        <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                          <FaPhone className="text-xs" /> {review.user.phone}
+                        </p>
+                      )}
+                      {review.user?.email && (
+                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                          <FaEnvelope className="text-xs" /> {review.user.email}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">{formatDate(review.createdAt)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -205,7 +227,10 @@ const ManageReviews = () => {
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="text-sm text-gray-500">
-                    For: <span className="font-medium">{review.hospital?.name || review.laboratory?.name || 'Unknown'}</span>
+                    {/* ✅ FIX: Populated facility data will correctly show here now */}
+                    For: <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded">
+                      {review.hospital?.name || review.laboratory?.name || 'Unknown Facility'}
+                    </span>
                   </div>
                   <div className="flex gap-2">
                     {review.isApproved ? (

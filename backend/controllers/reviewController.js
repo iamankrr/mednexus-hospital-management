@@ -71,8 +71,8 @@ exports.addReview = async (req, res) => {
       title
     });
     
-    // Populate user details
-    await review.populate('user', 'name avatar');
+    // ✅ FIX: Added phone and email so Admin/Owner can see contact info
+    await review.populate('user', 'name avatar phone email');
     
     res.status(201).json({
       success: true,
@@ -115,8 +115,9 @@ exports.getReviews = async (req, res) => {
     if (hospital) filter.hospital = hospital;
     if (laboratory) filter.laboratory = laboratory;
     
+    // ✅ FIX: Populate phone and email here too for the frontend to handle Owner View
     const reviews = await Review.find(filter)
-      .populate('user', 'name avatar')
+      .populate('user', 'name avatar phone email')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
@@ -147,7 +148,7 @@ exports.getReviews = async (req, res) => {
 exports.getReviewById = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id)
-      .populate('user', 'name avatar')
+      .populate('user', 'name avatar phone email')
       .populate('hospital', 'name')
       .populate('laboratory', 'name');
     
@@ -200,7 +201,7 @@ exports.updateReview = async (req, res) => {
       req.params.id,
       { rating, comment, title },
       { new: true, runValidators: true }
-    ).populate('user', 'name avatar');
+    ).populate('user', 'name avatar phone email');
     
     res.status(200).json({
       success: true,
@@ -361,8 +362,9 @@ exports.getAllReviewsAdmin = async (req, res) => {
     if (status === 'pending') filter.isApproved = false;
     if (status === 'approved') filter.isApproved = true;
     
+    // ✅ FIX: Populated phone and email for Admin view
     const reviews = await Review.find(filter)
-      .populate('user', 'name email')
+      .populate('user', 'name email phone avatar')
       .populate('hospital', 'name')
       .populate('laboratory', 'name')
       .sort({ createdAt: -1 });

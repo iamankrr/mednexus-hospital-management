@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaPhone, FaEnvelope, FaEdit, FaTrash } from 'react-icons/fa';
 import { reviewAPI } from '../services/api';
-import ReviewAge from './ReviewAge'; // ⬅️ IMPORTED
+import ReviewAge from './ReviewAge';
+import axios from 'axios'; // For direct edit/delete calls if not in reviewAPI
 
 const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  
   const [formData, setFormData] = useState({
     rating: 5,
     comment: '',
@@ -19,14 +22,20 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
   const [hasReviewed, setHasReviewed] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
   const [checkingReview, setCheckingReview] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   // State for all reviews
   const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    // Check login
+    // Check login & Get User
     const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    
     setIsLoggedIn(!!token);
+    if (userStr) {
+      setCurrentUser(JSON.parse(userStr));
+    }
 
     if (facilityId) {
       if (token) checkExistingReview();
@@ -52,12 +61,40 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
 
   const fetchReviews = async () => {
     try {
-      const response = await reviewAPI.getReviews(facilityType, facilityId);
+      // ✅ FIX: Use Admin API to fetch populated contact data if user is Owner/Admin
+      const userStr = localStorage.getItem('user');
+      let url = `http://localhost:3000/api/reviews?${facilityType}=${facilityId}`;
+      let headers = {};
+
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.role === 'admin' || user.role === 'owner') {
+          url = `http://localhost:3000/api/reviews/admin/all?status=approved`;
+          headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+        }
+      }
+
+      const response = await axios.get(url, { headers });
+
       if (response.data.success) {
-        setReviews(response.data.data);
+        let fetchedReviews = response.data.data;
+        
+        // If it was the admin API call, filter manually for this facility
+        if (headers.Authorization) {
+          fetchedReviews = fetchedReviews.filter(
+            r => r.hospital?._id === facilityId || r.laboratory?._id === facilityId || r.hospital === facilityId || r.laboratory === facilityId
+          );
+        }
+        
+        setReviews(fetchedReviews);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      // Fallback to standard review API if admin one fails
+      try {
+         const fallbackResponse = await reviewAPI.getReviews(facilityType, facilityId);
+         setReviews(fallbackResponse.data.data || []);
+      } catch(e) {}
     }
   };
 
@@ -70,6 +107,43 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  // ✅ EDIT REVIEW LOGIC
+  const handleEditClick = () => {
+    setFormData({
+      rating: existingReview.rating,
+      comment: existingReview.comment,
+      title: existingReview.title || ''
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setFormData({ rating: 5, comment: '', title: '' });
+  };
+
+  // ✅ DELETE REVIEW LOGIC
+  const handleDeleteReview = async () => {
+    if (!window.confirm("Are you sure you want to delete your review?")) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:3000/api/reviews/${existingReview._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      alert('🗑️ Review deleted successfully!');
+      setHasReviewed(false);
+      setExistingReview(null);
+      setFormData({ rating: 5, comment: '', title: '' });
+      fetchReviews();
+      
+    } catch (error) {
+      console.error('Delete review error:', error);
+      alert('Failed to delete review');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -90,24 +164,37 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
 
     setSubmitting(true);
     try {
-      const response = await reviewAPI.create({
-        facilityType,
-        facilityId,
-        rating: formData.rating,
-        comment: formData.comment,
-        title: formData.title
-      });
-
-      if (response.data.success) {
-        alert('✅ Review submitted successfully!');
-        setFormData({ rating: 5, comment: '', title: '' });
-        
-        setHasReviewed(true);
-        setExistingReview({
+      
+      let response;
+      if (isEditing) {
+        // Update existing review
+        response = await axios.put(`http://localhost:3000/api/reviews/${existingReview._id}`, {
+          rating: formData.rating,
+          comment: formData.comment,
+          title: formData.title
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Create new review
+        response = await reviewAPI.create({
+          facilityType,
+          facilityId,
           rating: formData.rating,
           comment: formData.comment,
           title: formData.title
         });
+      }
+
+      if (response.data.success) {
+        alert(isEditing ? '✅ Review updated successfully!' : '✅ Review submitted successfully!');
+        
+        setIsEditing(false);
+        setHasReviewed(true);
+        setExistingReview(response.data.data); // Update with new data
+        
+        // Clear form after slight delay to show transition
+        setTimeout(() => setFormData({ rating: 5, comment: '', title: '' }), 100);
 
         fetchReviews(); // Refresh review list
         
@@ -158,8 +245,19 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
             </button>
           </p>
         </div>
-      ) : hasReviewed && existingReview ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+      ) : hasReviewed && existingReview && !isEditing ? (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 relative">
+          
+          {/* ✅ USER CONTROLS: Edit and Delete Buttons */}
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button onClick={handleEditClick} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50 transition" title="Edit Review">
+              <FaEdit />
+            </button>
+            <button onClick={handleDeleteReview} className="p-2 bg-white text-red-600 rounded-full shadow hover:bg-red-50 transition" title="Delete Review">
+              <FaTrash />
+            </button>
+          </div>
+
           <h3 className="text-lg font-semibold text-green-800 mb-3">
             ✅ Your Review
           </h3>
@@ -178,12 +276,19 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
           )}
           <p className="text-gray-700">{existingReview.comment}</p>
           <p className="text-xs text-gray-500 mt-3">
-            You've already reviewed this facility. Only one review per facility allowed.
+            You've already reviewed this facility. Use the buttons above to edit or delete.
           </p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Write a Review</h3>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 relative">
+          {/* Cancel Edit Button */}
+          {isEditing && (
+            <button onClick={handleCancelEdit} className="absolute top-4 right-4 text-sm font-bold text-gray-500 hover:text-gray-800 underline">
+              Cancel Edit
+            </button>
+          )}
+
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">{isEditing ? 'Edit Your Review' : 'Write a Review'}</h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Rating */}
@@ -260,7 +365,7 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {submitting ? 'Submitting...' : 'Submit Review'}
+              {submitting ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Review' : 'Submit Review')}
             </button>
           </form>
         </div>
@@ -273,13 +378,23 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
           <div className="space-y-4">
             {reviews.map(review => (
               <div key={review._id} className="border border-gray-100 bg-white p-4 rounded-xl shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold mt-1">
                       {review.user?.name?.[0]?.toUpperCase() || 'U'}
                     </div>
                     <div>
                       <p className="font-semibold text-gray-800">{review.user?.name || 'Anonymous'}</p>
+                      
+                      {/* ✅ ADMIN/OWNER VIEW: Show Contact details of the reviewer */}
+                      {currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner') && (
+                        <div className="mt-1 mb-1 p-2 bg-gray-50 rounded border border-gray-200 text-xs text-gray-700">
+                          <p className="font-bold text-gray-500 mb-1 uppercase tracking-wide" style={{fontSize: '0.65rem'}}>Patient Contact Info</p>
+                          {review.user?.phone && <p className="flex items-center gap-1"><FaPhone className="text-blue-500"/> {review.user.phone}</p>}
+                          {review.user?.email && <p className="flex items-center gap-1 mt-0.5"><FaEnvelope className="text-blue-500"/> {review.user.email}</p>}
+                        </div>
+                      )}
+                      
                       {/* ⬅️ REVIEW AGE DISPLAYED HERE */}
                       <ReviewAge timestamp={review.createdAt} />
                     </div>
