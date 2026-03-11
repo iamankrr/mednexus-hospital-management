@@ -36,17 +36,14 @@ const OwnerAppointments = () => {
     }
   };
 
-  // FIX: Added logic to ask for a reason when declining
   const handleStatusChange = async (id, newStatus) => {
     let cancellationReason = '';
 
     if (newStatus === 'cancelled') {
       cancellationReason = window.prompt("Please enter a reason for declining this appointment:");
       
-      // If owner clicks 'Cancel' on the prompt, stop the process
       if (cancellationReason === null) return; 
       
-      // If owner submits an empty string
       if (cancellationReason.trim() === '') {
         alert('A reason is required to decline an appointment.');
         return;
@@ -86,7 +83,32 @@ const OwnerAppointments = () => {
     });
   };
 
-  const filteredAppointments = appointments.filter(apt => {
+  // ✅ FIX: 48 Hour Removal Logic Match
+  const now = new Date().getTime();
+  const fortyEightHoursMs = 48 * 60 * 60 * 1000;
+
+  const activeAppointments = appointments.filter(apt => {
+    // Keep pending forever until action is taken
+    if (apt.status === 'pending') return true;
+
+    // Convert string to timestamp
+    const aptDate = new Date(apt.appointmentDate).getTime();
+    
+    // Check when it was accepted/declined (updatedAt). Fallback to aptDate if not present.
+    const actionDate = apt.updatedAt ? new Date(apt.updatedAt).getTime() : aptDate;
+    
+    // Choose whichever date is in the future. (Appointment Date OR Action Date)
+    const baseDate = Math.max(aptDate, actionDate);
+
+    // Filter it out if current time has passed baseDate + 48 hours
+    if (now > baseDate + fortyEightHoursMs) {
+      return false; // Remove
+    }
+    
+    return true; // Keep
+  });
+
+  const filteredAppointments = activeAppointments.filter(apt => {
     if (filter === 'all') return true;
     return apt.status === filter;
   });
@@ -119,15 +141,15 @@ const OwnerAppointments = () => {
           <p className="text-gray-600">Review and manage patient appointment requests</p>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200">
+        {/* Filter Tabs - ✅ FIX: Connected length calculation to activeAppointments array */}
+        <div className="flex gap-4 mb-6 border-b border-gray-200 overflow-x-auto whitespace-nowrap">
           <button
             onClick={() => setFilter('all')}
             className={`px-6 py-3 font-semibold transition ${
               filter === 'all' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'
             }`}
           >
-            All ({appointments.length})
+            All ({activeAppointments.length})
           </button>
           <button
             onClick={() => setFilter('pending')}
@@ -135,7 +157,7 @@ const OwnerAppointments = () => {
               filter === 'pending' ? 'text-yellow-600 border-b-2 border-yellow-600' : 'text-gray-600'
             }`}
           >
-            Pending ({appointments.filter(a => a.status === 'pending').length})
+            Pending ({activeAppointments.filter(a => a.status === 'pending').length})
           </button>
           <button
             onClick={() => setFilter('confirmed')}
@@ -143,7 +165,7 @@ const OwnerAppointments = () => {
               filter === 'confirmed' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600'
             }`}
           >
-            Confirmed ({appointments.filter(a => a.status === 'confirmed').length})
+            Confirmed ({activeAppointments.filter(a => a.status === 'confirmed').length})
           </button>
           <button
             onClick={() => setFilter('cancelled')}
@@ -151,7 +173,7 @@ const OwnerAppointments = () => {
               filter === 'cancelled' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-600'
             }`}
           >
-            Cancelled ({appointments.filter(a => a.status === 'cancelled').length})
+            Cancelled ({activeAppointments.filter(a => a.status === 'cancelled').length})
           </button>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHospital, FaCalendarAlt, FaStar, FaEdit, FaArrowRight, FaClipboardList } from 'react-icons/fa'; // ✅ Added FaClipboardList
+import { FaHospital, FaCalendarAlt, FaStar, FaEdit, FaArrowRight, FaClipboardList } from 'react-icons/fa';
 import axios from 'axios';
 
 const OwnerDashboard = () => {
@@ -56,12 +56,35 @@ const OwnerDashboard = () => {
         
         setFacility(facilityData);
 
-        // Calculate stats
+        // ✅ FIX: Fetch Appointments count correctly for dashboard
+        let totalAppts = 0;
+        try {
+          const aptRes = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          totalAppts = aptRes.data.data ? aptRes.data.data.length : 0;
+        } catch(e) {
+          console.error('Failed to fetch appointments count', e);
+        }
+
+        // ✅ FIX: Calculate Average Rating and Reviews accurately
+        const reviews = facilityData.reviews || [];
+        const calcTotalReviews = reviews.length > 0 ? reviews.length : (facilityData.totalReviews || facilityData.reviewCount || 0);
+        let calcRating = facilityData.websiteRating || facilityData.appRating || facilityData.rating || 0;
+
+        if (reviews.length > 0) {
+            const sum = reviews.reduce((acc, rev) => acc + (rev.rating || 0), 0);
+            calcRating = sum / reviews.length;
+        }
+
+        // ✅ FIX: Calculate Listed Services accurately (Checking multiple potential fields)
+        const calcServices = facilityData.services?.length || facilityData.treatments?.length || facilityData.labTests?.length || 0;
+
         setStats({
-          totalReviews: facilityData.totalReviews || 0,
-          averageRating: facilityData.websiteRating || 0,
-          totalAppointments: 0, // You can fetch from appointments API
-          totalServices: facilityData.services?.length || 0
+          totalReviews: calcTotalReviews,
+          averageRating: calcRating,
+          totalAppointments: totalAppts,
+          totalServices: calcServices
         });
       }
 
@@ -188,7 +211,7 @@ const OwnerDashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* ✅ Changed from grid-cols-2 to grid-cols-3 to fit the new card */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Manage Facility */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/facility')}>
@@ -216,7 +239,7 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
-          {/* ✅ New Manage Services Card */}
+          {/* New Manage Services Card */}
           <div 
             onClick={() => navigate('/owner/manage-services')}
             className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer"

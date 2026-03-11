@@ -26,6 +26,9 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
+  // ✅ FIX: Get user to check role for hiding the favorite button for admins
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  
   let comparison = null;
   try {
     comparison = useComparison();
@@ -135,20 +138,22 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
           </div>
         )}
 
-        {/* Favorite Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle?.(hospital._id);
-          }}
-          className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
-        >
-          <FaHeart 
-            className={`text-lg ${
-              isFavorite ? 'text-red-500' : 'text-gray-300'
-            }`} 
-          />
-        </button>
+        {/* ✅ FIX: Hide Favorite Button if User is Admin or Owner */}
+        {(!user || user.role === 'user') && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavoriteToggle?.(hospital._id);
+            }}
+            className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+          >
+            <FaHeart 
+              className={`text-lg ${
+                isFavorite ? 'text-red-500' : 'text-gray-300'
+              }`} 
+            />
+          </button>
+        )}
       </div>
 
       {/* Content Section */}
@@ -195,7 +200,7 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
           </div>
         </div>
 
-        {/* ✅ CATEGORY & TYPE TAGS */}
+        {/* CATEGORY & TYPE TAGS */}
         <div className="mb-5 flex flex-wrap gap-2 mt-auto">
           <span className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-xs font-bold uppercase">
             {getCategoryIcon(hospital.category)} {hospital.category || 'Private'}
@@ -247,13 +252,13 @@ const HospitalCard = ({ hospital, onFavoriteToggle, isFavorite }) => {
             onClick={(e) => {
               e.stopPropagation();
               if (hospital.googlePlaceId) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.googlePlaceId}`, '_blank');
+                window.open(`https://maps.google.com/?query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.googlePlaceId}`, '_blank');
               } else if (hospital.location?.coordinates) {
                 const [lng, lat] = hospital.location.coordinates;
-                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
               } else if (hospital.address) {
                 const query = encodeURIComponent(`${hospital.name}, ${hospital.address.area || ''}, ${hospital.address.city || ''}`);
-                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+                window.open(`https://maps.google.com/?q=${query}`, '_blank');
               }
             }}
             className={`flex items-center justify-center gap-1 bg-purple-50 text-purple-600 py-2 rounded-lg font-medium hover:bg-purple-100 transition ${

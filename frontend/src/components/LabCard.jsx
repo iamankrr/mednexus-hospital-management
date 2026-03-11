@@ -16,6 +16,9 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // ✅ FIX: Get user to check role for hiding the favorite button for admins
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
   let comparison = null;
   try {
     comparison = useComparison();
@@ -57,7 +60,7 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
     }
   };
 
-  // ✅ Clean Address Logic
+  // Clean Address Logic
   const displayAddress = [lab.address?.area, lab.address?.city]
     .filter(Boolean) 
     .join(', ');
@@ -122,20 +125,22 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
           </div>
         )}
 
-        {/* Favorite Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle?.(lab._id);
-          }}
-          className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
-        >
-          <FaHeart 
-            className={`text-lg ${
-              isFavorite ? 'text-red-500' : 'text-gray-300'
-            }`} 
-          />
-        </button>
+        {/* ✅ FIX: Hide Favorite Button if User is Admin or Owner */}
+        {(!user || user.role === 'user') && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavoriteToggle?.(lab._id);
+            }}
+            className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+          >
+            <FaHeart 
+              className={`text-lg ${
+                isFavorite ? 'text-red-500' : 'text-gray-300'
+              }`} 
+            />
+          </button>
+        )}
       </div>
 
       {/* Content Section */}
@@ -229,15 +234,15 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // ✅ OFFICIAL GOOGLE MAPS EXACT LOCATION URL
+              // OFFICIAL GOOGLE MAPS EXACT LOCATION URL
               if (lab.googlePlaceId) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lab.name)}&query_place_id=${lab.googlePlaceId}`, '_blank');
+                window.open(`https://maps.google.com/?query=${encodeURIComponent(lab.name)}&query_place_id=${lab.googlePlaceId}`, '_blank');
               } else if (lab.location?.coordinates) {
                 const [lng, lat] = lab.location.coordinates;
-                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
               } else if (lab.address) {
                 const query = encodeURIComponent(`${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`);
-                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+                window.open(`https://maps.google.com/?q=${query}`, '_blank');
               }
             }}
             className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${

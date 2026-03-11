@@ -135,8 +135,10 @@ const Navbar = () => {
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-6">
               <Link to="/" className="text-gray-700 hover:text-blue-600">Home</Link>
-              <Link to="/hospitals" className="text-gray-700 hover:text-blue-600">Hospitals</Link>
-              <Link to="/labs" className="text-gray-700 hover:text-blue-600">Labs</Link>
+              
+              {/* ✅ FIX: Route Admin to Manage Hospitals & Manage Labs correctly */}
+              <Link to={user?.role === 'admin' ? "/admin/hospitals" : "/hospitals"} className="text-gray-700 hover:text-blue-600">Hospitals</Link>
+              <Link to={user?.role === 'admin' ? "/admin/labs" : "/labs"} className="text-gray-700 hover:text-blue-600">Labs</Link>
 
               {(!user || user.role !== 'admin') && (
                 <Link to="/contact" className="text-gray-700 hover:text-blue-600">Contact</Link>
@@ -251,8 +253,10 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-inner">
             <Link to="/" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Home</Link>
-            <Link to="/hospitals" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Hospitals</Link>
-            <Link to="/labs" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Labs</Link>
+            
+            {/* ✅ FIX: Apply same Admin logic for Mobile Links too */}
+            <Link to={user?.role === 'admin' ? "/admin/hospitals" : "/hospitals"} onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Hospitals</Link>
+            <Link to={user?.role === 'admin' ? "/admin/labs" : "/labs"} onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Labs</Link>
 
             {user && user.email === DEFAULT_ADMIN_EMAIL && (
               <button
