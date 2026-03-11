@@ -2,20 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom'; 
 import axios from 'axios';
 import { 
-  FaFlask, 
-  FaMapMarkerAlt, 
-  FaStar,
-  FaHeart,
-  FaCalendarCheck,
-  FaArrowLeft,
-  FaCalendarAlt,
-  FaChevronLeft,
-  FaChevronRight,
-  FaExclamationCircle,
-  FaCheckCircle
+  FaFlask, FaMapMarkerAlt, FaStar, FaHeart, FaCalendarCheck,
+  FaArrowLeft, FaCalendarAlt, FaChevronLeft, FaChevronRight,
+  FaExclamationCircle, FaCheckCircle
 } from 'react-icons/fa';
 import Footer from '../components/Footer';
-import PriceList from '../components/PriceList'; // ✅ Using unified PriceList
+import PriceList from '../components/PriceList'; 
 import ReviewForm from '../components/ReviewForm';
 
 const LabDetails = () => {
@@ -68,7 +60,21 @@ const LabDetails = () => {
     }
   };
 
+  // ✅ CHECK ROLE LOGIC
+  const checkUserRole = () => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return true; 
+    const user = JSON.parse(userStr);
+    if (user.role === 'admin' || user.role === 'owner') {
+      alert("You are logged in as Admin/Owner. Please login with a user account to continue.");
+      return false;
+    }
+    return true;
+  };
+
   const handleToggleFavorite = async () => {
+    if (!checkUserRole()) return; // Restricted Access
+
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please login to manage favorites');
@@ -89,6 +95,11 @@ const LabDetails = () => {
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to update favorites');
     }
+  };
+
+  const handleBookTest = () => {
+    if (!checkUserRole()) return; // Restricted Access
+    navigate(`/appointments/book?lab=${lab._id}`);
   };
 
   const calculateYearsSince = (date) => {
@@ -142,7 +153,7 @@ const LabDetails = () => {
   }
 
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-  const themeColor = lab.themeColor || '#9333EA'; // Default purple for labs
+  const themeColor = lab.themeColor || '#9333EA'; 
   
   const getMapUrl = () => {
     if (lab.location?.coordinates?.length === 2) {
@@ -151,7 +162,6 @@ const LabDetails = () => {
     return `https://maps.google.com/?q=${encodeURIComponent(`${lab.name} ${lab.address?.city}`)}`;
   };
 
-  // ✅ LOGIC: Merging unpriced services into tests list
   const unpricedServices = lab.services?.filter(s => !s.price || s.price <= 0) || [];
   const combinedTests = Array.from(new Set([
     ...(lab.tests || []),
@@ -250,7 +260,7 @@ const LabDetails = () => {
 
               <div className="flex flex-col gap-3 ml-6">
                 {lab.owner && lab.appointmentsEnabled ? (
-                  <button onClick={() => navigate(`/appointments/book?lab=${lab._id}`)} className="px-6 py-3 text-white rounded-xl font-bold hover:opacity-90 flex items-center gap-2 shadow-md transition" style={{ backgroundColor: themeColor }}>
+                  <button onClick={handleBookTest} className="px-6 py-3 text-white rounded-xl font-bold hover:opacity-90 flex items-center gap-2 shadow-md transition" style={{ backgroundColor: themeColor }}>
                     <FaCalendarCheck /> Book Test
                   </button>
                 ) : (
@@ -362,26 +372,34 @@ const LabDetails = () => {
                 </div>
               )}
 
-              {/* ===== TAB 2: PRICING (✅ UNIFIED COMPONENT NOW) ===== */}
+              {/* ===== TAB 2: PRICING ===== */}
               {activeTab === 'pricing' && (
                 <div className="animate-fadeIn">
                   <PriceList services={lab.services || []} themeColor={themeColor} />
                 </div>
               )}
 
-              {/* ===== TAB 3: REVIEWS ===== */}
+              {/* ===== TAB 3: REVIEWS (RESTRICTED FOR ADMIN/OWNER) ===== */}
               {activeTab === 'reviews' && (
-                <div className="animate-fadeIn">
+                <div className="animate-fadeIn" onClickCapture={(e) => {
+                  const userStr = localStorage.getItem('user');
+                  if (userStr) {
+                    const user = JSON.parse(userStr);
+                    if (user.role === 'admin' || user.role === 'owner') {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      alert("You are logged in as Admin/Owner. Please login with a user account to post a review.");
+                    }
+                  }
+                }}>
                    <ReviewForm facilityId={lab._id || lab.id} facilityType="laboratory" onReviewSubmitted={() => { alert('Review submitted!'); fetchLab(); }} />
                 </div>
               )}
 
             </div>
 
-            {/* Right Sidebar - Remains visible */}
+            {/* Right Sidebar */}
             <div className="space-y-6">
-              
-              {/* Map Preview */}
               <div className="bg-white rounded-2xl shadow-md overflow-hidden h-64 relative border border-gray-100">
                 {lab.location?.coordinates?.length === 2 ? (
                   <iframe title="Lab Location" width="100%" height="100%" frameBorder="0" style={{ border: 0 }} src={`https://maps.google.com/?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}&output=embed`} allowFullScreen></iframe>
@@ -392,7 +410,6 @@ const LabDetails = () => {
                 )}
               </div>
 
-              {/* Quick Info */}
               <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">ℹ️ Quick Info</h3>
                 <div className="space-y-3 text-sm">
