@@ -11,17 +11,14 @@ const reviewSchema = new mongoose.Schema(
       required: [true, 'User is required']
     },
 
-    // Dynamic facility reference (Hospital or Laboratory)
-    facilityType: {
-      type: String,
-      enum: ['hospital', 'laboratory'],
-      required: [true, 'Facility type is required']
-    },
-    
-    facilityId: {
+    // Fields for Hospital or Laboratory
+    hospital: {
       type: mongoose.Schema.Types.ObjectId,
-      required: [true, 'Facility ID is required'],
-      refPath: 'facilityType' 
+      ref: 'Hospital'
+    },
+    laboratory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Laboratory'
     },
 
     // Rating (1-5 stars)
@@ -49,7 +46,7 @@ const reviewSchema = new mongoose.Schema(
       maxlength: [500, 'Review cannot exceed 500 characters']
     },
 
-    // ✅ FIX: Changed to status for Admin Flow (Pending -> Approve/Reject)
+    // Status for Admin Flow (Pending -> Approved/Rejected)
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
@@ -68,10 +65,15 @@ const reviewSchema = new mongoose.Schema(
       ref: 'User'
     }],
 
-    // ✅ FIX: Added Owner Reply field
+    // Owner Reply Field
     ownerReply: {
-      text: { type: String, maxlength: 500 },
-      date: { type: Date }
+      text: {
+        type: String,
+        maxlength: 500
+      },
+      date: {
+        type: Date
+      }
     }
   },
   {
@@ -79,79 +81,76 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// One review per user per facility
-reviewSchema.index(
-  { user: 1, facilityType: 1, facilityId: 1 },
-  { unique: true }
-);
-
 // Indexes for faster querying
-reviewSchema.index({ facilityType: 1, facilityId: 1 });
+reviewSchema.index({ hospital: 1, laboratory: 1 });
 reviewSchema.index({ createdAt: -1 });
 
-
 // ========== STATIC HELPER FUNCTION ==========
-// Calculate and update facility rating correctly
-reviewSchema.statics.updateFacilityRating = async function(facilityType, facilityId) {
+
+// Calculate and update facility rating correctly (Only counts Approved reviews)
+reviewSchema.statics.updateFacilityRating = async function(hospitalId, labId) {
   try {
-    const objectId = typeof facilityId === 'string' ? new mongoose.Types.ObjectId(facilityId) : facilityId;
+    const matchQuery = { status: 'approved' };
+    let facilityType = null;
+    let facilityId = null;
 
-    const stats = await this.aggregate([
-      {
-        $match: {
-          facilityId: objectId,
-          facilityType: facilityType,
-          status: 'approved' // Only count approved reviews!
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          avgRating: { $avg: '$rating' },
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    if (hospitalId) {
+      matchQuery.hospital = hospitalId;
+      facilityType = 'hospital';
+      facilityId = hospitalId;
+    } else if (labId) {
+      matchQuery.laboratory = labId;
+      facilityType = 'laboratory';
+      facilityId = labId;
+    }
 
-    const avgRating = stats.length > 0 ? parseFloat(stats[0].avgRating.toFixed(1)) : 0;
-    const totalReviews = stats.length > 0 ? stats[0].count : 0;
+    if (!facilityId) return;
 
+    // Use .find() instead of aggregate to avoid ObjectId casting bugs
+    const approvedReviews = await this.find(matchQuery);
+    
+    const count = approvedReviews.length;
+    const sum = approvedReviews.reduce((acc, rev) => acc + (rev.rating || 0), 0);
+    const avgRating = count > 0 ? parseFloat((sum / count).toFixed(1)) : 0;
+
+    // Updates both Website Rating and App Rating so Home Screen shows accurate data instantly!
     if (facilityType === 'hospital') {
       const Hospital = mongoose.model('Hospital');
-      await Hospital.findByIdAndUpdate(objectId, {
+      await Hospital.findByIdAndUpdate(facilityId, {
         websiteRating: avgRating,
-        totalReviews: totalReviews,
-        appRating: avgRating,       // Sync for Home Screen
-        appReviewCount: totalReviews // Sync for Home Screen
+        totalReviews: count,
+        appRating: avgRating,
+        appReviewCount: count
       });
     } else if (facilityType === 'laboratory') {
       const Laboratory = mongoose.model('Laboratory');
-      await Laboratory.findByIdAndUpdate(objectId, {
+      await Laboratory.findByIdAndUpdate(facilityId, {
         websiteRating: avgRating,
-        totalReviews: totalReviews,
-        appRating: avgRating,       // Sync for Home Screen
-        appReviewCount: totalReviews // Sync for Home Screen
+        totalReviews: count,
+        appRating: avgRating,
+        appReviewCount: count
       });
     }
 
-    console.log(`✅ Updated ${facilityType} ${facilityId} rating: ${avgRating} (${totalReviews} reviews)`);
+    console.log(`✅ Updated ${facilityType} ${facilityId} rating: ${avgRating} (${count} reviews)`);
   } catch (error) {
     console.error('Error updating facility rating:', error);
   }
 };
 
 // ========== MIDDLEWARE ==========
+
 reviewSchema.post('save', async function() {
-  await this.constructor.updateFacilityRating(this.facilityType, this.facilityId);
+  await this.constructor.updateFacilityRating(this.hospital, this.laboratory);
 });
 
 reviewSchema.post('deleteOne', { document: true, query: false }, async function() {
-  await this.constructor.updateFacilityRating(this.facilityType, this.facilityId);
+  await this.constructor.updateFacilityRating(this.hospital, this.laboratory);
 });
 
 reviewSchema.post('findOneAndDelete', async function(doc) {
   if (doc) {
-    await doc.constructor.updateFacilityRating(doc.facilityType, doc.facilityId);
+    await doc.constructor.updateFacilityRating(doc.hospital, doc.laboratory);
   }
 });
 

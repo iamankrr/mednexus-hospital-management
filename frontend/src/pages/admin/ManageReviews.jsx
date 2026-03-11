@@ -8,7 +8,7 @@ const ManageReviews = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('pending'); // Start with pending by default
+  const [filter, setFilter] = useState('pending');
 
   useEffect(() => {
     fetchReviews();
@@ -20,7 +20,6 @@ const ManageReviews = () => {
       setError('');
       const token = localStorage.getItem('token');
       
-      // Pass the filter to the API
       const url = `http://localhost:3000/api/reviews/admin/all?status=${filter}`;
       
       const response = await axios.get(url, {
@@ -32,7 +31,7 @@ const ManageReviews = () => {
       }
     } catch (err) {
       console.error('Error fetching reviews:', err);
-      setError(err.response?.data?.message || 'Failed to load reviews');
+      setError(err.response?.data?.message || 'Failed to load reviews.');
       setReviews([]); 
     } finally {
       setLoading(false);
@@ -231,7 +230,7 @@ const ManageReviews = () => {
                       {review.status}
                     </span>
 
-                    {/* ✅ LOGIC: If Pending -> Show Approve/Reject. If Approved/Rejected -> Show Delete */}
+                    {/* Pending -> Show Approve/Reject. If Approved/Rejected -> Show Delete */}
                     {review.status === 'pending' ? (
                       <>
                         <button
@@ -254,7 +253,7 @@ const ManageReviews = () => {
                           onClick={() => handleStatusChange(review._id, 'pending')}
                           className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition duration-200 font-medium flex items-center gap-1 text-sm"
                         >
-                          <FaClock /> Revert to Pending
+                          <FaClock /> Revert
                         </button>
                         <button
                           onClick={() => handleDelete(review._id)}

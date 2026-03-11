@@ -44,10 +44,11 @@ const OwnerDashboard = () => {
 
       // If owner has facility, fetch it
       if (userData.ownerProfile?.facilityId) {
-        const facilityType = userData.ownerProfile.facilityType;
+        const facilityTypeDisplay = userData.ownerProfile.facilityType === 'hospital' ? 'Hospital' : 'Laboratory';
+        const typeForApi = userData.ownerProfile.facilityType; // 'hospital' or 'laboratory'
         const facilityId = userData.ownerProfile.facilityId;
         
-        const endpoint = facilityType === 'hospital' 
+        const endpoint = typeForApi === 'hospital' 
           ? `http://localhost:3000/api/hospitals/${facilityId}`
           : `http://localhost:3000/api/labs/${facilityId}`;
 
@@ -56,6 +57,7 @@ const OwnerDashboard = () => {
         
         setFacility(facilityData);
 
+        // Fetch Appointments count
         let totalAppts = 0;
         try {
           const aptRes = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
@@ -66,14 +68,13 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // ✅ FIX: DYNAMICALLY FETCH REVIEWS DIRECTLY FROM API TO GUARANTEE LIVE DATA
+        // ✅ FIX: DYNAMICALLY FETCH REVIEWS DIRECTLY FROM PUBLIC API TO GUARANTEE LIVE DATA
         let calcTotalReviews = 0;
         let calcRating = 0;
         try {
-          // This fetches live reviews from the database directly, bypassing old model cache
-          const revRes = await axios.get(`http://localhost:3000/api/reviews?${facilityType}=${facilityId}`);
-          const fetchedReviews = revRes.data.data || [];
-          const approvedReviews = fetchedReviews.filter(r => r.isApproved);
+          // This fetches live APPROVED reviews directly, bypassing old model cache
+          const revRes = await axios.get(`http://localhost:3000/api/reviews/${typeForApi}/${facilityId}`);
+          const approvedReviews = revRes.data.data || [];
           
           calcTotalReviews = approvedReviews.length;
           if (calcTotalReviews > 0) {
@@ -84,8 +85,9 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch live reviews for dashboard', e);
         }
 
+        // Calculate Dynamic Listed Services securely
         let calcServices = 0;
-        if (facilityType === 'hospital') {
+        if (typeForApi === 'hospital') {
           calcServices = 
             (facilityData.services?.length || 0) + 
             (facilityData.tests?.length || 0) + 
@@ -150,17 +152,19 @@ const OwnerDashboard = () => {
     );
   }
 
-  const facilityType = user.ownerProfile.facilityType === 'hospital' ? 'Hospital' : 'Laboratory';
+  const facilityTypeDisplay = user.ownerProfile.facilityType === 'hospital' ? 'Hospital' : 'Laboratory';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Owner Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user.name}!</p>
         </div>
 
+        {/* Facility Info Card */}
         <div className="bg-white rounded-2xl shadow-md p-6 mb-8 border-l-4" style={{ borderColor: facility?.themeColor || '#1E40AF' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -168,11 +172,11 @@ const OwnerDashboard = () => {
                 className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl"
                 style={{ backgroundColor: facility?.themeColor || '#1E40AF' }}
               >
-                {facilityType === 'Hospital' ? '🏥' : '🔬'}
+                {facilityTypeDisplay === 'Hospital' ? '🏥' : '🔬'}
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{facility?.name}</h2>
-                <p className="text-gray-600">{facilityType} • {facility?.address?.city}, {facility?.address?.state}</p>
+                <p className="text-gray-600">{facilityTypeDisplay} • {facility?.address?.city}, {facility?.address?.state}</p>
               </div>
             </div>
             <button
@@ -184,8 +188,10 @@ const OwnerDashboard = () => {
           </div>
         </div>
 
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           
+          {/* Total Reviews */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-yellow-400" />
@@ -195,6 +201,7 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Total Reviews</p>
           </div>
 
+          {/* Average Rating */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-green-500" />
@@ -204,6 +211,7 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Average Rating</p>
           </div>
 
+          {/* Services */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <div className="text-3xl">💰</div>
@@ -213,6 +221,7 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Listed Services</p>
           </div>
 
+          {/* Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaCalendarAlt className="text-3xl text-blue-500" />
@@ -224,12 +233,14 @@ const OwnerDashboard = () => {
 
         </div>
 
+        {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
+          {/* Manage Facility */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/facility')}>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Manage {facilityType}</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Manage {facilityTypeDisplay}</h3>
                 <p className="text-gray-600 text-sm">
                   Update information, photos, services, and pricing
                 </p>
@@ -238,6 +249,7 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
+          {/* View Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/appointments')}>
             <div className="flex items-center justify-between">
               <div>
@@ -250,6 +262,7 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
+          {/* Manage Services Card */}
           <div 
             onClick={() => navigate('/owner/manage-services')}
             className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer"

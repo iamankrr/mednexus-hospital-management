@@ -18,20 +18,25 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   
+  // States
   const [hasReviewed, setHasReviewed] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
   const [checkingReview, setCheckingReview] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
+  // State for all reviews
   const [reviews, setReviews] = useState([]);
+  
+  // State to manage toggling patient info
   const [expandedContacts, setExpandedContacts] = useState([]);
   
-  // ✅ FIX: Owner Reply States
+  // Owner Reply States
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
 
   useEffect(() => {
+    // Check login & Get User
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     
@@ -42,14 +47,16 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
 
     if (facilityId) {
       if (token) checkExistingReview();
-      fetchReviews(); 
+      fetchReviews(); // Fetch all reviews to display
     }
   }, [facilityId]);
 
   const checkExistingReview = async () => {
     try {
       setCheckingReview(true);
-      const response = await reviewAPI.checkReview(facilityType, facilityId);
+      const response = await axios.get(`http://localhost:3000/api/reviews/check/${facilityType}/${facilityId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
       
       if (response.data.success) {
         setHasReviewed(response.data.hasReviewed);
@@ -64,6 +71,8 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
 
   const fetchReviews = async () => {
     try {
+      // ✅ FIX: Use the public route which gives approved reviews + populates phone/email automatically!
+      // This prevents the 403 Forbidden error for Owners.
       let url = `http://localhost:3000/api/reviews/${facilityType}/${facilityId}`;
       const response = await axios.get(url);
 
@@ -75,11 +84,23 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
     }
   };
 
-  const handleRatingClick = (rating) => { setFormData({ ...formData, rating }); };
-  const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); };
+  const handleRatingClick = (rating) => {
+    setFormData({ ...formData, rating });
+  };
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleEditClick = () => {
-    setFormData({ rating: existingReview.rating, comment: existingReview.comment, title: existingReview.title || '' });
+    setFormData({
+      rating: existingReview.rating,
+      comment: existingReview.comment,
+      title: existingReview.title || ''
+    });
     setIsEditing(true);
   };
 
@@ -90,24 +111,31 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
 
   const handleDeleteReview = async () => {
     if (!window.confirm("Are you sure you want to delete your review?")) return;
+    
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`http://localhost:3000/api/reviews/${existingReview._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       alert('🗑️ Review deleted successfully!');
       setHasReviewed(false);
       setExistingReview(null);
       setFormData({ rating: 5, comment: '', title: '' });
       fetchReviews();
-      if (onReviewSubmitted) onReviewSubmitted();
+      
+      if (onReviewSubmitted) {
+        onReviewSubmitted();
+      }
     } catch (error) {
+      console.error('Delete review error:', error);
       alert('Failed to delete review');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please login to write a review');
@@ -116,31 +144,55 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
       return;
     }
 
-    if (!formData.comment.trim()) { alert('Please write a review comment'); return; }
+    if (!formData.comment.trim()) {
+      alert('Please write a review comment');
+      return;
+    }
 
     setSubmitting(true);
     try {
+      
       let response;
       if (isEditing) {
+        // Update existing review
         response = await axios.put(`http://localhost:3000/api/reviews/${existingReview._id}`, {
-          rating: formData.rating, comment: formData.comment, title: formData.title
-        }, { headers: { Authorization: `Bearer ${token}` } });
+          rating: formData.rating,
+          comment: formData.comment,
+          title: formData.title
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
       } else {
-        response = await reviewAPI.create({
-          facilityType, facilityId, rating: formData.rating, comment: formData.comment, title: formData.title
+        // Create new review
+        response = await axios.post(`http://localhost:3000/api/reviews`, {
+          facilityType,
+          facilityId,
+          rating: formData.rating,
+          comment: formData.comment,
+          title: formData.title
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
       }
 
       if (response.data.success) {
-        alert(isEditing ? '✅ Review updated!' : '✅ Review submitted! It is pending admin approval.');
+        alert(isEditing ? '✅ Review updated successfully!' : '✅ Review submitted! It is pending admin approval.');
+        
         setIsEditing(false);
         setHasReviewed(true);
         setExistingReview(response.data.data); 
+        
+        // Clear form after slight delay to show transition
         setTimeout(() => setFormData({ rating: 5, comment: '', title: '' }), 100);
-        fetchReviews(); 
-        if (onReviewSubmitted) onReviewSubmitted();
+
+        fetchReviews(); // Refresh review list
+        
+        if (onReviewSubmitted) {
+          onReviewSubmitted();
+        }
       }
     } catch (error) {
+      console.error('Review error:', error);
       if (error.response?.status === 401) {
         alert('Session expired. Please login again.');
         localStorage.setItem('redirectAfterLogin', window.location.pathname);
@@ -154,10 +206,12 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
   };
 
   const toggleContactInfo = (reviewId) => {
-    setExpandedContacts(prev => prev.includes(reviewId) ? prev.filter(id => id !== reviewId) : [...prev, reviewId]);
+    setExpandedContacts(prev => 
+      prev.includes(reviewId) ? prev.filter(id => id !== reviewId) : [...prev, reviewId]
+    );
   };
 
-  // ✅ FIX: Submit Owner Reply logic
+  // Submit Owner Reply logic
   const handleOwnerReplySubmit = async (reviewId) => {
     if (!replyText.trim()) return;
     
@@ -178,7 +232,9 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
     }
   };
 
+  // Check if current user is admin or owner to restrict review writing
   const isRestrictedRole = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
+  
   // Check if current logged in user owns this exact facility
   const isFacilityOwner = currentUser?.role === 'owner' && currentUser?.ownerProfile?.facilityId === facilityId;
 
@@ -195,54 +251,147 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Want to write a review?</h3>
           <p className="text-gray-600 mb-4">Please login to share your experience</p>
           <button
-            onClick={() => { localStorage.setItem('redirectAfterLogin', window.location.pathname); navigate('/login'); }}
+            onClick={() => {
+              localStorage.setItem('redirectAfterLogin', window.location.pathname);
+              navigate('/login');
+            }}
             className="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 transition font-semibold"
           >
             Login to Write Review
           </button>
+          <p className="text-sm text-gray-500 mt-3">
+            Don't have an account?{' '}
+            <button
+              onClick={() => {
+                localStorage.setItem('redirectAfterLogin', window.location.pathname);
+                navigate('/register');
+              }}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Register here
+            </button>
+          </p>
         </div>
       ) : hasReviewed && existingReview && !isEditing ? (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 relative">
+          
+          {/* USER CONTROLS: Edit and Delete Buttons */}
           <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={handleEditClick} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50 transition" title="Edit Review"><FaEdit /></button>
-            <button onClick={handleDeleteReview} className="p-2 bg-white text-red-600 rounded-full shadow hover:bg-red-50 transition" title="Delete Review"><FaTrash /></button>
+            <button onClick={handleEditClick} className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50 transition" title="Edit Review">
+              <FaEdit />
+            </button>
+            <button onClick={handleDeleteReview} className="p-2 bg-white text-red-600 rounded-full shadow hover:bg-red-50 transition" title="Delete Review">
+              <FaTrash />
+            </button>
           </div>
+
           <h3 className="text-lg font-semibold text-green-800 mb-3">
             {existingReview.status === 'pending' ? '⏳ Your Review (Pending Approval)' : existingReview.status === 'rejected' ? '❌ Your Review (Rejected)' : '✅ Your Review'}
           </h3>
           <div className="flex gap-1 mb-2">
-            {[1,2,3,4,5].map(star => (<span key={star} className={`text-xl ${star <= existingReview.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>))}
-            <span className="ml-2 text-sm font-medium text-gray-600">{existingReview.rating}/5</span>
+            {[1,2,3,4,5].map(star => (
+              <span key={star} className={`text-xl ${star <= existingReview.rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                ★
+              </span>
+            ))}
+            <span className="ml-2 text-sm font-medium text-gray-600">
+              {existingReview.rating}/5
+            </span>
           </div>
-          {existingReview.title && <p className="font-medium text-gray-800 mb-1">{existingReview.title}</p>}
+          {existingReview.title && (
+            <p className="font-medium text-gray-800 mb-1">{existingReview.title}</p>
+          )}
           <p className="text-gray-700">{existingReview.comment}</p>
+          <p className="text-xs text-gray-500 mt-3">
+            You've already reviewed this facility. Use the buttons above to edit or delete.
+          </p>
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg p-6 relative">
-          {isEditing && <button onClick={handleCancelEdit} className="absolute top-4 right-4 text-sm font-bold text-gray-500 hover:text-gray-800 underline">Cancel Edit</button>}
+          {/* Cancel Edit Button */}
+          {isEditing && (
+            <button onClick={handleCancelEdit} className="absolute top-4 right-4 text-sm font-bold text-gray-500 hover:text-gray-800 underline">
+              Cancel Edit
+            </button>
+          )}
+
           <h3 className="text-xl font-semibold text-gray-800 mb-4">{isEditing ? 'Edit Your Review' : 'Write a Review'}</h3>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Rating */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Rating *
+              </label>
               <div className="flex gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button key={star} type="button" onClick={() => handleRatingClick(star)} onMouseEnter={() => setHoveredRating(star)} onMouseLeave={() => setHoveredRating(0)} className="focus:outline-none transition-transform hover:scale-110">
-                    <FaStar className={`text-3xl ${star <= (hoveredRating || formData.rating) ? 'text-yellow-400' : 'text-gray-300'}`} />
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => handleRatingClick(star)}
+                    onMouseEnter={() => setHoveredRating(star)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                    className="focus:outline-none transition-transform hover:scale-110"
+                  >
+                    <FaStar
+                      className={`text-3xl ${
+                        star <= (hoveredRating || formData.rating)
+                          ? 'text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
                   </button>
                 ))}
-                <span className="ml-3 text-lg font-semibold text-gray-700">{formData.rating} / 5</span>
+                <span className="ml-3 text-lg font-semibold text-gray-700">
+                  {formData.rating} / 5
+                </span>
               </div>
             </div>
+
+            {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Review Title (Optional)</label>
-              <input type="text" name="title" value={formData.title} onChange={handleChange} placeholder="Brief summary of your experience" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Review Title (Optional)
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Brief summary of your experience"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
+
+            {/* Comment */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Your Review *</label>
-              <textarea name="comment" value={formData.comment} onChange={handleChange} required rows={5} placeholder="Share your experience with this facility..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <p className="text-xs text-gray-500 mt-1">Minimum 10 characters</p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Review *
+              </label>
+              <textarea
+                name="comment"
+                value={formData.comment}
+                onChange={handleChange}
+                required
+                rows={5}
+                placeholder="Share your experience with this facility..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum 10 characters
+              </p>
             </div>
-            <button type="submit" disabled={submitting || formData.comment.length < 10} className={`w-full py-3 rounded-lg font-semibold text-white transition ${submitting || formData.comment.length < 10 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={submitting || formData.comment.length < 10}
+              className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+                submitting || formData.comment.length < 10
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
               {submitting ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Review' : 'Submit Review')}
             </button>
           </form>
@@ -264,7 +413,8 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
                     <div>
                       <p className="font-semibold text-gray-800">{review.user?.name || 'Anonymous'}</p>
                       
-                      {currentUser && currentUser.role === 'admin' && (
+                      {/* ADMIN AND OWNER BOTH CAN SEE CONTACT INFO */}
+                      {currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner') && (
                         <div className="mt-1 mb-1">
                           <button 
                             onClick={() => toggleContactInfo(review._id)}
@@ -293,7 +443,10 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
                   </div>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <FaStar key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'} />
+                      <FaStar
+                        key={i}
+                        className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                      />
                     ))}
                   </div>
                 </div>
@@ -302,7 +455,7 @@ const ReviewForm = ({ facilityType, facilityId, onReviewSubmitted }) => {
                 )}
                 <p className="text-gray-600 text-sm leading-relaxed mb-4">{review.comment}</p>
 
-                {/* ✅ FIX: OWNER REPLY UI */}
+                {/* OWNER REPLY UI */}
                 {review.ownerReply && review.ownerReply.text ? (
                   <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 ml-4 md:ml-12 mt-3 relative">
                     <p className="text-xs font-bold text-blue-600 mb-1 uppercase tracking-wide flex items-center gap-1">
