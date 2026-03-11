@@ -9,7 +9,8 @@ import {
   FaEnvelope,
   FaArrowLeft,
   FaSync,
-  FaGoogle
+  FaGoogle,
+  FaCommentDots
 } from 'react-icons/fa';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -22,7 +23,9 @@ const Dashboard = () => {
     laboratories: 0,
     users: 0,
     reviews: 0,
-    pendingOwners: 0
+    pendingOwners: 0,
+    // Provide a fallback in case backend hasn't added this yet
+    contacts: 0 
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -46,7 +49,14 @@ const Dashboard = () => {
       console.log('✅ Stats loaded:', response.data);
 
       setStats(response.data.data);
-      setLoading(false);
+      
+      // ✅ FIX: Attempt to fetch contact count if it's missing from the main stats API
+      if (response.data.data.contacts === undefined) {
+        fetchContactCount(token);
+      } else {
+        setLoading(false);
+      }
+
     } catch (error) {
       console.error('❌ Stats error:', error);
       setLoading(false);
@@ -54,6 +64,22 @@ const Dashboard = () => {
       if (error.response?.status === 401) {
         navigate('/login');
       }
+    }
+  };
+
+  // ✅ Helper to fetch contact count just in case the backend stats doesn't send it yet
+  const fetchContactCount = async (token) => {
+    try {
+      const contactsRes = await axios.get(`${API_URL}/api/contacts`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (contactsRes.data.success) {
+        setStats(prev => ({ ...prev, contacts: contactsRes.data.count || 0 }));
+      }
+    } catch (error) {
+      console.error('Could not fetch isolated contact count');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -194,8 +220,25 @@ const Dashboard = () => {
             </button>
           </div>
 
+          {/* ✅ FIX: Added Contact Messages Card */}
+          <div className="bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl shadow-lg p-8 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-teal-100 text-sm">Contact Messages</p>
+                <h2 className="text-5xl font-bold mt-2">{stats.contacts || 0}</h2>
+              </div>
+              <FaCommentDots className="text-6xl text-white/30" />
+            </div>
+            <button
+              onClick={() => navigate('/admin/contacts')} // Navigates to the ContactRequests page
+              className="w-full mt-6 bg-white text-teal-700 py-3 rounded-xl font-bold hover:bg-teal-50 transition"
+            >
+              View Messages
+            </button>
+          </div>
+
           {/* Google Ratings */}
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-8 text-white">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-8 text-white lg:col-span-3">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-purple-100 text-sm">Google Ratings</p>
@@ -204,17 +247,16 @@ const Dashboard = () => {
               </div>
               <FaGoogle className="text-6xl text-white/30" />
             </div>
-            <button
-              onClick={handleUpdateRatings}
-              disabled={updating}
-              className="w-full mt-6 bg-white text-purple-600 py-3 rounded-xl font-bold hover:bg-purple-50 transition disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <FaSync className={updating ? 'animate-spin' : ''} />
-              {updating ? 'Updating...' : 'Update Now'}
-            </button>
-            <p className="text-xs text-purple-200 mt-2 text-center">
-              Auto-scheduled: Every 6 hours
-            </p>
+            <div className="flex justify-end mt-4">
+               <button
+                 onClick={handleUpdateRatings}
+                 disabled={updating}
+                 className="px-8 bg-white text-purple-600 py-3 rounded-xl font-bold hover:bg-purple-50 transition disabled:opacity-50 flex items-center justify-center gap-2 w-full md:w-auto"
+               >
+                 <FaSync className={updating ? 'animate-spin' : ''} />
+                 {updating ? 'Updating...' : 'Update Now'}
+               </button>
+            </div>
           </div>
         </div>
 
@@ -222,7 +264,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <button
               onClick={() => navigate('/admin/hospitals/add')}
               className="bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"
@@ -249,6 +291,14 @@ const Dashboard = () => {
               className="bg-orange-600 text-white py-4 rounded-xl font-bold hover:bg-orange-700 transition flex items-center justify-center gap-2"
             >
               <FaUsers /> View All Users
+            </button>
+
+            {/* ✅ FIX: Quick Action Button for Contacts */}
+            <button
+              onClick={() => navigate('/admin/contacts')}
+              className="bg-teal-600 text-white py-4 rounded-xl font-bold hover:bg-teal-700 transition flex items-center justify-center gap-2"
+            >
+              <FaCommentDots /> Contact Inquiries
             </button>
           </div>
         </div>
