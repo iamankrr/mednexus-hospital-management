@@ -17,9 +17,11 @@ const ContactRequests = () => {
   const fetchContacts = async () => {
     try {
       setLoading(true);
+      setError('');
       const token = localStorage.getItem('token');
       
-      let url = 'http://localhost:3000/api/admin/contacts';
+      // ✅ FIX: Corrected URL from /api/admin/contacts to /api/contacts
+      let url = 'http://localhost:3000/api/contacts';
       if (filter !== 'all') {
         url += `?status=${filter}`;
       }
@@ -44,8 +46,9 @@ const ContactRequests = () => {
     try {
       const token = localStorage.getItem('token');
       
+      // ✅ FIX: Corrected URL to hit the status update route
       await axios.put(
-        `http://localhost:3000/api/admin/contacts/${contactId}`,
+        `http://localhost:3000/api/contacts/${contactId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -113,7 +116,7 @@ const ContactRequests = () => {
           <div className="flex gap-4">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-4 py-2 rounded-lg font-medium transition ${
                 filter === 'all'
                   ? 'bg-orange-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -123,7 +126,7 @@ const ContactRequests = () => {
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-4 py-2 rounded-lg font-medium transition ${
                 filter === 'pending'
                   ? 'bg-orange-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -133,7 +136,7 @@ const ContactRequests = () => {
             </button>
             <button
               onClick={() => setFilter('in_progress')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-4 py-2 rounded-lg font-medium transition ${
                 filter === 'in_progress'
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -143,7 +146,7 @@ const ContactRequests = () => {
             </button>
             <button
               onClick={() => setFilter('resolved')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-4 py-2 rounded-lg font-medium transition ${
                 filter === 'resolved'
                   ? 'bg-green-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

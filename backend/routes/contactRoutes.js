@@ -6,7 +6,6 @@ const Contact = require('../models/Contact');
 // POST /api/contacts - Submit contact form
 router.post('/', async (req, res) => {
   try {
-    // FIX: Catch all fields sent by frontend
     const { 
       name, 
       email, 
@@ -19,7 +18,6 @@ router.post('/', async (req, res) => {
       website
     } = req.body;
 
-    // Validation updated to match frontend required fields
     if (!name || !email || !phone || !message) {
       return res.status(400).json({
         success: false,
@@ -27,10 +25,8 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Set a default subject for the DB if 'subject' isn't explicitly provided
     const subject = type || 'General Inquiry';
 
-    // Store all data (Mongoose will ignore fields not in schema if strict mode is on, which is safe)
     const contact = await Contact.create({
       name,
       email,
@@ -41,7 +37,8 @@ router.post('/', async (req, res) => {
       organizationType,
       organizationName,
       address,
-      website
+      website,
+      status: 'pending' // Default status
     });
 
     console.log('✅ Contact form submitted:', contact._id);
@@ -71,8 +68,14 @@ router.get('/', protect, async (req, res) => {
       });
     }
 
-    const contacts = await Contact.find()
-      .sort({ createdAt: -1 });
+    // ✅ FIX: Added status filtering logic for Admin Dashboard
+    const { status } = req.query;
+    let filter = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    const contacts = await Contact.find(filter).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -89,8 +92,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// PUT /api/contacts/:id/mark-read - Mark as read
-router.put('/:id/mark-read', protect, async (req, res) => {
+// ✅ FIX: NEW ROUTE - Update Contact Status (Pending -> In Progress -> Resolved)
+router.put('/:id/status', protect, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({
@@ -99,10 +102,12 @@ router.put('/:id/mark-read', protect, async (req, res) => {
       });
     }
 
+    const { status } = req.body;
+
     const contact = await Contact.findByIdAndUpdate(
       req.params.id,
-      { isRead: true },
-      { new: true }
+      { status: status },
+      { new: true, runValidators: true }
     );
 
     if (!contact) {
@@ -114,11 +119,12 @@ router.put('/:id/mark-read', protect, async (req, res) => {
 
     res.status(200).json({
       success: true,
+      message: `Contact marked as ${status}`,
       data: contact
     });
 
   } catch (error) {
-    console.error('❌ Mark read error:', error);
+    console.error('❌ Update status error:', error);
     res.status(500).json({
       success: false,
       message: error.message
