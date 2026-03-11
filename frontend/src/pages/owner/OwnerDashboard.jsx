@@ -27,7 +27,6 @@ const OwnerDashboard = () => {
         return;
       }
 
-      // Get current user
       const userRes = await axios.get('http://localhost:3000/api/users/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -42,7 +41,6 @@ const OwnerDashboard = () => {
 
       setUser(userData);
 
-      // If owner has facility, fetch it
       if (userData.ownerProfile?.facilityId) {
         const facilityType = userData.ownerProfile.facilityType;
         const facilityId = userData.ownerProfile.facilityId;
@@ -56,7 +54,6 @@ const OwnerDashboard = () => {
         
         setFacility(facilityData);
 
-        // Fetch Appointments count
         let totalAppts = 0;
         try {
           const aptRes = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
@@ -67,19 +64,15 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // ✅ FIX: Only calculate stats based on APPROVED reviews
-        const allReviews = facilityData.reviews || [];
-        const approvedReviews = allReviews.filter(r => r.isApproved === true);
-        
-        const calcTotalReviews = approvedReviews.length > 0 ? approvedReviews.length : (facilityData.totalReviews || facilityData.reviewCount || 0);
-        let calcRating = facilityData.websiteRating || facilityData.appRating || facilityData.rating || 0;
+        // ✅ FIX: Use direct database fields for exact counts!
+        const calcTotalReviews = facilityType === 'hospital' 
+          ? (facilityData.appReviewCount || 0) 
+          : (facilityData.totalReviews || 0);
+          
+        const calcRating = facilityType === 'hospital' 
+          ? (facilityData.appRating || 0) 
+          : (facilityData.websiteRating || 0);
 
-        if (approvedReviews.length > 0) {
-            const sum = approvedReviews.reduce((acc, rev) => acc + (rev.rating || 0), 0);
-            calcRating = sum / approvedReviews.length;
-        }
-
-        // ✅ FIX: Calculate Dynamic Listed Services securely
         let calcServices = 0;
         if (facilityType === 'hospital') {
           calcServices = 
@@ -133,12 +126,8 @@ const OwnerDashboard = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">No Facility Assigned</h2>
           <p className="text-gray-600 mb-6">
             You are registered as an owner but no facility has been assigned to you yet.
-            Please contact admin or register your facility.
           </p>
-          <button
-            onClick={() => navigate('/owner/register')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
-          >
+          <button onClick={() => navigate('/owner/register')} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">
             Register Facility
           </button>
         </div>
@@ -162,10 +151,7 @@ const OwnerDashboard = () => {
         <div className="bg-white rounded-2xl shadow-md p-6 mb-8 border-l-4" style={{ borderColor: facility?.themeColor || '#1E40AF' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl"
-                style={{ backgroundColor: facility?.themeColor || '#1E40AF' }}
-              >
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl" style={{ backgroundColor: facility?.themeColor || '#1E40AF' }}>
                 {facilityType === 'Hospital' ? '🏥' : '🔬'}
               </div>
               <div>
@@ -173,10 +159,7 @@ const OwnerDashboard = () => {
                 <p className="text-gray-600">{facilityType} • {facility?.address?.city}, {facility?.address?.state}</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/owner/facility')}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
-            >
+            <button onClick={() => navigate('/owner/facility')} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">
               <FaEdit /> Manage Facility
             </button>
           </div>
@@ -184,8 +167,6 @@ const OwnerDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          
-          {/* Total Reviews */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-yellow-400" />
@@ -195,7 +176,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Total Reviews</p>
           </div>
 
-          {/* Average Rating */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-green-500" />
@@ -205,7 +185,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Average Rating</p>
           </div>
 
-          {/* Services */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <div className="text-3xl">💰</div>
@@ -215,7 +194,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Listed Services</p>
           </div>
 
-          {/* Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaCalendarAlt className="text-3xl text-blue-500" />
@@ -224,43 +202,31 @@ const OwnerDashboard = () => {
             <p className="text-3xl font-bold text-gray-900">{stats.totalAppointments}</p>
             <p className="text-sm text-gray-500 mt-1">Total Appointments</p>
           </div>
-
         </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Manage Facility */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/facility')}>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Manage {facilityType}</h3>
-                <p className="text-gray-600 text-sm">
-                  Update information, photos, services, and pricing
-                </p>
+                <p className="text-gray-600 text-sm">Update information, photos, services, and pricing</p>
               </div>
               <FaArrowRight className="text-2xl text-blue-500" />
             </div>
           </div>
 
-          {/* View Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/appointments')}>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">View Appointments</h3>
-                <p className="text-gray-600 text-sm">
-                  Manage and track patient bookings
-                </p>
+                <p className="text-gray-600 text-sm">Manage and track patient bookings</p>
               </div>
               <FaArrowRight className="text-2xl text-blue-500" />
             </div>
           </div>
 
-          {/* Manage Services Card */}
-          <div 
-            onClick={() => navigate('/owner/manage-services')}
-            className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer"
-          >
+          <div onClick={() => navigate('/owner/manage-services')} className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Manage Services</h3>
@@ -269,7 +235,6 @@ const OwnerDashboard = () => {
               <FaClipboardList className="text-4xl text-purple-500" />
             </div>
           </div>
-
         </div>
 
       </div>

@@ -78,6 +78,21 @@ const hospitalSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  
+  // ==========================================
+  // ✅ FIX: ADDED APP RATING FIELDS FOR HOME SCREEN
+  // ==========================================
+  appRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  appReviewCount: {
+    type: Number,
+    default: 0
+  },
+
   googlePlaceId: String,
   isActive: {
     type: Boolean,
@@ -120,20 +135,14 @@ const hospitalSchema = new mongoose.Schema({
     availability: { type: String },
     consultationFee: { type: Number }
   }],
-  
-  // ==========================================
-  // ✅ FIX: ADDED MISSING SERVICES ARRAY
-  // ==========================================
   services: [{
     name: { type: String, required: true },
     category: { type: String, default: 'General' },
-    price: { type: Number, default: null }, // Optional price
+    price: { type: Number, default: null },
     duration: { type: String },
     description: { type: String },
     isAvailable: { type: Boolean, default: true }
   }],
-  // ==========================================
-
   customServices: [{
     category: { type: String },
     name: { type: String }
