@@ -1,8 +1,6 @@
 // controllers/reviewController.js
 
 const Review = require('../models/Review');
-const Hospital = require('../models/Hospital');
-const Laboratory = require('../models/Laboratory');
 
 // ========== @desc    Add review for hospital or lab
 // ========== @route   POST /api/reviews
@@ -25,14 +23,10 @@ exports.addReview = async (req, res) => {
       });
     }
 
-    // Convert string to proper DB reference
-    const hospital = facilityType === 'hospital' ? facilityId : undefined;
-    const laboratory = facilityType === 'laboratory' ? facilityId : undefined;
-
-    // CHECK FAKE RATING - One review per user per facility
+    // Checking if already reviewed
     const existingReview = await Review.findOne({
       user: req.user.id,
-      ...(hospital ? { hospital: hospital } : { laboratory: laboratory })
+      facilityId: facilityId
     });
 
     if (existingReview) {
@@ -43,15 +37,20 @@ exports.addReview = async (req, res) => {
       });
     }
 
+    const hospital = facilityType === 'hospital' ? facilityId : undefined;
+    const laboratory = facilityType === 'laboratory' ? facilityId : undefined;
+
     // Create review
     const review = await Review.create({
       user: req.user.id,
+      facilityType: facilityType,
+      facilityId: facilityId,
       hospital: hospital,
       laboratory: laboratory,
       rating: rating,
       title: title || '',
       comment: comment,
-      status: 'pending' // Default to pending
+      status: 'pending' 
     });
 
     await review.populate('user', 'name avatar phone email');
@@ -62,6 +61,13 @@ exports.addReview = async (req, res) => {
       data: review
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already reviewed this facility.',
+        alreadyReviewed: true
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Error submitting review',
@@ -77,11 +83,10 @@ exports.getReviews = async (req, res) => {
   try {
     const { type, id } = req.params;
 
-    const filter = { status: 'approved' }; // Only show approved to public
-    if (type === 'hospital') filter.hospital = id;
-    if (type === 'laboratory') filter.laboratory = id;
-
-    const reviews = await Review.find(filter)
+    const reviews = await Review.find({
+      facilityId: id,
+      status: 'approved' // Only show approved to public
+    })
       .populate('user', 'name avatar phone email')
       .sort('-createdAt');
 
@@ -106,11 +111,10 @@ exports.checkReview = async (req, res) => {
   try {
     const { type, id } = req.params;
 
-    const filter = { user: req.user.id };
-    if (type === 'hospital') filter.hospital = id;
-    if (type === 'laboratory') filter.laboratory = id;
-
-    const existingReview = await Review.findOne(filter);
+    const existingReview = await Review.findOne({
+      user: req.user.id,
+      facilityId: id
+    });
 
     res.status(200).json({
       success: true,
@@ -141,7 +145,6 @@ exports.getAllReviewsAdmin = async (req, res) => {
       filter.status = status;
     }
 
-    // ✅ FIX: Correctly populating hospital and laboratory names to prevent crash
     const reviews = await Review.find(filter)
       .populate('user', 'name email phone avatar')
       .populate('hospital', 'name')
@@ -177,7 +180,7 @@ exports.updateReviewStatus = async (req, res) => {
     if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
 
     // Instantly syncs Home Screen Rating
-    await Review.updateFacilityRating(review.hospital, review.laboratory);
+    await Review.updateFacilityRating(review.facilityType, review.facilityId);
 
     res.status(200).json({
       success: true,
@@ -213,9 +216,9 @@ exports.updateReview = async (req, res) => {
     review.rating = rating;
     review.comment = comment;
     review.title = title;
-    review.status = 'pending'; // Reset to pending if edited
+    review.status = 'pending'; 
     
-    await review.save(); // This triggers the middleware which auto updates rating
+    await review.save(); 
 
     res.status(200).json({
       success: true,
@@ -277,13 +280,13 @@ exports.deleteReview = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to delete this review' });
     }
     
-    const hospitalId = review.hospital;
-    const labId = review.laboratory;
+    const facilityType = review.facilityType;
+    const facilityId = review.facilityId;
 
     await review.deleteOne();
     
     // Safety check recalculation
-    await Review.updateFacilityRating(hospitalId, labId);
+    await Review.updateFacilityRating(facilityType, facilityId);
 
     res.status(200).json({
       success: true,

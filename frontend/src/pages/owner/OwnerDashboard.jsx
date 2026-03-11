@@ -44,7 +44,6 @@ const OwnerDashboard = () => {
 
       // If owner has facility, fetch it
       if (userData.ownerProfile?.facilityId) {
-        const facilityTypeDisplay = userData.ownerProfile.facilityType === 'hospital' ? 'Hospital' : 'Laboratory';
         const typeForApi = userData.ownerProfile.facilityType; // 'hospital' or 'laboratory'
         const facilityId = userData.ownerProfile.facilityId;
         
@@ -68,11 +67,10 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // ✅ FIX: DYNAMICALLY FETCH REVIEWS DIRECTLY FROM PUBLIC API TO GUARANTEE LIVE DATA
+        // ✅ DYNAMICALLY FETCH REVIEWS FROM PUBLIC API (Matches Home Screen)
         let calcTotalReviews = 0;
         let calcRating = 0;
         try {
-          // This fetches live APPROVED reviews directly, bypassing old model cache
           const revRes = await axios.get(`http://localhost:3000/api/reviews/${typeForApi}/${facilityId}`);
           const approvedReviews = revRes.data.data || [];
           

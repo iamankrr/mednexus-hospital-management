@@ -216,7 +216,9 @@ const ManageReviews = () => {
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="text-sm text-gray-500">
                     For: <span className="font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded capitalize">
-                      {review.facilityId?.name || 'Unknown Facility'} ({review.facilityType})
+                      {review.hospital?.name ? `${review.hospital.name} (Hospital)` : 
+                       review.laboratory?.name ? `${review.laboratory.name} (Lab)` : 
+                       'Unknown Facility - Needs Deletion'}
                     </span>
                   </div>
                   
@@ -262,6 +264,16 @@ const ManageReviews = () => {
                           <FaTrash /> Delete
                         </button>
                       </>
+                    )}
+                    
+                    {/* Fallback delete for orphaned reviews */}
+                    {(!review.hospital && !review.laboratory && review.status === 'pending') && (
+                        <button
+                          onClick={() => handleDelete(review._id)}
+                          className="bg-red-800 hover:bg-black text-white px-4 py-2 rounded-lg transition duration-200 font-medium flex items-center gap-1 ml-2"
+                        >
+                          <FaTrash /> Force Delete
+                        </button>
                     )}
                   </div>
                 </div>
