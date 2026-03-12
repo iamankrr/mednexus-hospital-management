@@ -18,6 +18,19 @@ import KeywordSearch from '../components/KeywordSearch';
 import Footer from '../components/Footer'; 
 import toast from 'react-hot-toast'; 
 
+// ✅ FIX: Added Frontend Distance Calculator for INSTANT Sorting
+const calculateDistanceLocal = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const distance = R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  return distance;
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const { locationName } = useLocation(); 
@@ -112,21 +125,21 @@ const Home = () => {
     fetchFavorites();
   }, []);
 
-  // ALWAYS fetch fresh data in background to override stale cache
   useEffect(() => {
     const currentLat = userLocation ? String(userLocation.lat || userLocation.latitude) : null;
 
     if (locationRequested) {
-      fetchAllData(); // Now this runs every time Home page is visited, replacing stale cache instantly
+      fetchAllData(); 
       if (currentLat) {
         sessionStorage.setItem('mednexus_cached_lat', currentLat);
       }
     }
-  }, [userLocation, locationRequested, filters.distance]); 
+  }, [locationRequested, filters.distance]); // Removed userLocation to stop redundant backend calls
 
+  // ✅ FIX: Added userLocation to dependency array so it re-sorts instantly when location is found
   useEffect(() => {
     applyFilters();
-  }, [hospitals, labs, filters, quickSearchKeyword, activeTab]);
+  }, [hospitals, labs, filters, quickSearchKeyword, activeTab, userLocation]);
 
   const fetchFavorites = async () => {
     try {
@@ -146,6 +159,7 @@ const Home = () => {
       const token = localStorage.getItem('token');
       const params = {};
       
+      // We still pass location to backend for wide net searching, but we sort locally
       if (userLocation) {
         params.latitude = userLocation.latitude || userLocation.lat;
         params.longitude = userLocation.longitude || userLocation.lng;
@@ -161,15 +175,13 @@ const Home = () => {
 
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      // Fetch hospitals 
       axios.get(`${API_URL}/api/hospitals`, { params, headers })
         .then(response => {
           const hospitalsDataArray = response.data.data || [];
           const normalizedHospitals = hospitalsDataArray.map(hospital => ({
             ...hospital, id: hospital._id || hospital.id
           }));
-
-          setHospitals(normalizedHospitals); // Updates UI with fresh data instantly
+          setHospitals(normalizedHospitals); 
           sessionStorage.setItem('homeHospitalsData', JSON.stringify(normalizedHospitals));
           setLoading(false); 
         })
@@ -178,20 +190,16 @@ const Home = () => {
           setLoading(false); 
         });
 
-      // Fetch labs 
       axios.get(`${API_URL}/api/labs`, { params, headers })
         .then(response => {
           const labsDataArray = response.data.data || [];
           const normalizedLabs = labsDataArray.map(lab => ({
             ...lab, id: lab._id || lab.id
           }));
-
-          setLabs(normalizedLabs); // Updates UI with fresh data instantly
+          setLabs(normalizedLabs);
           sessionStorage.setItem('homeLabsData', JSON.stringify(normalizedLabs));
         })
-        .catch(error => {
-          console.error('❌ Labs fetch error:', error);
-        });
+        .catch(error => console.error('❌ Labs fetch error:', error));
       
     } catch (error) {
       console.error('❌ General fetch setup error:', error);
@@ -199,12 +207,30 @@ const Home = () => {
     }
   };
 
+  // ✅ FIX: Bulletproof filtering and instant distance calculation
   const applyFilters = () => {
     const searchKeyword = quickSearchKeyword || filters.keyword;
+    const currentLat = userLocation?.lat || userLocation?.latitude;
+    const currentLng = userLocation?.lng || userLocation?.longitude;
 
-    if (activeTab === 'hospitals') {
-      let filtered = [...hospitals];
+    const processAndSort = (dataList) => {
+      let filtered = [...dataList];
 
+      // 1. INSTANT FRONTEND DISTANCE CALCULATION
+      if (currentLat && currentLng) {
+        filtered = filtered.map(item => {
+          if (item.location?.coordinates?.length === 2) {
+            const dist = calculateDistanceLocal(
+              currentLat, currentLng,
+              item.location.coordinates[1], item.location.coordinates[0] // MongoDB stores as [lng, lat]
+            );
+            return { ...item, distance: dist };
+          }
+          return item;
+        });
+      }
+
+      // 2. APPLY SEARCH & FILTERS
       if (searchKeyword) {
         filtered = filtered.filter(item =>
           item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
@@ -215,11 +241,11 @@ const Home = () => {
       }
       
       if (filters.city && filters.city !== 'All Cities') {
-        filtered = filtered.filter(h => h.address?.city?.toLowerCase() === filters.city.toLowerCase());
+        filtered = filtered.filter(item => item.address?.city?.toLowerCase() === filters.city.toLowerCase());
       }
       
       if (filters.type && filters.type !== 'all' && filters.type !== 'All Types') {
-        filtered = filtered.filter(h => h.type === filters.type);
+        filtered = filtered.filter(item => item.type === filters.type);
       }
 
       if (filters.state) {
@@ -238,59 +264,20 @@ const Home = () => {
         filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
       }
 
+      // 3. BULLETPROOF SORTING (Always nearest first, nulls at bottom)
       filtered.sort((a, b) => {
-        if (a.distance !== undefined && b.distance !== undefined) {
-          return a.distance - b.distance;
-        }
-        if (a.distance !== undefined) return -1;
-        if (b.distance !== undefined) return 1;
-        return 0;
+        const distA = (a.distance !== undefined && a.distance !== null) ? a.distance : 999999;
+        const distB = (b.distance !== undefined && b.distance !== null) ? b.distance : 999999;
+        return distA - distB;
       });
-      
-      setFilteredHospitals(filtered);
-      
+
+      return filtered;
+    };
+
+    if (activeTab === 'hospitals') {
+      setFilteredHospitals(processAndSort(hospitals));
     } else {
-      let filtered = [...labs];
-
-      if (searchKeyword) {
-        filtered = filtered.filter(item =>
-          item.name?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-          item.description?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-          item.facilities?.some(f => f.toLowerCase().includes(searchKeyword.toLowerCase())) ||
-          item.type?.toLowerCase().includes(searchKeyword.toLowerCase())
-        );
-      }
-      
-      if (filters.city && filters.city !== 'All Cities') {
-        filtered = filtered.filter(l => l.address?.city?.toLowerCase() === filters.city.toLowerCase());
-      }
-
-      if (filters.type && filters.type !== 'all' && filters.type !== 'All Types') {
-        filtered = filtered.filter(l => l.type === filters.type);
-      }
-
-      if (filters.state) {
-        filtered = filtered.filter(item => item.address?.state?.toLowerCase() === filters.state.toLowerCase());
-      }
-
-      if (filters.pincode) {
-        filtered = filtered.filter(item => item.address?.pincode === filters.pincode);
-      }
-
-      if (filters.minRating) {
-        filtered = filtered.filter(item => (item.googleRating || item.websiteRating || 0) >= parseFloat(filters.minRating));
-      }
-      
-      filtered.sort((a, b) => {
-        if (a.distance !== undefined && b.distance !== undefined) {
-          return a.distance - b.distance;
-        }
-        if (a.distance !== undefined) return -1;
-        if (b.distance !== undefined) return 1;
-        return 0;
-      });
-      
-      setFilteredLabs(filtered);
+      setFilteredLabs(processAndSort(labs));
     }
   };
 
@@ -453,7 +440,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* ✅ FIX: Passed facilityType to AdvancedFilterPanel dynamically */}
           <AdvancedFilterPanel
             onApplyFilters={handleAdvancedFilters}
             initialFilters={filters}
