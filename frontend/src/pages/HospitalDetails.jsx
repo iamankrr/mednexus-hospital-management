@@ -15,6 +15,7 @@ import PhotoGallery from '../components/PhotoGallery';
 import { useComparison } from '../context/ComparisonContext';
 import { useLocation as useUserLocation } from '../context/LocationContext';
 import { calculateDistance } from '../utils/distance';
+import API_URL from '../config/api'; // ✅ FIX: Added dynamic API_URL
 
 const calculateYearsSince = (date) => {
   if (!date) return null;
@@ -89,7 +90,8 @@ const HospitalDetails = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:3000/api/favorites', {
+      // ✅ FIX: Used API_URL instead of hardcoded localhost
+      const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -123,8 +125,10 @@ const HospitalDetails = () => {
 
     try {
       const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
+      
+      // ✅ FIX: Used API_URL instead of hardcoded localhost
       await axios.post(
-        `http://localhost:3000${endpoint}`,
+        `${API_URL}${endpoint}`,
         { facilityId: id, facilityType: 'hospital' },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -144,7 +148,6 @@ const HospitalDetails = () => {
     }
   };
 
-  // ✅ FIX: Force login if standard user is not logged in before booking
   const handleBookAppointment = () => {
     const token = localStorage.getItem('token');
     if (!token) {

@@ -9,6 +9,7 @@ import {
 import Footer from '../components/Footer';
 import PriceList from '../components/PriceList'; 
 import ReviewForm from '../components/ReviewForm';
+import API_URL from '../config/api'; // ✅ FIX: Added dynamic API_URL
 
 const LabDetails = () => {
   const { id } = useParams();
@@ -35,7 +36,8 @@ const LabDetails = () => {
       if (!lab) {
         setLoading(true);
       }
-      const response = await axios.get(`http://localhost:3000/api/labs/${id}`);
+      // ✅ FIX: Used API_URL instead of hardcoded localhost
+      const response = await axios.get(`${API_URL}/api/labs/${id}`);
       setLab(response.data.data); 
     } catch (error) {
       console.error('Error fetching lab:', error);
@@ -49,7 +51,8 @@ const LabDetails = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:3000/api/favorites', {
+      // ✅ FIX: Used API_URL instead of hardcoded localhost
+      const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -83,8 +86,10 @@ const LabDetails = () => {
 
     try {
       const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
+      
+      // ✅ FIX: Used API_URL instead of hardcoded localhost
       await axios.post(
-        `http://localhost:3000${endpoint}`,
+        `${API_URL}${endpoint}`,
         { facilityId: id, facilityType: 'laboratory' },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -136,7 +141,6 @@ const LabDetails = () => {
     }
   };
 
-  // ✅ FIX: Safe Map URL Generator for Get Directions Button
   const handleGetDirections = () => {
     const mapBase = "https://www" + ".google." + "com/maps/dir/?api=1";
     let finalUrl = mapBase;
@@ -290,7 +294,6 @@ const LabDetails = () => {
                     <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'} /> {isFavorite ? 'Saved' : 'Save'}
                   </button>
 
-                  {/* ✅ FIX: Button correctly triggers directions */}
                   <button onClick={handleGetDirections} className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition">
                     <FaMapMarkerAlt /> Directions
                   </button>
@@ -399,7 +402,6 @@ const LabDetails = () => {
             </div>
 
             <div className="space-y-6">
-              {/* ✅ FIX: Embedded Iframe Map safely constructed */}
               <div className="bg-white rounded-2xl shadow-md overflow-hidden h-64 relative border border-gray-100">
                 {lab.location?.coordinates?.length === 2 ? (
                   <iframe 

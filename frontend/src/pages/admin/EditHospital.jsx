@@ -8,6 +8,7 @@ import CityStateSelector from '../../components/CityStateSelector';
 import { FaSave, FaArrowLeft, FaTrash, FaSync, FaPlus } from 'react-icons/fa';
 import { HOSPITAL_TYPES } from '../../components/HospitalTypeFilter';
 import axios from 'axios';
+import API_URL from '../../config/api'; // ✅ FIX: Imported API_URL dynamically
 
 const EditHospital = () => {
   const { id } = useParams();
@@ -139,8 +140,9 @@ const EditHospital = () => {
     setSyncing(true);
     try {
       const token = localStorage.getItem('token');
+      // ✅ FIX: Replaced hardcoded localhost with dynamic API_URL
       const res = await axios.post(
-        'http://localhost:3000/api/admin/fetch-place-details',
+        `${API_URL}/api/admin/fetch-place-details`,
         { placeId: formData.googlePlaceId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -186,8 +188,7 @@ const EditHospital = () => {
         }
       };
 
-      // ✅ FIX: PREVENT OVERWRITING SERVICES ARRAY
-      // ServiceManager directly updates backend. Sending this empty/stale array will delete them!
+      // PREVENT OVERWRITING SERVICES ARRAY
       delete payload.services; 
 
       await hospitalAPI.update(id, payload);
@@ -211,10 +212,8 @@ const EditHospital = () => {
     }
   };
 
-  // ✅ FIX: MULTIPLE ITEMS COMMA SEPARATED ADDITION
   const handleAddArrayItem = (field, value, setter) => {
     if (value.trim()) {
-      // Split by comma, trim spaces, and filter out empty or duplicate items
       const items = value.split(',').map(item => item.trim()).filter(item => item && !formData[field].includes(item));
       
       if (items.length > 0) {
@@ -223,7 +222,7 @@ const EditHospital = () => {
           [field]: [...formData[field], ...items]
         });
       }
-      setter(''); // Clear input
+      setter(''); 
     }
   };
 
