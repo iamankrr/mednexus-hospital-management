@@ -4,17 +4,24 @@ import axios from 'axios';
 import { 
   FaFlask, FaMapMarkerAlt, FaStar, FaHeart, FaCalendarCheck,
   FaArrowLeft, FaCalendarAlt, FaChevronLeft, FaChevronRight,
-  FaExclamationCircle, FaCheckCircle
+  FaExclamationCircle, FaCheckCircle, FaExchangeAlt
 } from 'react-icons/fa';
 import Footer from '../components/Footer';
 import PriceList from '../components/PriceList'; 
 import ReviewForm from '../components/ReviewForm';
-import API_URL from '../config/api'; // ✅ FIX: Added dynamic API_URL
+import API_URL from '../config/api'; 
+import { useComparison } from '../context/ComparisonContext';
 
 const LabDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const locationRouter = useLocation(); 
+
+  // ✅ FIX: Safe Context Destructuring
+  const comparisonContext = useComparison() || {};
+  const addToComparison = comparisonContext.addToComparison || comparisonContext.addToCompare || (() => {});
+  const removeFromComparison = comparisonContext.removeFromComparison || comparisonContext.removeFromCompare || (() => {});
+  const comparisonList = comparisonContext.comparisonList || comparisonContext.compareList || [];
 
   const initialData = locationRouter.state?.facilityData; 
 
@@ -36,7 +43,6 @@ const LabDetails = () => {
       if (!lab) {
         setLoading(true);
       }
-      // ✅ FIX: Used API_URL instead of hardcoded localhost
       const response = await axios.get(`${API_URL}/api/labs/${id}`);
       setLab(response.data.data); 
     } catch (error) {
@@ -51,7 +57,6 @@ const LabDetails = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // ✅ FIX: Used API_URL instead of hardcoded localhost
       const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -86,8 +91,6 @@ const LabDetails = () => {
 
     try {
       const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
-      
-      // ✅ FIX: Used API_URL instead of hardcoded localhost
       await axios.post(
         `${API_URL}${endpoint}`,
         { facilityId: id, facilityType: 'laboratory' },
@@ -98,6 +101,18 @@ const LabDetails = () => {
       alert(isFavorite ? '✅ Removed from favorites' : '✅ Added to favorites');
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to update favorites');
+    }
+  };
+
+  // ✅ FIX: Added missing Compare Toggle Logic to Lab details
+  const isCompared = lab ? comparisonList.some(l => (l._id || l.id) === (lab._id || lab.id)) : false;
+  const handleCompareToggle = () => {
+    if (!checkUserRole()) return;
+    const lId = lab._id || lab.id;
+    if (isCompared) {
+      removeFromComparison(lId);
+    } else {
+      addToComparison(lab, 'laboratory');
     }
   };
 
@@ -291,10 +306,14 @@ const LabDetails = () => {
                 
                 <div className="flex gap-2">
                   <button onClick={handleToggleFavorite} className={`flex-1 px-4 py-3 border-2 rounded-xl font-bold flex items-center justify-center gap-2 transition ${isFavorite ? 'bg-red-50 border-red-200 text-red-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
-                    <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'} /> {isFavorite ? 'Saved' : 'Save'}
+                    <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'} /> 
+                  </button>
+                  
+                  <button onClick={handleCompareToggle} className={`flex-[1.5] px-4 py-3 border-2 rounded-xl font-bold flex items-center justify-center gap-2 transition ${isCompared ? 'bg-orange-500 text-white border-orange-500' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                    <FaExchangeAlt /> {isCompared ? 'Added' : 'Compare'}
                   </button>
 
-                  <button onClick={handleGetDirections} className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition">
+                  <button onClick={handleGetDirections} className="flex-[1.5] px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition">
                     <FaMapMarkerAlt /> Directions
                   </button>
                 </div>

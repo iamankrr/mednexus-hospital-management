@@ -15,7 +15,7 @@ import PhotoGallery from '../components/PhotoGallery';
 import { useComparison } from '../context/ComparisonContext';
 import { useLocation as useUserLocation } from '../context/LocationContext';
 import { calculateDistance } from '../utils/distance';
-import API_URL from '../config/api'; // ✅ FIX: Added dynamic API_URL
+import API_URL from '../config/api'; 
 
 const calculateYearsSince = (date) => {
   if (!date) return null;
@@ -43,9 +43,14 @@ const HospitalDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const locationRouter = useLocation(); 
-  const { addToCompare, isInCompare, compareList } = useComparison();
+  
+  // ✅ FIX: Safe Context Destructuring
+  const comparisonContext = useComparison() || {};
+  const addToComparison = comparisonContext.addToComparison || comparisonContext.addToCompare || (() => {});
+  const removeFromComparison = comparisonContext.removeFromComparison || comparisonContext.removeFromCompare || (() => {});
+  const comparisonList = comparisonContext.comparisonList || comparisonContext.compareList || [];
+  
   const { userLocation } = useUserLocation();
-
   const initialData = locationRouter.state?.facilityData; 
 
   const [hospital, setHospital]       = useState(initialData || null);
@@ -90,7 +95,6 @@ const HospitalDetails = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // ✅ FIX: Used API_URL instead of hardcoded localhost
       const response = await axios.get(`${API_URL}/api/favorites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -125,8 +129,6 @@ const HospitalDetails = () => {
 
     try {
       const endpoint = isFavorite ? '/api/favorites/remove' : '/api/favorites/add';
-      
-      // ✅ FIX: Used API_URL instead of hardcoded localhost
       await axios.post(
         `${API_URL}${endpoint}`,
         { facilityId: id, facilityType: 'hospital' },
@@ -140,11 +142,15 @@ const HospitalDetails = () => {
     }
   };
 
-  const handleAddToCompare = () => {
+  // ✅ FIX: Compare Toggle logic exactly matching context rules
+  const isCompared = hospital ? comparisonList.some(h => (h._id || h.id) === (hospital._id || hospital.id)) : false;
+  const handleCompareToggle = () => {
     if (!checkUserRole()) return;
-    const success = addToCompare(hospital, 'hospital');
-    if (success) {
-      alert(`${hospital.name} added to comparison!`);
+    const hId = hospital._id || hospital.id;
+    if (isCompared) {
+      removeFromComparison(hId);
+    } else {
+      addToComparison(hospital, 'hospital');
     }
   };
 
@@ -158,7 +164,6 @@ const HospitalDetails = () => {
     }
     
     if (!checkUserRole()) return;
-    
     navigate('/appointments/book', { state: { facility: hospital, type: 'hospital' } });
   };
 
@@ -183,7 +188,6 @@ const HospitalDetails = () => {
 
   const theme = hospital.themeColor || '#1E40AF';
   const tabs  = ['overview', 'services', 'reviews'];
-  const isCompared = compareList.some(h => h.id === hospital._id || h.id === hospital.id);
 
   const unpricedServices = hospital.services?.filter(s => !s.price || s.price <= 0) || [];
   
@@ -227,10 +231,7 @@ const HospitalDetails = () => {
       <div className="h-2 w-full" style={{ backgroundColor: theme }} />
 
       <div className="max-w-6xl mx-auto px-4 pt-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 hover:text-blue-600 font-medium mb-4"
-        >
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-blue-600 font-medium mb-4">
           <FaArrowLeft /> Back
         </button>
       </div>
@@ -361,7 +362,8 @@ const HospitalDetails = () => {
                   {isFavorite ? 'Saved' : 'Save'}
                 </button>
                 
-                <button onClick={handleAddToCompare} className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${isCompared ? 'bg-orange-500 text-white border-orange-500' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+                {/* ✅ FIX: Dynamic Comparison Toggle Button */}
+                <button onClick={handleCompareToggle} className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition shadow-sm ${isCompared ? 'bg-orange-500 text-white border-orange-500' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                   <FaBalanceScale />
                   {isCompared ? 'Added' : 'Compare'}
                 </button>

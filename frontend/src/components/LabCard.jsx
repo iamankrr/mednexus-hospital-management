@@ -39,12 +39,14 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
     setCurrentImageIndex(prev => prev === (lab.images?.length || 1) - 1 ? 0 : prev + 1);
   };
 
+  // ✅ FIX: Explicitly passing 'laboratory' type
   const handleCompareToggle = (e) => {
     e.stopPropagation();
-    if (isInComparison(lab._id)) {
-      removeFromComparison(lab._id);
+    const id = lab._id || lab.id;
+    if (isInComparison(id)) {
+      removeFromComparison(id);
     } else {
-      addToComparison(lab);
+      addToComparison(lab, 'laboratory'); 
     }
   };
 
@@ -53,7 +55,6 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
     if (lab.phone) window.location.href = `tel:${lab.phone}`;
   };
 
-  // ✅ FIX: Anti-Sanitization Map URL logic
   const handleMapOpen = (e) => {
     e.stopPropagation();
     const mapBase = "https://www" + ".google." + "com/maps/dir/?api=1";
@@ -147,7 +148,7 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
           </button>
 
           {comparison && (
-            <button onClick={handleCompareToggle} className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${isInComparison(lab._id) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
+            <button onClick={handleCompareToggle} className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${isInComparison(lab._id || lab.id) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
               <FaExchangeAlt className="text-sm" /><span className="text-xs">Compare</span>
             </button>
           )}
@@ -156,7 +157,6 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
             <FaPhone className="text-sm" /><span className="text-xs">Call</span>
           </button>
 
-          {/* Connected fixed mapping function */}
           <button onClick={handleMapOpen} className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${comparison ? '' : 'col-span-2'}`}>
             <FaMapMarkerAlt className="text-sm" /><span className="text-xs">Map</span>
           </button>
