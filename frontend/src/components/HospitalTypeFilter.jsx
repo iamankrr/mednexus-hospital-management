@@ -1,35 +1,35 @@
 import React, { useState } from 'react';
 
 const HOSPITAL_TYPES = [
-  { label: 'All',                   value: 'all',              icon: '🏥', color: 'blue'   },
-  { label: 'Private Multispecialty',value: 'multispecialty',   icon: '🌟', color: 'yellow' }, 
-  { label: 'General Hospital',      value: 'general',          icon: '🏥', color: 'green'  },
-  { label: 'Government',            value: 'government',       icon: '🏛️', color: 'indigo' },
-  { label: 'Private',               value: 'private',          icon: '💼', color: 'blue'   },
-  { label: 'Charitable / NGO',      value: 'charitable',       icon: '❤️', color: 'red'    },
-  { label: 'Cardiology (Heart)',    value: 'cardiology',       icon: '💓', color: 'red'    },
-  { label: 'Neurology (Brain)',     value: 'neurology',        icon: '🧠', color: 'purple' },
-  { label: 'Orthopedic (Bone)',     value: 'orthopedic',       icon: '🦴', color: 'amber'  },
-  { label: 'Maternity (Women)',     value: 'maternity',        icon: '🤱', color: 'pink'   },
-  { label: 'Pediatrics (Child)',    value: 'pediatrics',       icon: '🧸', color: 'orange' },
-  { label: 'Oncology (Cancer)',     value: 'cancer',           icon: '🎗️', color: 'rose'   },
-  { label: 'Dental (Teeth)',        value: 'dental',           icon: '🦷', color: 'cyan'   },
-  { label: 'Ophthalmology (Eye)',   value: 'eye',              icon: '👁️', color: 'sky'    },
-  { label: 'ENT (Ear, Nose, Throat)',value: 'ent',             icon: '👂', color: 'amber'  },
-  { label: 'Gastroenterology',      value: 'gastroenterology', icon: '🫄', color: 'orange' },
-  { label: 'Pulmonology (Lungs)',   value: 'pulmonology',      icon: '🫁', color: 'sky'    },
-  { label: 'Nephrology (Kidney)',   value: 'nephrology',       icon: '🩸', color: 'red'    },
-  { label: 'Urology',               value: 'urology',          icon: '💧', color: 'yellow' },
-  { label: 'Dermatology (Skin)',    value: 'dermatology',      icon: '🩺', color: 'orange' },
-  { label: 'Psychiatric (Mental)',  value: 'psychiatric',      icon: '🧘', color: 'violet' },
-  { label: 'IVF / Fertility',       value: 'ivf',              icon: '👶', color: 'pink'   },
-  { label: 'Physiotherapy',         value: 'physiotherapy',    icon: '🏃‍♂️', color: 'teal'  },
-  { label: 'Ayurvedic',             value: 'ayurvedic',        icon: '🌿', color: 'green'  },
-  { label: 'Homeopathic',           value: 'homeopathic',      icon: '💊', color: 'cyan'   },
-  { label: 'Military / Cantt',      value: 'military',         icon: '⚕️', color: 'green'  },
+  { label: 'All',                        value: 'all',              icon: '🏥', color: 'blue'   },
+  { label: 'Private Multispecialty',     value: 'multispecialty',   icon: '🌟', color: 'yellow' }, 
+  { label: 'Government Multispecialty',  value: 'gov_multispecialty',icon: '🏛️🌟', color: 'indigo' }, // ✅ FIX: Added Government Multispecialty
+  { label: 'General Hospital',           value: 'general',          icon: '🏥', color: 'green'  },
+  { label: 'Government',                 value: 'government',       icon: '🏛️', color: 'indigo' },
+  { label: 'Private',                    value: 'private',          icon: '💼', color: 'blue'   },
+  { label: 'Charitable / NGO',           value: 'charitable',       icon: '❤️', color: 'red'    },
+  { label: 'Cardiology (Heart)',         value: 'cardiology',       icon: '💓', color: 'red'    },
+  { label: 'Neurology (Brain)',          value: 'neurology',        icon: '🧠', color: 'purple' },
+  { label: 'Orthopedic (Bone)',          value: 'orthopedic',       icon: '🦴', color: 'amber'  },
+  { label: 'Maternity (Women)',          value: 'maternity',        icon: '🤱', color: 'pink'   },
+  { label: 'Pediatrics (Child)',         value: 'pediatrics',       icon: '🧸', color: 'orange' },
+  { label: 'Oncology (Cancer)',          value: 'cancer',           icon: '🎗️', color: 'rose'   },
+  { label: 'Dental (Teeth)',             value: 'dental',           icon: '🦷', color: 'cyan'   },
+  { label: 'Ophthalmology (Eye)',        value: 'eye',              icon: '👁️', color: 'sky'    },
+  { label: 'ENT (Ear, Nose, Throat)',    value: 'ent',              icon: '👂', color: 'amber'  },
+  { label: 'Gastroenterology',           value: 'gastroenterology', icon: '🫄', color: 'orange' },
+  { label: 'Pulmonology (Lungs)',        value: 'pulmonology',      icon: '🫁', color: 'sky'    },
+  { label: 'Nephrology (Kidney)',        value: 'nephrology',       icon: '🩸', color: 'red'    },
+  { label: 'Urology',                    value: 'urology',          icon: '💧', color: 'yellow' },
+  { label: 'Dermatology (Skin)',         value: 'dermatology',      icon: '🩺', color: 'orange' },
+  { label: 'Psychiatric (Mental)',       value: 'psychiatric',      icon: '🧘', color: 'violet' },
+  { label: 'IVF / Fertility',            value: 'ivf',              icon: '👶', color: 'pink'   },
+  { label: 'Physiotherapy',              value: 'physiotherapy',    icon: '🏃‍♂️', color: 'teal'  },
+  { label: 'Ayurvedic',                  value: 'ayurvedic',        icon: '🌿', color: 'green'  },
+  { label: 'Homeopathic',                value: 'homeopathic',      icon: '💊', color: 'cyan'   },
+  { label: 'Military / Cantt',           value: 'military',         icon: '⚕️', color: 'green'  },
 ];
 
-// ✅ FIX: Added Specific Laboratory Types for the Labs Page
 const LABORATORY_TYPES = [
   { label: 'All',                 value: 'all',            icon: '🔬', color: 'blue'   },
   { label: 'Pathology',           value: 'pathology',      icon: '🩸', color: 'red'    },
@@ -47,7 +47,6 @@ const LABORATORY_TYPES = [
 // Show only first 8, rest in dropdown
 const VISIBLE_COUNT = 8;
 
-// ✅ FIX: Receives facilityType prop to differentiate between Hospitals and Labs
 const HospitalTypeFilter = ({ selected = 'all', onChange, facilityType = 'hospital' }) => {
   const [showAll, setShowAll] = useState(false);
 
@@ -65,7 +64,6 @@ const HospitalTypeFilter = ({ selected = 'all', onChange, facilityType = 'hospit
 
   return (
     <div className="w-full">
-      {/* ✅ FIX: Removed Duplicate Heading. Only showing 'Clear' button if something is selected */}
       {selected !== 'all' && (
         <div className="flex justify-end mb-2">
           <button
@@ -77,7 +75,6 @@ const HospitalTypeFilter = ({ selected = 'all', onChange, facilityType = 'hospit
         </div>
       )}
 
-      {/* ✅ FIX: flex-wrap and whitespace-nowrap prevents overlapping UI bugs */}
       <div className="flex flex-wrap gap-2.5">
         {visibleTypes.map((type) => (
           <button
@@ -90,7 +87,6 @@ const HospitalTypeFilter = ({ selected = 'all', onChange, facilityType = 'hospit
           </button>
         ))}
 
-        {/* More / Less button dynamically calculating count */}
         {currentTypes.length > VISIBLE_COUNT && (
           <button
             onClick={() => setShowAll(!showAll)}
@@ -105,7 +101,6 @@ const HospitalTypeFilter = ({ selected = 'all', onChange, facilityType = 'hospit
         )}
       </div>
 
-      {/* Selected type badge */}
       {selected !== 'all' && (
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs text-gray-500">Currently showing:</span>
