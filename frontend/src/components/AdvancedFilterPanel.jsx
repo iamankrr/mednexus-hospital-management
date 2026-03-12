@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { FaFilter, FaTimes, FaRupeeSign, FaStar } from 'react-icons/fa';
+import { FaFilter, FaTimes, FaStar } from 'react-icons/fa';
 import CityStateSelector from './CityStateSelector';
 import KeywordSearch from './KeywordSearch';
 import PinCodeSearch from './PinCodeSearch';
 import HospitalTypeFilter from './HospitalTypeFilter';
 
-const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
+// ✅ FIX: Added facilityType prop to switch between Hospital and Lab text
+const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType = 'hospital' }) => {
   const [showPanel, setShowPanel] = useState(false);
   const [filters, setFilters] = useState({
     state: initialFilters.state || '',
@@ -13,8 +14,6 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
     keyword: initialFilters.keyword || '',
     pincode: initialFilters.pincode || '',
     type: initialFilters.type || 'all',
-    minPrice: initialFilters.minPrice || '',
-    maxPrice: initialFilters.maxPrice || '',
     minRating: initialFilters.minRating || '',
     emergency: initialFilters.emergency || false,
   });
@@ -27,7 +26,7 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
   const handleReset = () => {
     const resetFilters = {
       state: '', city: '', keyword: '', pincode: '', type: 'all',
-      minPrice: '', maxPrice: '', minRating: '', emergency: false
+      minRating: '', emergency: false
     };
     setFilters(resetFilters);
     onApplyFilters(resetFilters);
@@ -55,18 +54,22 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
 
       {/* Filter Panel */}
       {showPanel && (
-        <div className="mt-4 bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mt-4 bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col relative z-20">
+          
+          {/* Header - Sticky */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
             <h3 className="text-lg font-bold text-gray-800">🔍 Search Filters</h3>
             <button
               onClick={() => setShowPanel(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-red-500 bg-white p-2 rounded-full shadow-sm transition"
             >
-              <FaTimes className="text-xl" />
+              <FaTimes className="text-lg" />
             </button>
           </div>
 
-          <div className="space-y-6">
+          {/* Scrollable Content Body */}
+          <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto scroll-smooth">
+            
             {/* Location Filters */}
             <div>
               <h4 className="font-semibold text-gray-700 mb-3">📍 Location</h4>
@@ -96,35 +99,16 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
               />
             </div>
 
-            {/* Hospital Type */}
+            {/* Facility Type - ✅ FIX: Dynamic Heading */}
             <div>
-              <h4 className="font-semibold text-gray-700 mb-3">🏥 Hospital Type</h4>
-              <HospitalTypeFilter
-                selected={filters.type}
-                onChange={(val) => setFilters({ ...filters, type: val })}
-              />
-            </div>
-
-            {/* Price Range */}
-            <div>
-              <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <FaRupeeSign /> Price Range
+              <h4 className="font-semibold text-gray-700 mb-3">
+                {facilityType === 'laboratory' ? '🔬 Laboratory Type' : '🏥 Hospital Type'}
               </h4>
-              <div className="flex gap-3">
-                <input
-                  type="number"
-                  placeholder="Min ₹"
-                  value={filters.minPrice}
-                  onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-gray-800"
-                />
-                <span className="flex items-center text-gray-400">to</span>
-                <input
-                  type="number"
-                  placeholder="Max ₹"
-                  value={filters.maxPrice}
-                  onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-gray-800"
+              <div className="w-full">
+                <HospitalTypeFilter
+                  selected={filters.type}
+                  onChange={(val) => setFilters({ ...filters, type: val })}
+                  facilityType={facilityType} // Passing prop to child
                 />
               </div>
             </div>
@@ -134,14 +118,14 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
               <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <FaStar className="text-yellow-400" /> Minimum Rating
               </h4>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {[1, 2, 3, 4, 5].map(rating => (
                   <button
                     key={rating}
                     onClick={() => setFilters({ ...filters, minRating: rating.toString() })}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
                       filters.minRating === rating.toString()
-                        ? 'bg-yellow-400 text-white'
+                        ? 'bg-yellow-400 text-white shadow-md'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
@@ -152,30 +136,30 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {} }) => {
             </div>
 
             {/* Emergency Filter */}
-            <div>
-              <label className="flex items-center gap-3 cursor-pointer">
+            <div className="pt-2">
+              <label className="flex items-center gap-3 cursor-pointer p-3 border border-red-100 bg-red-50 rounded-xl">
                 <input
                   type="checkbox"
                   checked={filters.emergency}
                   onChange={(e) => setFilters({ ...filters, emergency: e.target.checked })}
-                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                 />
-                <span className="font-medium text-gray-700">🚨 24/7 Emergency Available Only</span>
+                <span className="font-bold text-red-700">🚨 24/7 Emergency Available Only</span>
               </label>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+          {/* Action Buttons - Sticky at Bottom */}
+          <div className="flex gap-3 p-6 border-t border-gray-100 bg-white rounded-b-2xl">
             <button
               onClick={handleReset}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition"
+              className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 font-bold hover:bg-gray-50 transition"
             >
               Reset All
             </button>
             <button
               onClick={handleApply}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition"
+              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md transition"
             >
               Apply Filters
             </button>

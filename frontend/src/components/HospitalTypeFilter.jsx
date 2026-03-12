@@ -29,13 +29,31 @@ const HOSPITAL_TYPES = [
   { label: 'Military / Cantt',      value: 'military',         icon: '⚕️', color: 'green'  },
 ];
 
+// ✅ FIX: Added Specific Laboratory Types for the Labs Page
+const LABORATORY_TYPES = [
+  { label: 'All',                 value: 'all',            icon: '🔬', color: 'blue'   },
+  { label: 'Pathology',           value: 'pathology',      icon: '🩸', color: 'red'    },
+  { label: 'Radiology / Imaging', value: 'radiology',      icon: '🩻', color: 'purple' },
+  { label: 'Microbiology',        value: 'microbiology',   icon: '🧫', color: 'green'  },
+  { label: 'Biochemistry',        value: 'biochemistry',   icon: '🧪', color: 'yellow' },
+  { label: 'Hematology',          value: 'hematology',     icon: '🩸', color: 'red'    },
+  { label: 'Immunology',          value: 'immunology',     icon: '🛡️', color: 'indigo' },
+  { label: 'Genetics / DNA',      value: 'genetics',       icon: '🧬', color: 'cyan'   },
+  { label: 'Histopathology',      value: 'histopathology', icon: '🔬', color: 'rose'   },
+  { label: 'Diagnostic Center',   value: 'diagnostic',     icon: '🏥', color: 'blue'   },
+  { label: 'Blood Bank',          value: 'bloodbank',      icon: '🩸', color: 'red'    },
+];
+
 // Show only first 8, rest in dropdown
 const VISIBLE_COUNT = 8;
 
-const HospitalTypeFilter = ({ selected = 'all', onChange }) => {
+// ✅ FIX: Receives facilityType prop to differentiate between Hospitals and Labs
+const HospitalTypeFilter = ({ selected = 'all', onChange, facilityType = 'hospital' }) => {
   const [showAll, setShowAll] = useState(false);
 
-  const visibleTypes = showAll ? HOSPITAL_TYPES : HOSPITAL_TYPES.slice(0, VISIBLE_COUNT);
+  // Decide which list to use based on the page
+  const currentTypes = facilityType === 'laboratory' ? LABORATORY_TYPES : HOSPITAL_TYPES;
+  const visibleTypes = showAll ? currentTypes : currentTypes.slice(0, VISIBLE_COUNT);
 
   const getButtonStyle = (type) => {
     const isSelected = selected === type.value;
@@ -47,55 +65,58 @@ const HospitalTypeFilter = ({ selected = 'all', onChange }) => {
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm font-semibold text-gray-600">🏥 Hospital Type:</span>
-        {selected !== 'all' && (
+      {/* ✅ FIX: Removed Duplicate Heading. Only showing 'Clear' button if something is selected */}
+      {selected !== 'all' && (
+        <div className="flex justify-end mb-2">
           <button
             onClick={() => onChange('all')}
-            className="text-xs text-blue-600 hover:text-blue-800 underline"
+            className="text-xs font-semibold text-red-500 hover:text-red-700 hover:underline"
           >
-            Clear filter
+            Clear selection
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex flex-wrap gap-2">
+      {/* ✅ FIX: flex-wrap and whitespace-nowrap prevents overlapping UI bugs */}
+      <div className="flex flex-wrap gap-2.5">
         {visibleTypes.map((type) => (
           <button
             key={type.value}
             onClick={() => onChange(type.value)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${getButtonStyle(type)}`}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${getButtonStyle(type)}`}
           >
             <span>{type.icon}</span>
-            <span>{type.label}</span>
+            <span className="whitespace-nowrap">{type.label}</span>
           </button>
         ))}
 
-        {/* More / Less button */}
-        <button
-          onClick={() => setShowAll(!showAll)}
-          className="flex items-center gap-1 px-3 py-2 rounded-full text-sm font-medium border border-dashed border-gray-400 text-gray-600 hover:bg-gray-50 transition"
-        >
-          {showAll ? (
-            <>▲ Less</>
-          ) : (
-            <>+ {HOSPITAL_TYPES.length - VISIBLE_COUNT} More</>
-          )}
-        </button>
+        {/* More / Less button dynamically calculating count */}
+        {currentTypes.length > VISIBLE_COUNT && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-medium border border-dashed border-gray-400 text-gray-600 hover:bg-gray-50 transition whitespace-nowrap"
+          >
+            {showAll ? (
+              <>▲ Show Less</>
+            ) : (
+              <>+ {currentTypes.length - VISIBLE_COUNT} More</>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Selected type badge */}
       {selected !== 'all' && (
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-xs text-gray-500">Showing:</span>
-          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-            {HOSPITAL_TYPES.find(t => t.value === selected)?.icon}{' '}
-            {HOSPITAL_TYPES.find(t => t.value === selected)?.label} Hospitals
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs text-gray-500">Currently showing:</span>
+          <span className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">
+            {currentTypes.find(t => t.value === selected)?.icon}{' '}
+            {currentTypes.find(t => t.value === selected)?.label} {facilityType === 'laboratory' ? 'Labs' : 'Hospitals'}
             <button
               onClick={() => onChange('all')}
-              className="ml-1 text-blue-500 hover:text-blue-700 font-bold"
+              className="ml-1 text-blue-500 hover:text-blue-800 focus:outline-none"
             >
-              ×
+              ✕
             </button>
           </span>
         </div>
@@ -104,5 +125,5 @@ const HospitalTypeFilter = ({ selected = 'all', onChange }) => {
   );
 };
 
-export { HOSPITAL_TYPES };
+export { HOSPITAL_TYPES, LABORATORY_TYPES };
 export default HospitalTypeFilter;
