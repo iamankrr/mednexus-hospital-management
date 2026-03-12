@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { FaFilter, FaTimes, FaStar } from 'react-icons/fa';
+import { FaFilter, FaTimes, FaRupeeSign, FaStar } from 'react-icons/fa';
 import CityStateSelector from './CityStateSelector';
 import KeywordSearch from './KeywordSearch';
 import PinCodeSearch from './PinCodeSearch';
 import HospitalTypeFilter from './HospitalTypeFilter';
 
-// ✅ FIX: Added facilityType prop to switch between Hospital and Lab text
 const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType = 'hospital' }) => {
   const [showPanel, setShowPanel] = useState(false);
   const [filters, setFilters] = useState({
@@ -14,6 +13,8 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
     keyword: initialFilters.keyword || '',
     pincode: initialFilters.pincode || '',
     type: initialFilters.type || 'all',
+    minPrice: initialFilters.minPrice || '',
+    maxPrice: initialFilters.maxPrice || '',
     minRating: initialFilters.minRating || '',
     emergency: initialFilters.emergency || false,
   });
@@ -26,7 +27,7 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
   const handleReset = () => {
     const resetFilters = {
       state: '', city: '', keyword: '', pincode: '', type: 'all',
-      minRating: '', emergency: false
+      minPrice: '', maxPrice: '', minRating: '', emergency: false
     };
     setFilters(resetFilters);
     onApplyFilters(resetFilters);
@@ -37,7 +38,8 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
   ).length;
 
   return (
-    <div className="mb-6">
+    // ✅ FIX: Added relative and z-40 so the absolute dropdown positions relative to this button
+    <div className="relative mb-6 z-40">
       {/* Filter Button */}
       <button
         onClick={() => setShowPanel(!showPanel)}
@@ -52,9 +54,10 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
         )}
       </button>
 
-      {/* Filter Panel */}
+      {/* Filter Panel Overlay */}
+      {/* ✅ FIX: Made absolute with top-full so it hovers OVER the cards, preventing weird page scrolling */}
       {showPanel && (
-        <div className="mt-4 bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col relative z-20">
+        <div className="absolute top-full left-0 w-full mt-4 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50">
           
           {/* Header - Sticky */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
@@ -67,7 +70,7 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
             </button>
           </div>
 
-          {/* Scrollable Content Body */}
+          {/* Scrollable Content Body - Smooth internal scroll */}
           <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto scroll-smooth">
             
             {/* Location Filters */}
@@ -99,7 +102,7 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
               />
             </div>
 
-            {/* Facility Type - ✅ FIX: Dynamic Heading */}
+            {/* Facility Type */}
             <div>
               <h4 className="font-semibold text-gray-700 mb-3">
                 {facilityType === 'laboratory' ? '🔬 Laboratory Type' : '🏥 Hospital Type'}
@@ -108,7 +111,7 @@ const AdvancedFilterPanel = ({ onApplyFilters, initialFilters = {}, facilityType
                 <HospitalTypeFilter
                   selected={filters.type}
                   onChange={(val) => setFilters({ ...filters, type: val })}
-                  facilityType={facilityType} // Passing prop to child
+                  facilityType={facilityType}
                 />
               </div>
             </div>

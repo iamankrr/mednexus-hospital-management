@@ -112,12 +112,12 @@ const Home = () => {
     fetchFavorites();
   }, []);
 
-  // ✅ FIX: ALWAYS fetch fresh data in background to override stale cache
+  // ALWAYS fetch fresh data in background to override stale cache
   useEffect(() => {
     const currentLat = userLocation ? String(userLocation.lat || userLocation.latitude) : null;
 
     if (locationRequested) {
-      fetchAllData(); // 🔥 Now this runs every time Home page is visited, replacing stale cache instantly
+      fetchAllData(); // Now this runs every time Home page is visited, replacing stale cache instantly
       if (currentLat) {
         sessionStorage.setItem('mednexus_cached_lat', currentLat);
       }
@@ -161,7 +161,7 @@ const Home = () => {
 
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      // ✅ Fetch hospitals 
+      // Fetch hospitals 
       axios.get(`${API_URL}/api/hospitals`, { params, headers })
         .then(response => {
           const hospitalsDataArray = response.data.data || [];
@@ -178,7 +178,7 @@ const Home = () => {
           setLoading(false); 
         });
 
-      // ✅ Fetch labs 
+      // Fetch labs 
       axios.get(`${API_URL}/api/labs`, { params, headers })
         .then(response => {
           const labsDataArray = response.data.data || [];
@@ -453,9 +453,11 @@ const Home = () => {
             </div>
           </div>
 
+          {/* ✅ FIX: Passed facilityType to AdvancedFilterPanel dynamically */}
           <AdvancedFilterPanel
             onApplyFilters={handleAdvancedFilters}
             initialFilters={filters}
+            facilityType={activeTab === 'hospitals' ? 'hospital' : 'laboratory'} 
           />
 
           {(filters.state || filters.city || filters.pincode || filters.type !== 'all' || 
