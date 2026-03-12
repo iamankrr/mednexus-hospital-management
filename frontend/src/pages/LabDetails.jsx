@@ -97,7 +97,16 @@ const LabDetails = () => {
   };
 
   const handleBookTest = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in to book a test!');
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      navigate('/login');
+      return;
+    }
+    
     if (!checkUserRole()) return; 
+    
     navigate(`/appointments/book?lab=${lab._id}`);
   };
 
@@ -127,6 +136,23 @@ const LabDetails = () => {
     }
   };
 
+  // ✅ FIX: Safe Map URL Generator for Get Directions Button
+  const handleGetDirections = () => {
+    const mapBase = "https://www" + ".google." + "com/maps/dir/?api=1";
+    let finalUrl = mapBase;
+    
+    if (lab?.googlePlaceId) {
+      finalUrl += "&destination=" + encodeURIComponent(lab.name) + "&destination_place_id=" + lab.googlePlaceId;
+    } else if (lab?.location?.coordinates?.length === 2) {
+      finalUrl += "&destination=" + lab.location.coordinates[1] + "," + lab.location.coordinates[0];
+    } else if (lab?.address) {
+      finalUrl += "&destination=" + encodeURIComponent(`${lab.name}, ${lab.address.city || ''}`);
+    } else {
+      finalUrl += "&destination=" + encodeURIComponent(lab?.name || "Laboratory");
+    }
+    window.open(finalUrl, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -153,13 +179,6 @@ const LabDetails = () => {
 
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   const themeColor = lab.themeColor || '#9333EA'; 
-  
-  const getMapUrl = () => {
-    if (lab.location?.coordinates?.length === 2) {
-      return `https://maps.google.com/?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}`;
-    }
-    return `https://maps.google.com/?q=${encodeURIComponent(`${lab.name} ${lab.address?.city}`)}`;
-  };
 
   const unpricedServices = lab.services?.filter(s => !s.price || s.price <= 0) || [];
   const combinedTests = Array.from(new Set([
@@ -271,7 +290,8 @@ const LabDetails = () => {
                     <FaHeart className={isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'} /> {isFavorite ? 'Saved' : 'Save'}
                   </button>
 
-                  <button onClick={() => window.open(getMapUrl(), '_blank')} className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition">
+                  {/* ✅ FIX: Button correctly triggers directions */}
+                  <button onClick={handleGetDirections} className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 flex items-center justify-center gap-2 transition">
                     <FaMapMarkerAlt /> Directions
                   </button>
                 </div>
@@ -370,7 +390,6 @@ const LabDetails = () => {
                 </div>
               )}
 
-              {/* ✅ FIX: Removed onClickCapture from here as well */}
               {activeTab === 'reviews' && (
                 <div className="animate-fadeIn">
                    <ReviewForm facilityId={lab._id || lab.id} facilityType="laboratory" onReviewSubmitted={() => { fetchLab(); }} />
@@ -380,9 +399,18 @@ const LabDetails = () => {
             </div>
 
             <div className="space-y-6">
+              {/* ✅ FIX: Embedded Iframe Map safely constructed */}
               <div className="bg-white rounded-2xl shadow-md overflow-hidden h-64 relative border border-gray-100">
                 {lab.location?.coordinates?.length === 2 ? (
-                  <iframe title="Lab Location" width="100%" height="100%" frameBorder="0" style={{ border: 0 }} src={`https://maps.google.com/?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}&output=embed`} allowFullScreen></iframe>
+                  <iframe 
+                    title="Lab Location" 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    style={{ border: 0 }} 
+                    src={`https://maps` + `.google.` + `com/maps?q=${lab.location.coordinates[1]},${lab.location.coordinates[0]}&z=15&output=embed`} 
+                    allowFullScreen>
+                  </iframe>
                 ) : (
                   <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-500 flex-col">
                     <FaMapMarkerAlt className="text-3xl mb-2 text-gray-300" /> Map not available

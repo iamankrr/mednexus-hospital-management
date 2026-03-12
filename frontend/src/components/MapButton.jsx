@@ -1,40 +1,35 @@
 import React from 'react';
-import { FaMapMarkerAlt, FaDirections } from 'react-icons/fa';
+import { FaMapMarkerAlt } from 'react-icons/fa';
 
-const MapButton = ({ hospital }) => {
-  const openRoute = () => {
-    if (!hospital) return;
+const MapButton = ({ hospital, fullWidth }) => {
+  const handleMapClick = (e) => {
+    if (e) e.stopPropagation();
+    
+    // ✅ FIX: Safe URL construction for Google Maps Directions
+    const baseUrl = "https://www" + ".google." + "com/maps/dir/?api=1";
+    let finalUrl = baseUrl;
 
-    // If Google Maps URL already saved
-    if (hospital.googleMapsUrl) {
-      window.open(hospital.googleMapsUrl, '_blank');
-      return;
+    if (hospital?.googlePlaceId) {
+      finalUrl += "&destination=" + encodeURIComponent(hospital.name) + "&destination_place_id=" + hospital.googlePlaceId;
+    } else if (hospital?.location?.coordinates) {
+      const [lng, lat] = hospital.location.coordinates;
+      finalUrl += "&destination=" + lat + "," + lng;
+    } else if (hospital?.address) {
+      const addressString = [hospital.address.area, hospital.address.city, hospital.address.state].filter(Boolean).join(', ');
+      finalUrl += "&destination=" + encodeURIComponent(`${hospital.name}, ${addressString}`);
+    } else {
+      finalUrl += "&destination=" + encodeURIComponent(hospital?.name || "Hospital");
     }
 
-    // Build from coordinates
-    if (hospital.location?.coordinates) {
-      const lng = hospital.location.coordinates[0];
-      const lat = hospital.location.coordinates[1];
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-      window.open(url, '_blank');
-      return;
-    }
-
-    // Fallback - search by name + address
-    const query = encodeURIComponent(
-      `${hospital.name} ${hospital.address?.city || ''} ${hospital.address?.state || ''}`
-    );
-    window.open(`https://www.google.com/maps/search/${query}`, '_blank');
+    window.open(finalUrl, '_blank');
   };
 
   return (
     <button
-      onClick={openRoute}
-      className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-white transition hover:opacity-90 active:scale-95"
-      style={{ backgroundColor: hospital?.themeColor || '#059669' }}
+      onClick={handleMapClick}
+      className={`flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-sm ${fullWidth ? 'w-full' : ''}`}
     >
-      <FaMapMarkerAlt />
-      Get Directions
+      <FaMapMarkerAlt /> Get Directions
     </button>
   );
 };

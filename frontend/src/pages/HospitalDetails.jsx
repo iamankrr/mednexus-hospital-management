@@ -144,8 +144,18 @@ const HospitalDetails = () => {
     }
   };
 
+  // ✅ FIX: Force login if standard user is not logged in before booking
   const handleBookAppointment = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in to book an appointment!');
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      navigate('/login');
+      return;
+    }
+    
     if (!checkUserRole()) return;
+    
     navigate('/appointments/book', { state: { facility: hospital, type: 'hospital' } });
   };
 
@@ -432,7 +442,6 @@ const HospitalDetails = () => {
                   </div>
                 )}
 
-                {/* ✅ FIX: Removed onClickCapture restriction from here */}
                 {activeTab === 'reviews' && (
                   <div className="animate-fadeIn">
                     <ReviewForm

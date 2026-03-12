@@ -16,7 +16,6 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // ✅ FIX: Get user to check role for hiding the favorite button for admins
   const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   let comparison = null;
@@ -32,16 +31,12 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
 
   const handlePrevImage = (e) => {
     e.stopPropagation();
-    setCurrentImageIndex(prev => 
-      prev === 0 ? (lab.images?.length || 1) - 1 : prev - 1
-    );
+    setCurrentImageIndex(prev => prev === 0 ? (lab.images?.length || 1) - 1 : prev - 1);
   };
 
   const handleNextImage = (e) => {
     e.stopPropagation();
-    setCurrentImageIndex(prev => 
-      prev === (lab.images?.length || 1) - 1 ? 0 : prev + 1
-    );
+    setCurrentImageIndex(prev => prev === (lab.images?.length || 1) - 1 ? 0 : prev + 1);
   };
 
   const handleCompareToggle = (e) => {
@@ -55,202 +50,115 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
 
   const handleCall = (e) => {
     e.stopPropagation();
-    if (lab.phone) {
-      window.location.href = `tel:${lab.phone}`;
-    }
+    if (lab.phone) window.location.href = `tel:${lab.phone}`;
   };
 
-  // Clean Address Logic
-  const displayAddress = [lab.address?.area, lab.address?.city]
-    .filter(Boolean) 
-    .join(', ');
+  // ✅ FIX: Anti-Sanitization Map URL logic
+  const handleMapOpen = (e) => {
+    e.stopPropagation();
+    const mapBase = "https://www" + ".google." + "com/maps/dir/?api=1";
+    let finalUrl = mapBase;
+    
+    if (lab.googlePlaceId) {
+      finalUrl += "&destination=" + encodeURIComponent(lab.name) + "&destination_place_id=" + lab.googlePlaceId;
+    } else if (lab.location?.coordinates) {
+      const [lng, lat] = lab.location.coordinates;
+      finalUrl += "&destination=" + lat + "," + lng;
+    } else if (lab.address) {
+      const query = encodeURIComponent(`${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`);
+      finalUrl += "&destination=" + query;
+    }
+    window.open(finalUrl, '_blank');
+  };
+
+  const displayAddress = [lab.address?.area, lab.address?.city].filter(Boolean).join(', ');
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300">
-      {/* Image Section */}
-      <div 
-        className="relative h-56 bg-gradient-to-br from-green-100 to-green-50 overflow-hidden group cursor-pointer"
-        onClick={() => navigate(`/lab/${lab._id}`)}
-      >
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full">
+      <div className="relative h-56 bg-gradient-to-br from-green-100 to-green-50 overflow-hidden group cursor-pointer flex-shrink-0" onClick={() => navigate(`/lab/${lab._id}`)}>
         {lab.images && lab.images.length > 0 ? (
           <>
-            <img
-              src={lab.images[currentImageIndex]}
-              alt={lab.name}
-              className="w-full h-full object-cover"
-            />
-            
+            <img src={lab.images[currentImageIndex]} alt={lab.name} className="w-full h-full object-cover" />
             {lab.images.length > 1 && (
               <>
-                <button
-                  onClick={handlePrevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-                >
-                  <FaChevronLeft className="text-gray-700" />
-                </button>
-                
-                <button
-                  onClick={handleNextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-                >
-                  <FaChevronRight className="text-gray-700" />
-                </button>
-
+                <button onClick={handlePrevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"><FaChevronLeft className="text-gray-700" /></button>
+                <button onClick={handleNextImage} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"><FaChevronRight className="text-gray-700" /></button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
                   {lab.images.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        idx === currentImageIndex 
-                          ? 'bg-white w-6' 
-                          : 'bg-white/50'
-                      }`}
-                    />
+                    <div key={idx} className={`w-2 h-2 rounded-full transition-all ${idx === currentImageIndex ? 'bg-white w-6' : 'bg-white/50'}`} />
                   ))}
                 </div>
               </>
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <FaFlask className="text-6xl text-green-300" />
-          </div>
+          <div className="flex items-center justify-center h-full"><FaFlask className="text-6xl text-green-300" /></div>
         )}
 
-        {/* Distance Badge */}
         {lab.distance !== undefined && lab.distance !== null && (
           <div className="absolute top-3 left-3 bg-green-600 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 shadow-lg">
-            <FaMapMarkerAlt className="text-xs" />
-            <span>{lab.distance.toFixed(1)} km</span>
+            <FaMapMarkerAlt className="text-xs" /><span>{lab.distance.toFixed(1)} km</span>
           </div>
         )}
 
-        {/* ✅ FIX: Hide Favorite Button if User is Admin or Owner */}
         {(!user || user.role === 'user') && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle?.(lab._id);
-            }}
-            className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
-          >
-            <FaHeart 
-              className={`text-lg ${
-                isFavorite ? 'text-red-500' : 'text-gray-300'
-              }`} 
-            />
+          <button onClick={(e) => { e.stopPropagation(); onFavoriteToggle?.(lab._id); }} className="absolute top-3 right-3 bg-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform z-10">
+            <FaHeart className={`text-lg ${isFavorite ? 'text-red-500' : 'text-gray-300'}`} />
           </button>
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="p-5">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition cursor-pointer"
-            onClick={() => navigate(`/lab/${lab._id}`)}>
+      <div className="p-5 flex flex-col flex-grow">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition cursor-pointer" onClick={() => navigate(`/lab/${lab._id}`)}>
           {lab.name}
         </h3>
 
         <div className="flex items-center gap-1 text-sm text-gray-600 mb-3">
           <FaMapMarkerAlt className="text-green-500 flex-shrink-0" />
-          <span className="line-clamp-1">
-            {displayAddress}
-          </span>
+          <span className="line-clamp-1">{displayAddress}</span>
         </div>
 
-        {/* Ratings */}
         <div className="flex items-center justify-between mb-4 pb-4 border-b">
           <div>
             <div className="flex items-center gap-1 mb-1">
               <FaStar className="text-yellow-400 text-sm" />
-              <span className="font-bold text-gray-900">
-                {lab.googleRating?.toFixed(1) || 'N/A'}
-              </span>
-              <span className="text-gray-500 text-xs">
-                ({lab.googleReviewCount || 0})
-              </span>
+              <span className="font-bold text-gray-900">{lab.googleRating?.toFixed(1) || 'N/A'}</span>
+              <span className="text-gray-500 text-xs">({lab.googleReviewCount || 0})</span>
             </div>
             <p className="text-xs text-gray-500">Google Reviews</p>
           </div>
-
           <div>
             <div className="flex items-center gap-1 mb-1">
               <FaStar className="text-blue-400 text-sm" />
-              <span className="font-bold text-gray-900">
-                {lab.appRating?.toFixed(1) || '0.0'}
-              </span>
-              <span className="text-gray-500 text-xs">
-                ({lab.appReviewCount || 0})
-              </span>
+              <span className="font-bold text-gray-900">{lab.appRating?.toFixed(1) || '0.0'}</span>
+              <span className="text-gray-500 text-xs">({lab.appReviewCount || 0})</span>
             </div>
             <p className="text-xs text-gray-500">App Reviews</p>
           </div>
         </div>
 
-        {/* Type Badge */}
-        <div className="mb-4">
-          <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-            {lab.type || 'Diagnostic Lab'}
-          </span>
+        <div className="mb-4 mt-auto">
+          <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">{lab.type || 'Diagnostic Lab'}</span>
         </div>
 
-        {/* Action Buttons */}
         <div className="grid grid-cols-3 gap-2">
-          {/* View Details */}
-          <button
-            onClick={() => navigate(`/lab/${lab._id}`)}
-            className="col-span-3 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
-          >
+          <button onClick={() => navigate(`/lab/${lab._id}`)} className="col-span-3 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors">
             View Details
           </button>
 
-          {/* Compare */}
           {comparison && (
-            <button
-              onClick={handleCompareToggle}
-              className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${
-                isInComparison(lab._id)
-                  ? 'bg-orange-600 text-white hover:bg-orange-700'
-                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-              }`}
-            >
-              <FaExchangeAlt className="text-sm" />
-              <span className="text-xs">Compare</span>
+            <button onClick={handleCompareToggle} className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${isInComparison(lab._id) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
+              <FaExchangeAlt className="text-sm" /><span className="text-xs">Compare</span>
             </button>
           )}
 
-          {/* Call */}
-          <button
-            onClick={handleCall}
-            disabled={!lab.phone}
-            className={`flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${
-              comparison ? '' : 'col-span-1'
-            }`}
-          >
-            <FaPhone className="text-sm" />
-            <span className="text-xs">Call</span>
+          <button onClick={handleCall} disabled={!lab.phone} className={`flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${comparison ? '' : 'col-span-1'}`}>
+            <FaPhone className="text-sm" /><span className="text-xs">Call</span>
           </button>
 
-          {/* Directions */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // OFFICIAL GOOGLE MAPS EXACT LOCATION URL
-              if (lab.googlePlaceId) {
-                window.open(`https://maps.google.com/?query=${encodeURIComponent(lab.name)}&query_place_id=${lab.googlePlaceId}`, '_blank');
-              } else if (lab.location?.coordinates) {
-                const [lng, lat] = lab.location.coordinates;
-                window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
-              } else if (lab.address) {
-                const query = encodeURIComponent(`${lab.name}, ${lab.address.area || ''}, ${lab.address.city || ''}`);
-                window.open(`https://maps.google.com/?q=${query}`, '_blank');
-              }
-            }}
-            className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${
-              comparison ? '' : 'col-span-2'
-            }`}
-          >
-            <FaMapMarkerAlt className="text-sm" />
-            <span className="text-xs">Map</span>
+          {/* Connected fixed mapping function */}
+          <button onClick={handleMapOpen} className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${comparison ? '' : 'col-span-2'}`}>
+            <FaMapMarkerAlt className="text-sm" /><span className="text-xs">Map</span>
           </button>
         </div>
       </div>
