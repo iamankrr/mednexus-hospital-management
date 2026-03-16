@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaEnvelope, FaNotesMedical, FaStethoscope } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaEnvelope, FaNotesMedical, FaStethoscope, FaLock } from 'react-icons/fa';
 import axios from 'axios';
 import API_URL from '../config/api';
 
@@ -8,13 +8,15 @@ const BookAppointment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // State for fetched facility
   const [facility, setFacility] = useState(null);
   const [facilityType, setFacilityType] = useState(null);
   const [facilityId, setFacilityId] = useState(null);
   
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
+
+  // Store pre-selected doctor object for UI display
+  const [lockedDoctor, setLockedDoctor] = useState(null);
 
   const [formData, setFormData] = useState({
     patientName: '',
@@ -26,15 +28,14 @@ const BookAppointment = () => {
     appointmentTime: '',
     reason: '',
     notes: '',
-    selectedDoctor: '' // ✅ NEW: Track selected doctor
+    selectedDoctor: '' 
   });
 
-  // Fetch facility based on URL query params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const urlHospitalId = params.get('hospital');
     const urlLabId = params.get('lab');
-    const urlDoctorId = params.get('doctor'); // ✅ Check if a specific doctor was passed
+    const urlDoctorId = params.get('doctor'); 
 
     const stateFacility = location.state?.facility;
     const stateType = location.state?.type;
@@ -61,18 +62,17 @@ const BookAppointment = () => {
   const fetchFacilityDetails = async (type, id, urlDoctorId = null) => {
     try {
       setFetchingData(true);
-      const endpoint = type === 'hospital' 
-        ? `${API_URL}/api/hospitals/${id}`
-        : `${API_URL}/api/labs/${id}`;
+      const endpoint = type === 'hospital' ? `${API_URL}/api/hospitals/${id}` : `${API_URL}/api/labs/${id}`;
       
       const response = await axios.get(endpoint);
       const data = response.data.data;
       setFacility(data);
 
-      // ✅ FIX: Auto-select doctor if ID was provided in URL
+      // Lock Doctor if ID is passed
       if (urlDoctorId && data.doctors) {
         const docExists = data.doctors.find(d => d._id === urlDoctorId);
         if (docExists) {
+          setLockedDoctor(docExists);
           setFormData(prev => ({ ...prev, selectedDoctor: urlDoctorId }));
         }
       }
@@ -104,61 +104,30 @@ const BookAppointment = () => {
         ...formData
       };
 
-      // ✅ FIX: Append doctor name to notes to inform the owner
-      if (formData.selectedDoctor && facility.doctors) {
-         const doc = facility.doctors.find(d => d._id === formData.selectedDoctor);
-         if (doc) {
-            payload.notes = `Requested Doctor: Dr. ${doc.name} (${doc.specialization}). ${payload.notes}`;
-         }
+      // Send doctor Object to backend so Owner can see it cleanly
+      if (lockedDoctor) {
+         payload.doctor = { id: lockedDoctor._id, name: lockedDoctor.name };
       }
 
-      const response = await axios.post(
-        `${API_URL}/api/appointments`,
-        payload,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      const response = await axios.post(`${API_URL}/api/appointments`, payload, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
       if (response.data.success) {
-        // Success Modal
-        const confirmMessage = `✅ Appointment Booked Successfully!
-
-Hospital/Lab: ${facility.name}
-Patient: ${formData.patientName}
-Date: ${new Date(formData.appointmentDate).toLocaleDateString('en-IN')}
-Time: ${formData.appointmentTime}
-
-The facility will contact you soon at:
-📞 ${formData.phone}
-${formData.email ? `📧 ${formData.email}` : ''}
-
-Status: Pending Confirmation
-You can view and manage your appointment in "My Appointments" section.`;
-        
-        alert(confirmMessage);
+        alert("✅ Appointment Booked Successfully! View it in 'My Appointments'.");
         navigate('/appointments');
       }
     } catch (error) {
-      console.error('❌ Booking error:', error.response?.data);
-      const errorMessage = error.response?.data?.message || 'Failed to book appointment. Please try again.';
-      alert(`❌ ${errorMessage}`);
+      console.error('❌ Error:', error.response?.data);
+      alert(`❌ ${error.response?.data?.message || 'Failed to book appointment'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get minimum date (today)
   const today = new Date().toISOString().split('T')[0];
 
-  if (fetchingData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div>
-      </div>
-    );
-  }
-
+  if (fetchingData) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div></div>;
   if (!facility) return null;
 
   return (
@@ -169,17 +138,12 @@ You can view and manage your appointment in "My Appointments" section.`;
         <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Book Appointment</h1>
           <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white"
-              style={{ backgroundColor: facilityType === 'laboratory' ? '#9333EA' : '#1E40AF' }}
-            >
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: facilityType === 'laboratory' ? '#9333EA' : '#1E40AF' }}>
               {facilityType === 'laboratory' ? '🔬' : '🏥'}
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">{facility.name}</h2>
-              <p className="text-sm text-gray-500">
-                {facility.address?.city}, {facility.address?.state}
-              </p>
+              <p className="text-sm text-gray-500">{facility.address?.city}, {facility.address?.state}</p>
             </div>
           </div>
         </div>
@@ -187,194 +151,52 @@ You can view and manage your appointment in "My Appointments" section.`;
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-md p-6 space-y-6">
           
-          <h3 className="text-xl font-bold text-gray-800 border-b pb-3">Patient Information</h3>
-
-          {/* Patient Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <FaUser className="inline mr-2" />
-              Patient Name *
-            </label>
-            <input
-              type="text"
-              value={formData.patientName}
-              onChange={(e) => setFormData({ ...formData, patientName: e.target.value })}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter patient name"
-            />
+          {/* Patient Info Header matching Image 3 */}
+          <div className="flex justify-between items-center border-b pb-3">
+             <h3 className="text-xl font-bold text-gray-800">Patient Information</h3>
+             {lockedDoctor && (
+               <div className="flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-300">
+                 <span>Doctor: Dr. {lockedDoctor.name}</span>
+                 <FaLock className="text-gray-500" />
+               </div>
+             )}
           </div>
 
-          {/* Age & Gender */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><FaUser className="inline mr-2" />Patient Name *</label>
+            <input type="text" value={formData.patientName} onChange={(e) => setFormData({ ...formData, patientName: e.target.value })} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Enter patient name" />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Age *</label>
-              <input
-                type="number"
-                value={formData.patientAge}
-                onChange={(e) => setFormData({ ...formData, patientAge: e.target.value })}
-                required
-                min="1"
-                max="120"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-                placeholder="Age"
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Age *</label><input type="number" value={formData.patientAge} onChange={(e) => setFormData({ ...formData, patientAge: e.target.value })} required min="1" max="120" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Age" /></div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-              <select
-                value={formData.patientGender}
-                onChange={(e) => setFormData({ ...formData, patientGender: e.target.value })}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
+              <select value={formData.patientGender} onChange={(e) => setFormData({ ...formData, patientGender: e.target.value })} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+                <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
               </select>
             </div>
           </div>
 
-          {/* Phone & Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FaPhone className="inline mr-2" />
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
-                maxLength={10}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-                placeholder="9876543210"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FaEnvelope className="inline mr-2" />
-                Email (Optional)
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-                placeholder="email@example.com"
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1"><FaPhone className="inline mr-2" />Phone Number *</label><input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required maxLength={10} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="9876543210" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1"><FaEnvelope className="inline mr-2" />Email (Optional)</label><input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="email@example.com" /></div>
           </div>
 
           <h3 className="text-xl font-bold text-gray-800 border-b pb-3 pt-4">Appointment Details</h3>
 
-          {/* ✅ FIX: DOCTOR SELECTION DROPDOWN */}
-          {facilityType === 'hospital' && facility.doctors && facility.doctors.length > 0 && (
-            <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">
-                 <FaStethoscope className="inline mr-2" />Select Doctor (Optional)
-               </label>
-               <select 
-                 value={formData.selectedDoctor} 
-                 onChange={(e) => setFormData({...formData, selectedDoctor: e.target.value})}
-                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-blue-50"
-               >
-                 <option value="">-- General Appointment / No Preference --</option>
-                 {facility.doctors.map(doc => (
-                    <option key={doc._id} value={doc._id}>
-                      Dr. {doc.name} ({doc.specialization}) {doc.consultationFee ? `- ₹${doc.consultationFee}` : ''}
-                    </option>
-                 ))}
-               </select>
-            </div>
-          )}
-
-          {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FaCalendarAlt className="inline mr-2" />
-                Appointment Date *
-              </label>
-              <input
-                type="date"
-                value={formData.appointmentDate}
-                onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
-                required
-                min={today}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FaClock className="inline mr-2" />
-                Preferred Time *
-              </label>
-              <input
-                type="time"
-                value={formData.appointmentTime}
-                onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1"><FaCalendarAlt className="inline mr-2" />Appointment Date *</label><input type="date" value={formData.appointmentDate} onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })} required min={today} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1"><FaClock className="inline mr-2" />Preferred Time *</label><input type="time" value={formData.appointmentTime} onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" /></div>
           </div>
 
-          {/* Reason */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <FaNotesMedical className="inline mr-2" />
-              Reason for Visit *
-            </label>
-            <textarea
-              value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              required
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-              placeholder="Describe your symptoms or reason for appointment"
-            />
-          </div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1"><FaNotesMedical className="inline mr-2" />Reason for Visit *</label><textarea value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} required rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Describe your symptoms" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes (Optional)</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500" /></div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Additional Notes (Optional)
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={2}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-              placeholder="Any additional information"
-            />
-          </div>
-
-          {/* Submit Buttons */}
           <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`flex-1 px-6 py-3 text-white rounded-xl font-bold disabled:opacity-50 transition ${
-                facilityType === 'laboratory' 
-                  ? 'bg-purple-600 hover:bg-purple-700' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {loading ? 'Booking...' : 'Book Appointment'}
-            </button>
+            <button type="button" onClick={() => navigate(-1)} className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={loading} className={`flex-1 px-6 py-3 text-white rounded-xl font-bold disabled:opacity-50 transition ${facilityType === 'laboratory' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}>{loading ? 'Booking...' : 'Book Appointment'}</button>
           </div>
-
         </form>
-
       </div>
     </div>
   );

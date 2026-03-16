@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaCheckCircle, FaTimesCircle, FaEnvelope, FaTrash } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaCheckCircle, FaTimesCircle, FaEnvelope, FaTrash, FaUserMd } from 'react-icons/fa';
 import axios from 'axios';
 import API_URL from '../../config/api';
 
 const OwnerAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, pending, confirmed, cancelled
+  const [filter, setFilter] = useState('all'); 
 
   useEffect(() => {
     fetchAppointments();
@@ -104,19 +104,15 @@ const OwnerAppointments = () => {
   const fortyEightHoursMs = 48 * 60 * 60 * 1000;
 
   const activeAppointments = appointments.filter(apt => {
-    // Keep pending forever until action is taken
     if (apt.status === 'pending') return true;
 
     const aptDate = new Date(apt.appointmentDate).getTime();
     const actionDate = apt.updatedAt ? new Date(apt.updatedAt).getTime() : aptDate;
-    
-    // Choose whichever date is in the future.
     const baseDate = Math.max(aptDate, actionDate);
 
     if (now > baseDate + fortyEightHoursMs) {
-      return false; // Remove
+      return false; 
     }
-    
     return true; 
   });
 
@@ -201,7 +197,6 @@ const OwnerAppointments = () => {
               <div key={appointment._id} className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
                 <div className="flex items-start justify-between">
                   
-                  {/* Appointment Details */}
                   <div className="flex-1">
                     
                     {/* Status Badge */}
@@ -242,6 +237,16 @@ const OwnerAppointments = () => {
                       </div>
                     </div>
 
+                    {/* ✅ FIX: Specific Doctor Box (If selected by user) */}
+                    {appointment.doctor?.name && (
+                      <div className="mb-4 inline-block bg-blue-50 border border-blue-100 rounded-lg px-4 py-2">
+                        <p className="text-xs text-blue-700 uppercase font-bold mb-1">Requested Doctor</p>
+                        <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                          <FaUserMd className="text-blue-500" /> Dr. {appointment.doctor.name}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Contact Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="p-3 bg-gray-50 rounded-lg">
@@ -280,7 +285,7 @@ const OwnerAppointments = () => {
                       </div>
                     )}
 
-                    {/* NEW: Display Cancellation Reason */}
+                    {/* Cancellation Reason */}
                     {appointment.status === 'cancelled' && appointment.cancellationReason && (
                       <div className="p-3 bg-red-50 rounded-lg border border-red-200">
                         <p className="text-xs text-red-700 uppercase font-semibold mb-1">Reason for Decline</p>

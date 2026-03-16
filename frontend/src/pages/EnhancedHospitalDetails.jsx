@@ -2,21 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  FaHospital, 
-  FaMapMarkerAlt, 
-  FaPhone, 
-  FaStar,
-  FaSearch,
-  FaUserMd,
-  FaFlask,
-  FaCut,
-  FaPills,
-  FaProcedures,
-  FaSpa,
-  FaClipboardList,
-  FaBed,
-  FaShieldAlt,
-  FaCalendarCheck
+  FaHospital, FaMapMarkerAlt, FaPhone, FaStar, FaSearch,
+  FaUserMd, FaFlask, FaCut, FaPills, FaProcedures, FaSpa,
+  FaClipboardList, FaBed, FaShieldAlt, FaCalendarCheck
 } from 'react-icons/fa';
 import Footer from '../components/Footer';
 import API_URL from '../config/api';
@@ -31,7 +19,6 @@ const EnhancedHospitalDetails = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
     fetchHospitalDetails();
   }, [id]);
 
@@ -55,7 +42,7 @@ const EnhancedHospitalDetails = () => {
       return;
     }
     
-    // ✅ FIX: Route passes both hospital ID and specific doctor ID
+    // Direct to booking page with specific doctor ID if clicked from Doctor Card
     const url = `/appointments/book?hospital=${hospital._id}${doctorId ? `&doctor=${doctorId}` : ''}`;
     navigate(url);
   };
@@ -76,7 +63,6 @@ const EnhancedHospitalDetails = () => {
     );
   }
 
-  // Group tests/services by category
   const categories = [
     { id: 'tests', name: 'Tests', icon: FaFlask, count: hospital.tests?.length || 0 },
     { id: 'treatments', name: 'Treatment', icon: FaPills, count: hospital.treatments?.length || 0 },
@@ -105,9 +91,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No tests available</p>
-            )}
+            ) : <p className="text-gray-500">No tests available</p>}
           </div>
         );
 
@@ -124,9 +108,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No treatments available</p>
-            )}
+            ) : <p className="text-gray-500">No treatments available</p>}
           </div>
         );
 
@@ -143,9 +125,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No surgeries available</p>
-            )}
+            ) : <p className="text-gray-500">No surgeries available</p>}
           </div>
         );
 
@@ -162,9 +142,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No procedures available</p>
-            )}
+            ) : <p className="text-gray-500">No procedures available</p>}
           </div>
         );
 
@@ -181,9 +159,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No therapies available</p>
-            )}
+            ) : <p className="text-gray-500">No therapies available</p>}
           </div>
         );
 
@@ -200,9 +176,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No management services available</p>
-            )}
+            ) : <p className="text-gray-500">No management services available</p>}
           </div>
         );
 
@@ -219,82 +193,69 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No facilities available</p>
-            )}
+            ) : <p className="text-gray-500">No facilities available</p>}
           </div>
         );
 
       case 'doctors':
         return (
           <div>
-            <h2 className="text-2xl font-bold mb-6">Doctors in {hospital.name}</h2>
+            <h2 className="text-2xl font-bold mb-6">Our Specialists</h2>
             {hospital.doctors && hospital.doctors.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {hospital.doctors.map((doctor, idx) => (
-                  <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition flex flex-col">
-                    {/* Doctor Photo */}
-                    <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-200">
-                      {doctor.photo ? (
-                        <img
-                          src={doctor.photo}
-                          alt={doctor.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <FaUserMd className="text-6xl text-blue-400" />
-                        </div>
-                      )}
+                  <div key={idx} className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all overflow-hidden flex flex-col h-full">
+                    
+                    {/* Doctor Photo Section */}
+                    <div className="h-32 flex items-end justify-center relative bg-gradient-to-b from-blue-50 to-blue-100">
+                       {doctor.photo ? (
+                         <img src={doctor.photo} alt={doctor.name} className="w-24 h-24 rounded-full object-cover border-4 border-white absolute -bottom-12 shadow-sm" />
+                       ) : (
+                         <div className="w-24 h-24 rounded-full bg-white border-4 border-gray-100 flex items-center justify-center absolute -bottom-12 shadow-sm">
+                           <FaUserMd className="text-4xl text-gray-300" />
+                         </div>
+                       )}
                     </div>
-
+                    
                     {/* Doctor Info */}
-                    <div className="p-4 flex-1 flex flex-col">
-                      <h3 className="font-bold text-gray-900 mb-1">{doctor.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{doctor.specialization}</p>
+                    <div className="pt-16 p-5 flex-1 flex flex-col text-center">
+                      <h3 className="text-xl font-bold text-gray-900">{doctor.name}</h3>
+                      <p className="text-sm font-bold text-blue-600 mb-2">{doctor.specialization}</p>
                       
-                      {doctor.rating > 0 && (
-                        <div className="flex items-center gap-1 mb-2">
-                          <span className="font-bold text-gray-900">{doctor.rating}</span>
-                          <FaStar className="text-yellow-500 text-sm" />
-                        </div>
-                      )}
-
-                      {doctor.experience && (
-                        <p className="text-xs text-gray-500 mb-2">
-                          Experience: {doctor.experience}
-                        </p>
-                      )}
-
-                      {/* ✅ FIX: Correctly mapping the schema fields */}
-                      {doctor.availability && (
-                        <p className="text-xs text-gray-700 font-semibold mb-1">
-                          Timing: {doctor.availability}
-                        </p>
-                      )}
-
-                      {doctor.consultationFee && (
-                        <p className="text-xs text-green-700 font-bold mb-3">
-                          ₹{doctor.consultationFee} Consultation
-                        </p>
-                      )}
-
-                      <div className="mt-auto pt-3">
-                        <button 
-                          onClick={() => handleBookAppointment(doctor._id)}
-                          disabled={!hospital.appointmentsEnabled}
-                          className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {hospital.appointmentsEnabled ? 'Book Appointment' : 'Currently Unavailable'}
-                        </button>
+                      <div className="text-sm text-gray-600 space-y-1 mb-4">
+                        {doctor.qualification && <p>🎓 {doctor.qualification}</p>}
+                        {doctor.experience && <p>⭐ {doctor.experience} Experience</p>}
+                        {doctor.languages?.length > 0 && <p>🗣️ {doctor.languages.join(', ')}</p>}
                       </div>
+                      
+                      {/* Fees & Timing (Fallback included for old data) */}
+                      <div className="mt-auto border-t border-gray-100 pt-4 flex justify-between items-center px-2 pb-4">
+                         <div className="text-left">
+                           <p className="text-[10px] text-gray-500 uppercase font-bold">OPD Timing</p>
+                           <p className="text-sm font-semibold text-gray-800">{doctor.availability || doctor.opdTiming || 'Contact Hospital'}</p>
+                         </div>
+                         <div className="text-right">
+                           <p className="text-[10px] text-gray-500 uppercase font-bold">Consultation</p>
+                           <p className="text-lg font-black text-green-600">
+                             {doctor.consultationFee || doctor.fees ? `₹${doctor.consultationFee || doctor.fees}` : 'N/A'}
+                           </p>
+                         </div>
+                      </div>
+
+                      {/* Direct Book Appointment Button */}
+                      <button 
+                        onClick={() => handleBookAppointment(doctor._id)} 
+                        disabled={!hospital.appointmentsEnabled}
+                        className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {hospital.appointmentsEnabled ? 'Book Appointment' : 'Booking Unavailable'}
+                      </button>
+
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No doctors available</p>
-            )}
+            ) : <p className="text-gray-500">No doctors available</p>}
           </div>
         );
 
@@ -311,9 +272,7 @@ const EnhancedHospitalDetails = () => {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-gray-500">No insurance information available</p>
-            )}
+            ) : <p className="text-gray-500">No insurance information available</p>}
           </div>
         );
 
@@ -341,44 +300,33 @@ const EnhancedHospitalDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex-1">
+        
         {/* Header */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2"
-            >
-              ← Back
-            </button>
+            <button onClick={() => navigate(-1)} className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2">← Back</button>
             
-            <div className="flex items-start gap-4">
-              <FaHospital className="text-4xl text-blue-600 mt-1" />
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{hospital.name}</h1>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-blue-500" />
-                    <span>{hospital.address?.city}, {hospital.address?.state}</span>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <FaHospital className="text-4xl text-blue-600 mt-1" />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{hospital.name}</h1>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2"><FaMapMarkerAlt className="text-blue-500" /><span>{hospital.address?.city}, {hospital.address?.state}</span></div>
+                    <div className="flex items-center gap-2"><FaPhone className="text-green-500" /><span>{hospital.phone}</span></div>
+                    {hospital.googleRating > 0 && (
+                      <div className="flex items-center gap-2"><FaStar className="text-yellow-500" /><span className="font-semibold">{hospital.googleRating}</span></div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <FaPhone className="text-green-500" />
-                    <span>{hospital.phone}</span>
-                  </div>
-                  {hospital.googleRating > 0 && (
-                    <div className="flex items-center gap-2">
-                      <FaStar className="text-yellow-500" />
-                      <span className="font-semibold">{hospital.googleRating}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
               {hospital.owner && hospital.appointmentsEnabled && (
                 <button
                   onClick={() => handleBookAppointment()}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2 whitespace-nowrap"
                 >
-                  <FaCalendarCheck /> Book Appointment
+                  <FaCalendarCheck /> Book General Appointment
                 </button>
               )}
             </div>
@@ -392,7 +340,6 @@ const EnhancedHospitalDetails = () => {
             {/* Left Sidebar */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-md p-4 sticky top-4">
-                {/* Search */}
                 <div className="relative mb-4">
                   <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
@@ -404,22 +351,16 @@ const EnhancedHospitalDetails = () => {
                   />
                 </div>
 
-                {/* Categories */}
                 <div className="space-y-1">
                   {categories.map((category) => (
                     <button
                       key={category.id}
                       onClick={() => setActiveTab(category.id)}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition ${
-                        activeTab === category.id
-                          ? 'bg-blue-100 text-blue-700 font-semibold'
-                          : 'text-gray-700 hover:bg-gray-100'
+                        activeTab === category.id ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <category.icon className="text-lg" />
-                        <span>{category.name}</span>
-                      </div>
+                      <div className="flex items-center gap-2"><category.icon className="text-lg" /><span>{category.name}</span></div>
                       <span className="text-sm">({category.count})</span>
                     </button>
                   ))}
@@ -437,7 +378,6 @@ const EnhancedHospitalDetails = () => {
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   );

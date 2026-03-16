@@ -8,22 +8,24 @@ const appointmentSchema = new mongoose.Schema({
   },
   facilityType: {
     type: String,
-    // Added capitalized versions to the enum to pass validation after the setter runs
     enum: ['Hospital', 'Laboratory', 'Lab', 'hospital', 'laboratory', 'lab'],
     required: true,
     set: function(val) {
-      // Automatically capitalizes the string so refPath matches your Model names perfectly
       if (!val) return val;
       const lowerVal = val.toLowerCase();
-      // If your lab model is strictly named 'Lab', change 'Laboratory' to 'Lab' below
       if (lowerVal === 'laboratory' || lowerVal === 'lab') return 'Laboratory'; 
-      return lowerVal.charAt(0).toUpperCase() + lowerVal.slice(1); // 'hospital' -> 'Hospital'
+      return lowerVal.charAt(0).toUpperCase() + lowerVal.slice(1);
     }
   },
   facility: {
     type: mongoose.Schema.Types.ObjectId,
     refPath: 'facilityType',
     required: true
+  },
+  // ✅ NEW FIELD: Stores specific doctor info if selected
+  doctor: {
+    id: { type: String, required: false },
+    name: { type: String, required: false }
   },
   patientName: {
     type: String,
@@ -41,7 +43,6 @@ const appointmentSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    // Allows 10 digits, or 11 digits starting with 0 (Standard Indian formats)
     match: [/^(0)?[0-9]{10}$/, 'Please enter a valid phone number']
   },
   email: {
@@ -82,7 +83,6 @@ const appointmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
 appointmentSchema.index({ user: 1, appointmentDate: -1 });
 appointmentSchema.index({ facility: 1, appointmentDate: -1 });
 

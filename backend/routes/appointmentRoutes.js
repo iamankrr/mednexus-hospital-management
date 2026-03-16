@@ -12,6 +12,7 @@ router.post('/', protect, async (req, res) => {
     const {
       facilityType,
       facilityId,
+      doctor, // ✅ NEW: Accept doctor object
       patientName,
       patientAge,
       patientGender,
@@ -81,6 +82,7 @@ router.post('/', protect, async (req, res) => {
       user: req.user.id,
       facilityType,
       facility: facilityId,
+      doctor, // ✅ Save specific doctor if selected
       patientName,
       patientAge,
       patientGender,
@@ -115,7 +117,6 @@ router.get('/my-appointments', protect, async (req, res) => {
   try {
     console.log('📋 Fetching appointments for user:', req.user.email);
 
-    // Let Mongoose handle the dynamic population using refPath automatically
     const appointments = await Appointment.find({ user: req.user.id })
       .populate('facility', 'name address phone images themeColor') 
       .sort({ appointmentDate: -1, createdAt: -1 });
@@ -140,7 +141,6 @@ router.get('/my-appointments', protect, async (req, res) => {
 // ===== GET FACILITY APPOINTMENTS (Owner/Admin) =====
 router.get('/facility/:facilityId', protect, async (req, res) => {
   try {
-    // Only owner or admin
     if (req.user.role !== 'owner' && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -148,7 +148,6 @@ router.get('/facility/:facilityId', protect, async (req, res) => {
       });
     }
 
-    // If owner, verify ownership
     if (req.user.role === 'owner') {
       if (req.user.ownerProfile?.facilityId?.toString() !== req.params.facilityId) {
         return res.status(403).json({
@@ -161,8 +160,6 @@ router.get('/facility/:facilityId', protect, async (req, res) => {
     const appointments = await Appointment.find({ facility: req.params.facilityId })
       .populate('user', 'name email phone')
       .sort({ appointmentDate: -1 });
-
-    console.log('✅ Facility appointments:', appointments.length);
 
     res.status(200).json({
       success: true,
@@ -179,7 +176,7 @@ router.get('/facility/:facilityId', protect, async (req, res) => {
   }
 });
 
-// ===== UPDATE APPOINTMENT (User can edit own) =====
+// ===== UPDATE APPOINTMENT =====
 router.put('/:id', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -191,7 +188,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check permission
     if (req.user.role === 'user' && appointment.user.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -199,7 +195,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Admin/Owner can edit any appointment
     const allowedFields = ['patientName', 'patientAge', 'patientGender', 'phone', 
                           'email', 'appointmentDate', 'appointmentTime', 'reason', 
                           'notes', 'status', 'cancellationReason'];
@@ -211,8 +206,6 @@ router.put('/:id', protect, async (req, res) => {
     });
 
     await appointment.save();
-
-    console.log('✅ Appointment updated:', appointment._id);
 
     res.status(200).json({
       success: true,
@@ -229,7 +222,7 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// ===== DELETE APPOINTMENT (User can delete own) =====
+// ===== DELETE APPOINTMENT =====
 router.delete('/:id', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -241,7 +234,6 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check permission
     if (req.user.role === 'user' && appointment.user.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -250,8 +242,6 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     await appointment.deleteOne();
-
-    console.log('✅ Appointment deleted:', req.params.id);
 
     res.status(200).json({
       success: true,
@@ -289,7 +279,6 @@ router.get('/', protect, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get all appointments error:', error);
     res.status(500).json({
       success: false,
       message: error.message

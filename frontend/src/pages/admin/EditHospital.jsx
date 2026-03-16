@@ -37,7 +37,7 @@ const EditHospital = () => {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false); 
 
-  // Helpers for Purana Arrays
+  // Helpers for Arrays
   const [newTest, setNewTest] = useState('');
   const [newTreatment, setNewTreatment] = useState('');
   const [newSurgery, setNewSurgery] = useState('');
@@ -47,7 +47,7 @@ const EditHospital = () => {
   const [newInsurance, setNewInsurance] = useState('');
   const [customFacility, setCustomFacility] = useState(''); 
 
-  // Helpers for NAYA Features - FIXED DOCTOR SCHEMA KEYS
+  // ✅ FIXED DOCTOR SCHEMA KEYS
   const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '' });
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
@@ -246,8 +246,11 @@ const EditHospital = () => {
                 <input type="text" placeholder="Specialization (e.g. Cardiologist) *" value={newDoctor.specialization} onChange={e=>setNewDoctor({...newDoctor, specialization: e.target.value})} className="p-2 border rounded shadow-sm" />
                 <input type="text" placeholder="Qualification (e.g. MBBS, MD)" value={newDoctor.qualification} onChange={e=>setNewDoctor({...newDoctor, qualification: e.target.value})} className="p-2 border rounded shadow-sm" />
                 <input type="text" placeholder="Experience (e.g. 18 Years)" value={newDoctor.experience} onChange={e=>setNewDoctor({...newDoctor, experience: e.target.value})} className="p-2 border rounded shadow-sm" />
-                <input type="number" placeholder="Fees (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
-                <input type="text" placeholder="OPD Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
+                
+                {/* ✅ FIXED SCHEMA KEYS */}
+                <input type="number" placeholder="Consultation Fee (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
+                <input type="text" placeholder="Availability / Timings" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
+                
                 <input type="text" placeholder="Languages (e.g. English, Hindi)" value={newDoctor.languages} onChange={e=>setNewDoctor({...newDoctor, languages: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-3" />
               </div>
               <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
@@ -373,7 +376,7 @@ const EditHospital = () => {
                 <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.isoCertification||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, isoCertification: e.target.checked}})} className="w-4 h-4" /> ISO Certification</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.governmentApproval||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, governmentApproval: e.target.checked}})} className="w-4 h-4" /> Government Approved</label>
                 
-                {/* ✅ FIX: ADD AWARDS BUG */}
+                {/* ✅ FIX: AWARDS BUTTON LOGIC */}
                 <div className="mt-4">
                   <label className="text-xs font-bold text-gray-700">Add Award / Certification</label>
                   <div className="flex gap-2 mt-1">

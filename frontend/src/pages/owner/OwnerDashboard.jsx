@@ -28,7 +28,6 @@ const OwnerDashboard = () => {
         return;
       }
 
-      // Get current user
       const userRes = await axios.get(`${API_URL}/api/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -43,9 +42,8 @@ const OwnerDashboard = () => {
 
       setUser(userData);
 
-      // If owner has facility, fetch it
       if (userData.ownerProfile?.facilityId) {
-        const typeForApi = userData.ownerProfile.facilityType; // 'hospital' or 'laboratory'
+        const typeForApi = userData.ownerProfile.facilityType; 
         const facilityId = userData.ownerProfile.facilityId;
         
         const endpoint = typeForApi === 'hospital' 
@@ -57,7 +55,6 @@ const OwnerDashboard = () => {
         
         setFacility(facilityData);
 
-        // Fetch Appointments count
         let totalAppts = 0;
         try {
           const aptRes = await axios.get(`${API_URL}/api/appointments/facility/${facilityId}`, {
@@ -68,7 +65,6 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // Fetch Live Reviews
         let calcTotalReviews = 0;
         let calcRating = 0;
         try {
@@ -84,7 +80,6 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch live reviews for dashboard', e);
         }
 
-        // Calculate Dynamic Listed Services
         let calcServices = 0;
         if (typeForApi === 'hospital') {
           calcServices = 
@@ -157,13 +152,11 @@ const OwnerDashboard = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Owner Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user.name}!</p>
         </div>
 
-        {/* Facility Info Card */}
         <div className="bg-white rounded-2xl shadow-md p-6 mb-8 border-l-4" style={{ borderColor: facility?.themeColor || '#1E40AF' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -187,9 +180,7 @@ const OwnerDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-yellow-400" />
@@ -225,10 +216,9 @@ const OwnerDashboard = () => {
             <p className="text-3xl font-bold text-gray-900">{stats.totalAppointments}</p>
             <p className="text-sm text-gray-500 mt-1">Total Appointments</p>
           </div>
-
         </div>
 
-        {/* Quick Actions - FIXED: Removed "Manage Services" card */}
+        {/* ✅ FIX: Removed "Manage Services" card, adjusted to 2 columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/facility')}>
