@@ -1,25 +1,28 @@
 import axios from 'axios';
 
-// Environment variable se URL lo, agar na mile toh Render ka live URL use karo
-const API_BASE_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api` 
-  : 'https://mednexus-hospital-management.onrender.com/api';
+// 🔥 BULLETPROOF TRICK: Check actual browser URL
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-// Create axios instance with better error handling
+// Tumhara Live Render Backend URL
+const LIVE_BACKEND_URL = 'https://mednexus-hospital-management.onrender.com';
+
+// Agar local pe ho toh localhost:3000/api chalega, Vercel par ho toh Render chalega.
+// (Bina kisi .env variable ke jhanjhat ke!)
+const API_BASE_URL = isLocalhost ? 'http://localhost:3000/api' : `${LIVE_BACKEND_URL}/api`;
+
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  // timeout: 30000, // ⬅️ INCREASED TO 30 SECONDS
+  timeout: 60000, // ✅ INCREASED TO 60 SECONDS (Render ke sone (sleep) ki wajah se ye bohot zaroori hai!)
 });
 
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    
-    // console.log('🔍 API Request:', config.method.toUpperCase(), config.url);
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -40,7 +43,8 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.code === 'ECONNABORTED') {
-      console.error('❌ Request Timeout:', error.config.url);
+      console.error('❌ Request Timeout: Backend so raha tha, time lag gaya.', error.config.url);
+      alert("Server is waking up. Please try again in 10 seconds."); // User ko warning
     } else if (error.response) {
       console.error('❌ API Error:', error.response.status, error.response.data);
     } else {
