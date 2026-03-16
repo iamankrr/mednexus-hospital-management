@@ -4,11 +4,14 @@ import {
   FaCheckCircle, FaTimesCircle, FaArrowLeft, FaStar,
   FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock,
   FaRupeeSign, FaAmbulance, FaGoogle, FaSync,
-  FaBed, FaStethoscope, FaAward, FaHospital, FaFlask
+  FaBed, FaStethoscope, FaAward, FaHospital, FaFlask,
+  FaBalanceScale, FaHeart, FaUserMd, FaClipboardList, 
+  FaCut, FaPills, FaShieldAlt // ✅ FIX: Saare naye icons yahan add kar diye hain
 } from 'react-icons/fa';
 import { useComparison } from '../context/ComparisonContext';
 import { useLocation as useUserLocation } from '../context/LocationContext';
 import axios from 'axios';
+import API_URL from '../config/api'; // ✅ FIX: Localhost ki jagah Live API URL import kiya
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -85,11 +88,14 @@ const Compare = () => {
         compareItems.map(async (item) => {
           try {
             const id = item._id || item.id;
+            // ✅ FIX: Using API_URL instead of localhost
             const endpoint = facilityType === 'hospital'
-              ? `http://localhost:3000/api/hospitals/${id}`
-              : `http://localhost:3000/api/labs/${id}`;
+              ? `${API_URL}/api/hospitals/${id}`
+              : `${API_URL}/api/labs/${id}`;
+              
             const response = await axios.get(endpoint);
             const fullData = response.data.data || response.data;
+            
             if (userLocation && fullData.location?.coordinates) {
               fullData.distance = calculateDistance(
                 userLocation.latitude, userLocation.longitude,
@@ -287,7 +293,7 @@ const Compare = () => {
               }}
               highlightBest={(item) => {
                 const fee = getLowestConsultationFee(item.doctors);
-                return fee ? -fee : null; // Lower is better
+                return fee ? -fee : null; 
               }}
             />
 
@@ -303,7 +309,7 @@ const Compare = () => {
               }}
               highlightBest={(item) => {
                 const price = getLowestRoomPrice(item.roomTypes);
-                return price ? -price : null; // Lower is better
+                return price ? -price : null; 
               }}
             />
 
