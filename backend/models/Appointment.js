@@ -8,8 +8,17 @@ const appointmentSchema = new mongoose.Schema({
   },
   facilityType: {
     type: String,
-    enum: ['hospital', 'laboratory'],
-    required: true
+    // Added capitalized versions to the enum to pass validation after the setter runs
+    enum: ['Hospital', 'Laboratory', 'Lab', 'hospital', 'laboratory', 'lab'],
+    required: true,
+    set: function(val) {
+      // Automatically capitalizes the string so refPath matches your Model names perfectly
+      if (!val) return val;
+      const lowerVal = val.toLowerCase();
+      // If your lab model is strictly named 'Lab', change 'Laboratory' to 'Lab' below
+      if (lowerVal === 'laboratory' || lowerVal === 'lab') return 'Laboratory'; 
+      return lowerVal.charAt(0).toUpperCase() + lowerVal.slice(1); // 'hospital' -> 'Hospital'
+    }
   },
   facility: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +41,8 @@ const appointmentSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    match: [/^[0-9]{10}$/, 'Phone must be 10 digits']
+    // Allows 10 digits, or 11 digits starting with 0 (Standard Indian formats)
+    match: [/^(0)?[0-9]{10}$/, 'Please enter a valid phone number']
   },
   email: {
     type: String,
@@ -56,7 +66,6 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],
     default: 'pending'
   },
-  // FIX: Added this new field to store the owner's decline reason
   cancellationReason: {
     type: String,
     required: false

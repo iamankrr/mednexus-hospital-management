@@ -1,5 +1,3 @@
-// models/Booking.js
-
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema(
@@ -114,4 +112,3 @@ bookingSchema.methods.cancelBooking = function(reason) {
 };
 
 module.exports = mongoose.model('Booking', bookingSchema);
-

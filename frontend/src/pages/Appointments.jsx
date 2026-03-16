@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaClock, FaHospital, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaTimes } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaHospital, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle, FaTimes, FaEraser } from 'react-icons/fa';
 import axios from 'axios';
 import API_URL from '../config/api';
 
@@ -64,7 +64,7 @@ const Appointments = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // ✅ FIX: Instead of DELETE, we update status to 'cancelled' so owner can see the reason
+      // Update status to 'cancelled' so owner can see the reason
       await axios.put(`${API_URL}/api/appointments/${selectedAptId}`, {
         status: 'cancelled',
         cancellationReason: `User Cancelled: ${finalReason}`
@@ -79,6 +79,23 @@ const Appointments = () => {
       alert('Failed to cancel appointment');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  // NEW: Delete from History
+  const handleDeleteHistory = async (id) => {
+    if (!window.confirm("Remove this appointment from your history?")) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/api/appointments/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('🗑️ Removed from history');
+      fetchAppointments();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to remove appointment');
     }
   };
 
@@ -138,10 +155,10 @@ const Appointments = () => {
                       <FaHospital className="text-2xl text-blue-500" />
                       <div>
                         <h3 className="text-xl font-bold text-gray-900">
-                          {appointment.facility?.name || 'Facility Name'}
+                          {appointment.facility?.name || 'Facility Name Unavailable'}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          {appointment.facility?.address?.city || ''}, {appointment.facility?.address?.state || ''}
+                          {appointment.facility?.address?.city || ''}{appointment.facility?.address?.state ? `, ${appointment.facility.address.state}` : ''}
                         </p>
                       </div>
                     </div>
@@ -204,6 +221,16 @@ const Appointments = () => {
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition"
                       >
                         <FaTrash /> Cancel
+                      </button>
+                    )}
+
+                    {/* NEW: Remove from History Button */}
+                    {(appointment.status === 'cancelled' || appointment.status === 'completed') && (
+                      <button
+                        onClick={() => handleDeleteHistory(appointment._id)}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition"
+                      >
+                        <FaEraser /> Remove
                       </button>
                     )}
                   </div>

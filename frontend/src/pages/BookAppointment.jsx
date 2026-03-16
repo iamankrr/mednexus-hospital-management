@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaEnvelope, FaNotesMedical } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../config/api';
 
 const BookAppointment = () => {
   const location = useLocation();
@@ -27,7 +28,7 @@ const BookAppointment = () => {
     notes: ''
   });
 
-  // ✅ FIXED: Fetch facility based on URL query params
+  // Fetch facility based on URL query params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const urlHospitalId = params.get('hospital');
@@ -61,8 +62,8 @@ const BookAppointment = () => {
     try {
       setFetchingData(true);
       const endpoint = type === 'hospital' 
-        ? `http://localhost:3000/api/hospitals/${id}`
-        : `http://localhost:3000/api/labs/${id}`;
+        ? `${API_URL}/api/hospitals/${id}`
+        : `${API_URL}/api/labs/${id}`;
       
       const response = await axios.get(endpoint);
       setFacility(response.data.data);
@@ -90,7 +91,7 @@ const BookAppointment = () => {
       console.log('📅 Booking appointment for:', facility.name);
 
       const response = await axios.post(
-        'http://localhost:3000/api/appointments',
+        `${API_URL}/api/appointments`,
         {
           facilityType: facilityType,
           facilityId: facilityId,
@@ -104,7 +105,7 @@ const BookAppointment = () => {
       console.log('✅ Response:', response.data);
 
       if (response.data.success) {
-        // ✅ Success Modal
+        // Success Modal
         const confirmMessage = `✅ Appointment Booked Successfully!
 
 Hospital/Lab: ${facility.name}

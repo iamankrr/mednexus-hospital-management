@@ -35,7 +35,7 @@ router.post('/', protect, async (req, res) => {
     }
 
     // Check facility exists
-    const Model = facilityType === 'hospital' ? Hospital : Laboratory;
+    const Model = facilityType.toLowerCase() === 'hospital' ? Hospital : Laboratory;
     const facility = await Model.findById(facilityId);
 
     if (!facility) {
@@ -100,39 +100,17 @@ router.get('/my-appointments', protect, async (req, res) => {
   try {
     console.log('📋 Fetching appointments for user:', req.user.email);
 
-    const Hospital = require('../models/Hospital');
-    const Laboratory = require('../models/Laboratory');
-
+    // FIXED: Let Mongoose handle the dynamic population using refPath automatically
     const appointments = await Appointment.find({ user: req.user.id })
+      .populate('facility', 'name address phone images themeColor') // Fetches the required facility details seamlessly
       .sort({ appointmentDate: -1, createdAt: -1 });
 
-    // Manually populate based on facilityType
-    const populatedAppointments = await Promise.all(
-      appointments.map(async (apt) => {
-        const aptObj = apt.toObject();
-        
-        try {
-          if (apt.facilityType === 'hospital') {
-            const hospital = await Hospital.findById(apt.facility);
-            aptObj.facility = hospital;
-          } else if (apt.facilityType === 'laboratory') {
-            const lab = await Laboratory.findById(apt.facility);
-            aptObj.facility = lab;
-          }
-        } catch (err) {
-          console.error('Populate error:', err);
-        }
-        
-        return aptObj;
-      })
-    );
-
-    console.log('✅ Found appointments:', populatedAppointments.length);
+    console.log('✅ Found appointments:', appointments.length);
 
     res.status(200).json({
       success: true,
-      count: populatedAppointments.length,
-      data: populatedAppointments
+      count: appointments.length,
+      data: appointments
     });
 
   } catch (error) {
@@ -207,9 +185,10 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     // Admin/Owner can edit any appointment
+    // FIXED: Added 'cancellationReason' to the allowed update fields
     const allowedFields = ['patientName', 'patientAge', 'patientGender', 'phone', 
                           'email', 'appointmentDate', 'appointmentTime', 'reason', 
-                          'notes', 'status'];
+                          'notes', 'status', 'cancellationReason'];
 
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {

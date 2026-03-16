@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaCheckCircle, FaTimesCircle, FaEnvelope, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../../config/api';
 
 const OwnerAppointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -14,7 +15,7 @@ const OwnerAppointments = () => {
   const fetchAppointments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const userRes = await axios.get('http://localhost:3000/api/users/me', {
+      const userRes = await axios.get(`${API_URL}/api/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -24,7 +25,7 @@ const OwnerAppointments = () => {
         return;
       }
 
-      const response = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
+      const response = await axios.get(`${API_URL}/api/appointments/facility/${facilityId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -59,7 +60,7 @@ const OwnerAppointments = () => {
       }
 
       await axios.put(
-        `http://localhost:3000/api/appointments/${id}`,
+        `${API_URL}/api/appointments/${id}`,
         payload,
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -74,13 +75,12 @@ const OwnerAppointments = () => {
     }
   };
 
-  // ✅ FIX: Added Delete logic
   const handleDeleteAppointment = async (id) => {
     if (!window.confirm("Are you sure you want to completely delete this appointment? This action cannot be undone.")) return;
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:3000/api/appointments/${id}`, {
+      await axios.delete(`${API_URL}/api/appointments/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       alert('🗑️ Appointment deleted successfully!');
@@ -274,9 +274,17 @@ const OwnerAppointments = () => {
 
                     {/* Notes */}
                     {appointment.notes && (
-                      <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="p-3 bg-gray-50 rounded-lg mb-3">
                         <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Additional Notes</p>
                         <p className="text-sm text-gray-900">{appointment.notes}</p>
+                      </div>
+                    )}
+
+                    {/* NEW: Display Cancellation Reason */}
+                    {appointment.status === 'cancelled' && appointment.cancellationReason && (
+                      <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                        <p className="text-xs text-red-700 uppercase font-semibold mb-1">Reason for Decline</p>
+                        <p className="text-sm text-gray-900">{appointment.cancellationReason}</p>
                       </div>
                     )}
                   </div>
@@ -309,7 +317,6 @@ const OwnerAppointments = () => {
                       </button>
                     )}
 
-                    {/* ✅ FIX: Delete button available only after action is taken */}
                     {appointment.status !== 'pending' && (
                       <button
                         onClick={() => handleDeleteAppointment(appointment._id)}

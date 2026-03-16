@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHospital, FaCalendarAlt, FaStar, FaEdit, FaArrowRight, FaClipboardList } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../../config/api';
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const OwnerDashboard = () => {
       }
 
       // Get current user
-      const userRes = await axios.get('http://localhost:3000/api/users/me', {
+      const userRes = await axios.get(`${API_URL}/api/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -48,8 +49,8 @@ const OwnerDashboard = () => {
         const facilityId = userData.ownerProfile.facilityId;
         
         const endpoint = typeForApi === 'hospital' 
-          ? `http://localhost:3000/api/hospitals/${facilityId}`
-          : `http://localhost:3000/api/labs/${facilityId}`;
+          ? `${API_URL}/api/hospitals/${facilityId}`
+          : `${API_URL}/api/labs/${facilityId}`;
 
         const facilityRes = await axios.get(endpoint);
         const facilityData = facilityRes.data.data;
@@ -59,7 +60,7 @@ const OwnerDashboard = () => {
         // Fetch Appointments count
         let totalAppts = 0;
         try {
-          const aptRes = await axios.get(`http://localhost:3000/api/appointments/facility/${facilityId}`, {
+          const aptRes = await axios.get(`${API_URL}/api/appointments/facility/${facilityId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           totalAppts = aptRes.data.data ? aptRes.data.data.length : 0;
@@ -67,11 +68,11 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // ✅ DYNAMICALLY FETCH REVIEWS FROM PUBLIC API (Matches Home Screen)
+        // DYNAMICALLY FETCH REVIEWS FROM PUBLIC API (Matches Home Screen)
         let calcTotalReviews = 0;
         let calcRating = 0;
         try {
-          const revRes = await axios.get(`http://localhost:3000/api/reviews/${typeForApi}/${facilityId}`);
+          const revRes = await axios.get(`${API_URL}/api/reviews/${typeForApi}/${facilityId}`);
           const approvedReviews = revRes.data.data || [];
           
           calcTotalReviews = approvedReviews.length;

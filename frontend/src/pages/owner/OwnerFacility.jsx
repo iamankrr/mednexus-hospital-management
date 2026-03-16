@@ -40,8 +40,8 @@ const OwnerFacility = () => {
   const [newManagement, setNewManagement] = useState('');
   const [newInsurance, setNewInsurance] = useState('');
 
-  // Complex Objects Handlers State
-  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', fees: '', opdTiming: '', languages: '' });
+  // Complex Objects Handlers State - FIXED DOCTOR SCHEMA KEYS
+  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '' });
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
   const [newRoomType, setNewRoomType] = useState({ type: '', pricePerDay: '', facilities: '' });
@@ -200,16 +200,16 @@ const OwnerFacility = () => {
                   <input type="text" placeholder="Specialization (e.g. Cardiologist) *" value={newDoctor.specialization} onChange={e=>setNewDoctor({...newDoctor, specialization: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="text" placeholder="Qualification (e.g. MBBS, MD)" value={newDoctor.qualification} onChange={e=>setNewDoctor({...newDoctor, qualification: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="text" placeholder="Experience (e.g. 18 Years)" value={newDoctor.experience} onChange={e=>setNewDoctor({...newDoctor, experience: e.target.value})} className="p-2 border rounded shadow-sm" />
-                  <input type="number" placeholder="Fees (₹)" value={newDoctor.fees} onChange={e=>setNewDoctor({...newDoctor, fees: e.target.value})} className="p-2 border rounded shadow-sm" />
-                  <input type="text" placeholder="OPD Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.opdTiming} onChange={e=>setNewDoctor({...newDoctor, opdTiming: e.target.value})} className="p-2 border rounded shadow-sm" />
+                  <input type="number" placeholder="Fees (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
+                  <input type="text" placeholder="OPD Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="text" placeholder="Languages (e.g. English, Hindi)" value={newDoctor.languages} onChange={e=>setNewDoctor({...newDoctor, languages: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-3" />
                 </div>
-                <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', fees:'', opdTiming:'', languages:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
+                <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
               </div>
               <div className="space-y-2 mb-8">
                 {formData.doctors?.map((d, i) => (
                   <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
-                    <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.fees || 'N/A'}</span></div>
+                    <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
                     <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline">Remove</button>
                   </div>
                 ))}
@@ -333,10 +333,35 @@ const OwnerFacility = () => {
                   <label className="text-xs">Add Award</label>
                   <div className="flex gap-2">
                     <input type="text" value={newAward} onChange={e=>setNewAward(e.target.value)} className="flex-1 p-1 border rounded" />
-                    <button type="button" onClick={() => handleAddArrayItem('awards', newAward, setNewAward)} className="bg-blue-600 text-white px-2 rounded">+</button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (newAward.trim()) {
+                          setFormData({
+                            ...formData, 
+                            documents: {
+                              ...formData.documents, 
+                              awards: [...(formData.documents?.awards || []), newAward.trim()]
+                            }
+                          });
+                          setNewAward('');
+                        }
+                      }} 
+                      className="bg-blue-600 text-white px-2 rounded"
+                    >
+                      +
+                    </button>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {formData.documents?.awards?.map((a, i) => <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">{a} <button type="button" onClick={()=> {const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); setFormData({...formData, documents: {...formData.documents, awards: newAw}})}} className="text-red-500">x</button></span>)}
+                    {formData.documents?.awards?.map((a, i) => (
+                      <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        {a} 
+                        <button type="button" onClick={()=> {
+                          const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); 
+                          setFormData({...formData, documents: {...formData.documents, awards: newAw}})
+                        }} className="text-red-500 ml-1 font-bold">x</button>
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
