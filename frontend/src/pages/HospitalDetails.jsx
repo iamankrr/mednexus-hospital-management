@@ -64,7 +64,7 @@ const HospitalDetails = () => {
   const fetchHospital = async () => {
     try {
       if (!hospital) setLoading(true);
-      const res = await hospitalAPI.getById(id);
+      const res = await axios.get(`${API_URL}/api/hospitals/${id}`);
       const data = res.data.data; 
       setHospital(data); 
       if (userLocation && data.location?.coordinates) {
@@ -106,14 +106,14 @@ const HospitalDetails = () => {
     } catch (error) { alert('Failed to update favorites'); }
   };
 
-  const isCompared = hospital ? comparisonList.some(h => (h._id || h.id) === (hospital._id || hospital.id)) : false;
   const handleCompareToggle = () => {
     if (!checkUserRole()) return;
     if (isCompared) removeFromComparison(hospital._id || hospital.id);
     else addToComparison(hospital, 'hospital');
   };
 
-  const handleBookAppointment = () => {
+  // ✅ FIX: Updated routing logic to pass hospital ID and specific doctor ID
+  const handleBookAppointment = (doctorId = null) => {
     const token = localStorage.getItem('token');
     if (!token) {
       alert('You must be logged in to book an appointment!');
@@ -122,7 +122,9 @@ const HospitalDetails = () => {
       return;
     }
     if (!checkUserRole()) return;
-    navigate('/appointments/book', { state: { facility: hospital, type: 'hospital' } });
+    
+    const url = `/appointments/book?hospital=${hospital._id || hospital.id}${doctorId ? `&doctor=${doctorId}` : ''}`;
+    navigate(url);
   };
 
   const scrollToServices = () => document.getElementById('services-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -130,6 +132,7 @@ const HospitalDetails = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div></div>;
   if (!hospital) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500 text-xl">Hospital not found</p></div>;
 
+  const isCompared = comparisonList.some(h => (h._id || h.id) === (hospital._id || hospital.id));
   const theme = hospital.themeColor || '#1E40AF';
   const tabs  = ['overview', 'packages & rooms', 'services', 'reviews'];
 
@@ -236,7 +239,7 @@ const HospitalDetails = () => {
 
               <div className="flex flex-wrap gap-3">
                 {hospital.owner && hospital.appointmentsEnabled ? (
-                  <button onClick={handleBookAppointment} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition hover:opacity-90 shadow-sm" style={{ backgroundColor: theme }}>📅 Book Appointment</button>
+                  <button onClick={() => handleBookAppointment(null)} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition hover:opacity-90 shadow-sm" style={{ backgroundColor: theme }}>📅 Book General Appointment</button>
                 ) : (
                   <div className="px-5 py-3 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium flex items-center gap-2">📅 Appointments Unavailable</div>
                 )}
@@ -454,7 +457,7 @@ const HospitalDetails = () => {
         </div>
       </div>
 
-      {/* DOCTORS SECTION */}
+      {/* ✅ DOCTORS SECTION - FIXED SCHEMA KEYS AND ADDED BUTTON */}
       {hospital.doctors && hospital.doctors.length > 0 && (
         <div className="max-w-6xl mx-auto px-4 mt-12 mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3"><FaStethoscope style={{ color: theme }} /> Our Specialists</h2>
@@ -474,16 +477,25 @@ const HospitalDetails = () => {
                     {doctor.languages?.length > 0 && <p>🗣️ {doctor.languages.join(', ')}</p>}
                   </div>
                   
-                  <div className="mt-auto border-t pt-4 flex justify-between items-center bg-gray-50 -mx-5 -mb-5 px-5 py-3">
+                  <div className="mt-auto border-t pt-4 flex justify-between items-center bg-gray-50 -mx-5 px-5 py-3 mb-4">
                      <div className="text-left">
                        <p className="text-xs text-gray-500 uppercase font-bold">OPD Timing</p>
-                       <p className="text-sm font-medium text-gray-800">{doctor.opdTiming || 'Contact Hospital'}</p>
+                       <p className="text-sm font-medium text-gray-800">{doctor.availability || doctor.opdTiming || 'Contact Hospital'}</p>
                      </div>
                      <div className="text-right">
                        <p className="text-xs text-gray-500 uppercase font-bold">Consultation</p>
-                       <p className="text-lg font-black text-green-600">{doctor.fees ? `₹${doctor.fees}` : 'N/A'}</p>
+                       <p className="text-lg font-black text-green-600">{doctor.consultationFee || doctor.fees ? `₹${doctor.consultationFee || doctor.fees}` : 'N/A'}</p>
                      </div>
                   </div>
+
+                  <button 
+                    onClick={() => handleBookAppointment(doctor._id)} 
+                    disabled={!hospital.appointmentsEnabled}
+                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed -mx-5 -mb-5 px-5"
+                    style={{ width: 'calc(100% + 40px)' }}
+                  >
+                    {hospital.appointmentsEnabled ? 'Book Appointment' : 'Booking Unavailable'}
+                  </button>
                 </div>
               </div>
             ))}
