@@ -24,9 +24,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 const SectionHeader = ({ title, icon }) => (
-  <div className="bg-gray-800 px-6 py-3 flex items-center gap-3 mt-4">
-    <span className="text-white text-xl">{icon}</span>
-    <h3 className="text-white font-bold text-lg">{title}</h3>
+  <div className="bg-gray-800 px-4 md:px-6 py-2.5 md:py-3 flex items-center gap-3 w-full border-y border-gray-700">
+    <span className="text-white text-lg md:text-xl">{icon}</span>
+    <h3 className="text-white font-bold text-sm md:text-lg tracking-wider uppercase">{title}</h3>
   </div>
 );
 
@@ -42,18 +42,25 @@ const CompareRow = ({ label, icon, items, render, highlightBest }) => {
   const bestIndex = getBestIndex();
 
   return (
-    <div className="grid border-b border-gray-200 hover:bg-gray-50 transition min-w-max"
-      style={{ gridTemplateColumns: `minmax(200px, 1fr) repeat(${items.length}, minmax(280px, 1fr))` }}>
-      <div className="p-4 flex items-center gap-3 bg-gray-100 border-r border-gray-300">
-        {icon}
-        <span className="text-sm font-bold text-gray-700">{label}</span>
+    <div className="grid border-b border-gray-200 hover:bg-gray-50 transition w-full"
+      style={{ gridTemplateColumns: `140px repeat(${items.length}, minmax(260px, 1fr))` }}>
+      
+      {/* STICKY LEFT COLUMN FOR MOBILE SWIPE */}
+      <div className="p-3 md:p-4 flex flex-col md:flex-row items-center md:items-start justify-center md:justify-start gap-2 bg-gray-100 border-r border-gray-300 sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+        <span className="text-xl shrink-0">{icon}</span>
+        <span className="text-[11px] md:text-sm font-bold text-gray-800 text-center md:text-left leading-tight break-words w-full">{label}</span>
       </div>
+      
       {items.map((item, index) => (
         <div key={item._id || index}
-          className={`p-4 flex flex-col items-center justify-center border-r border-gray-200 last:border-r-0 ${bestIndex === index ? 'bg-green-50' : 'bg-white'}`}>
-          {render(item)}
+          className={`p-3 md:p-4 flex flex-col items-center justify-center border-r border-gray-200 last:border-r-0 ${bestIndex === index ? 'bg-green-50' : 'bg-white'} overflow-hidden relative`}>
+          
+          <div className="w-full flex flex-col items-center justify-center break-words">
+            {render(item)}
+          </div>
+          
           {bestIndex === index && (
-            <span className="mt-2 text-[10px] uppercase tracking-wider font-bold bg-green-500 text-white px-3 py-1 rounded-full shadow-sm">Top Pick</span>
+            <span className="absolute top-2 right-2 text-[9px] uppercase tracking-wider font-bold bg-green-500 text-white px-2 py-0.5 rounded-full shadow-sm">Top Pick</span>
           )}
         </div>
       ))}
@@ -123,12 +130,6 @@ const Compare = () => {
     }
   };
 
-  const formatAddress = (item) => {
-    if (!item.address) return 'Not Available';
-    const parts = [item.address.street, item.address.area, item.address.city, item.address.state, item.address.pincode].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : 'Not Available';
-  };
-
   const getLowestConsultationFee = (doctors) => {
     if (!doctors || doctors.length === 0) return null;
     const fees = doctors.map(d => d.consultationFee).filter(f => f > 0);
@@ -162,24 +163,24 @@ const Compare = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 md:py-8 pb-20">
-      <div className="max-w-screen-2xl mx-auto px-4">
+      <div className="max-w-screen-2xl mx-auto px-2 md:px-4">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-blue-600 font-bold self-start md:self-auto">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-blue-600 font-bold self-start md:self-auto ml-2">
             <FaArrowLeft /> Back
           </button>
           
           <div className="text-center">
             <h1 className="text-2xl md:text-4xl font-black text-gray-800 tracking-tight">
-              ⚖️ Compare {type === 'hospital' ? 'Hospitals' : 'Laboratories'}
+              ⚖️ Compare {type === 'hospital' ? 'Hospitals' : 'Labs'}
             </h1>
             {lastUpdated && (
               <p className="text-xs text-gray-500 mt-1 font-medium">Auto-Synced: {lastUpdated.toLocaleTimeString()}</p>
             )}
           </div>
           
-          <div className="flex gap-3 self-end md:self-auto">
+          <div className="flex gap-3 self-end md:self-auto mr-2">
             <button onClick={handleRefresh}
               className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-xl hover:bg-blue-200 font-bold text-sm transition">
               <FaSync /> Refresh
@@ -192,33 +193,34 @@ const Compare = () => {
         </div>
 
         {/* Mobile Swipe Hint */}
-        <div className="md:hidden bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center justify-center gap-2">
-          <span className="text-xl">↔️</span>
-          <p className="text-sm font-bold text-blue-800">Swipe left to see all facilities</p>
+        <div className="md:hidden bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center justify-center gap-2 mx-2">
+          <span className="text-xl animate-pulse">↔️</span>
+          <p className="text-sm font-bold text-blue-800">Swipe table left to see all</p>
         </div>
 
         {/* Main Table Container */}
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden overflow-x-auto custom-scrollbar">
-          <div style={{ minWidth: `${200 + items.length * 280}px` }}>
+        <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-gray-200 overflow-x-auto custom-scrollbar relative w-full">
+          {/* Dynamic Width Calculator based on columns */}
+          <div style={{ minWidth: `max(100%, ${140 + items.length * 260}px)` }}>
 
-            {/* Entity Headers */}
-            <div className="grid" style={{ gridTemplateColumns: `minmax(200px, 1fr) repeat(${items.length}, minmax(280px, 1fr))` }}>
-              <div className="bg-gray-800 p-6 flex flex-col justify-center items-center border-r border-gray-700">
-                <FaBalanceScale className="text-4xl text-gray-400 mb-2" />
-                <p className="text-white font-black text-xl uppercase tracking-widest">Compare</p>
+            {/* Top Entity Headers */}
+            <div className="grid" style={{ gridTemplateColumns: `140px repeat(${items.length}, minmax(260px, 1fr))` }}>
+              <div className="bg-gray-800 p-4 flex flex-col justify-center items-center border-r border-gray-700 sticky left-0 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">
+                <FaBalanceScale className="text-3xl text-gray-400 mb-2" />
+                <p className="text-white font-black text-sm md:text-base uppercase tracking-widest text-center">Compare</p>
               </div>
               {items.map((item, index) => (
-                <div key={item._id || index} className={`${themes[index].bg} p-6 text-white relative overflow-hidden`}>
+                <div key={item._id || index} className={`${themes[index].bg} p-4 md:p-6 text-white relative overflow-hidden`}>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
                   {item.images?.[0] ? (
-                    <img src={item.images[0]} alt={item.name} className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-full mx-auto border-4 border-white shadow-lg mb-4" />
+                    <img src={item.images[0]} alt={item.name} className="w-20 h-20 md:w-28 md:h-28 object-cover rounded-full mx-auto border-4 border-white shadow-lg mb-3" />
                   ) : (
-                    <div className="w-24 h-24 md:w-32 md:h-32 bg-white bg-opacity-20 rounded-full mx-auto border-4 border-white shadow-lg mb-4 flex items-center justify-center">
-                      <span className="text-4xl md:text-5xl">{type === 'hospital' ? '🏥' : '🔬'}</span>
+                    <div className="w-20 h-20 md:w-28 md:h-28 bg-white bg-opacity-20 rounded-full mx-auto border-4 border-white shadow-lg mb-3 flex items-center justify-center">
+                      <span className="text-4xl">{type === 'hospital' ? '🏥' : '🔬'}</span>
                     </div>
                   )}
-                  <h3 className="text-xl md:text-2xl font-black text-center leading-tight mb-1">{item.name}</h3>
-                  <p className="text-sm font-medium text-white text-opacity-90 text-center flex justify-center items-center gap-1">
+                  <h3 className="text-lg md:text-xl font-black text-center leading-tight mb-1 line-clamp-2">{item.name}</h3>
+                  <p className="text-xs font-medium text-white text-opacity-90 text-center flex justify-center items-center gap-1">
                     <FaMapMarkerAlt /> {item.address?.city || ''}
                   </p>
                 </div>
@@ -228,27 +230,27 @@ const Compare = () => {
             {/* ================= RATINGS ================= */}
             <SectionHeader title="Ratings & Reviews" icon={<FaStar className="text-yellow-400" />} />
             
-            <CompareRow label="Google Rating" icon={<FaGoogle className="text-blue-500 text-lg" />} items={items}
+            <CompareRow label="Google Rating" icon={<FaGoogle className="text-blue-500" />} items={items}
               render={(item) => (
                 <div className="text-center">
                   <div className="flex items-center gap-1 justify-center">
-                    <span className="text-2xl font-black text-gray-800">{item.googleRating ? item.googleRating.toFixed(1) : 'N/A'}</span>
-                    <FaStar className="text-yellow-400 text-xl" />
+                    <span className="text-xl md:text-2xl font-black text-gray-800">{item.googleRating ? item.googleRating.toFixed(1) : 'N/A'}</span>
+                    <FaStar className="text-yellow-400 text-lg md:text-xl" />
                   </div>
-                  <p className="text-xs font-bold text-gray-500 mt-1">{item.googleReviewCount?.toLocaleString() || 0} reviews</p>
+                  <p className="text-[10px] md:text-xs font-bold text-gray-500 mt-1">{item.googleReviewCount?.toLocaleString() || 0} reviews</p>
                 </div>
               )}
               highlightBest={(item) => item.googleRating || 0}
             />
 
-            <CompareRow label="MedNexus Rating" icon={<FaHeart className="text-red-500 text-lg" />} items={items}
+            <CompareRow label="MedNexus Rating" icon={<FaHeart className="text-red-500" />} items={items}
               render={(item) => (
                 <div className="text-center">
                   <div className="flex items-center gap-1 justify-center">
-                    <span className="text-2xl font-black text-gray-800">{item.websiteRating ? item.websiteRating.toFixed(1) : 'N/A'}</span>
-                    <FaStar className="text-yellow-400 text-xl" />
+                    <span className="text-xl md:text-2xl font-black text-gray-800">{item.websiteRating ? item.websiteRating.toFixed(1) : 'N/A'}</span>
+                    <FaStar className="text-yellow-400 text-lg md:text-xl" />
                   </div>
-                  <p className="text-xs font-bold text-gray-500 mt-1">{item.totalReviews || 0} user reviews</p>
+                  <p className="text-[10px] md:text-xs font-bold text-gray-500 mt-1">{item.totalReviews || 0} user reviews</p>
                 </div>
               )}
               highlightBest={(item) => item.websiteRating || 0}
@@ -257,29 +259,28 @@ const Compare = () => {
             {/* ================= CAPACITY & DOCTORS ================= */}
             <SectionHeader title="Capacity & Specialists" icon={<FaUserMd className="text-blue-400" />} />
             
-            <CompareRow label="Total Doctors" icon={<FaStethoscope className="text-teal-500 text-lg" />} items={items}
+            <CompareRow label="Total Doctors" icon={<FaStethoscope className="text-teal-500" />} items={items}
               render={(item) => (
-                <p className="text-2xl font-black text-teal-600">{item.doctors?.length || 0}</p>
+                <p className="text-xl md:text-2xl font-black text-teal-600">{item.doctors?.length || 0}</p>
               )}
               highlightBest={(item) => item.doctors?.length || 0}
             />
 
-            <CompareRow label="Total Beds" icon={<FaBed className="text-indigo-500 text-lg" />} items={items}
+            <CompareRow label="Total Beds" icon={<FaBed className="text-indigo-500" />} items={items}
               render={(item) => (
-                <p className="text-2xl font-black text-indigo-600">{item.numberOfBeds || 'N/A'}</p>
+                <p className="text-xl md:text-2xl font-black text-indigo-600">{item.numberOfBeds || 'N/A'}</p>
               )}
               highlightBest={(item) => item.numberOfBeds || 0}
             />
 
-            {/* ✅ FIX: Displaying Department Names in a list format */}
-            <CompareRow label="Departments" icon={<FaHospital className="text-blue-500 text-lg" />} items={items}
+            <CompareRow label="Departments" icon={<FaHospital className="text-blue-500" />} items={items}
               render={(item) => (
-                <div className="flex flex-col items-center w-full">
-                  <p className="text-lg font-bold text-gray-800">{item.departments?.length || 0} Depts</p>
+                <div className="flex flex-col items-center w-full max-w-[240px]">
+                  <p className="text-sm md:text-base font-bold text-gray-800">{item.departments?.length || 0} Depts</p>
                   {item.departments?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                    <div className="flex flex-wrap gap-1.5 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full p-1">
                       {item.departments.map((dept, i) => (
-                        <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 text-center leading-tight">
+                        <span key={i} className="text-[10px] md:text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-100 text-center leading-tight break-words whitespace-normal max-w-full">
                           {dept.name}
                         </span>
                       ))}
@@ -290,17 +291,17 @@ const Compare = () => {
             />
 
             {/* ================= PRICING ================= */}
-            <SectionHeader title="Pricing & Affordability" icon={<FaRupeeSign className="text-green-400" />} />
+            <SectionHeader title="Pricing" icon={<FaRupeeSign className="text-green-400" />} />
 
-            <CompareRow label="Doctor Fees" icon={<FaStethoscope className="text-gray-500 text-lg" />} items={items}
+            <CompareRow label="Doctor Fees" icon={<FaStethoscope className="text-gray-500" />} items={items}
               render={(item) => {
                 const fee = getLowestConsultationFee(item.doctors);
                 return fee ? (
                   <div className="text-center">
-                    <p className="text-xs font-bold text-gray-500 uppercase">Starting From</p>
-                    <p className="text-2xl font-black text-green-600">₹{fee}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase">Starting From</p>
+                    <p className="text-xl md:text-2xl font-black text-green-600">₹{fee}</p>
                   </div>
-                ) : <span className="text-gray-400 font-bold">N/A</span>;
+                ) : <span className="text-gray-400 font-bold text-sm">N/A</span>;
               }}
               highlightBest={(item) => {
                 const fee = getLowestConsultationFee(item.doctors);
@@ -308,15 +309,15 @@ const Compare = () => {
               }}
             />
 
-            <CompareRow label="Room Charges" icon={<FaBed className="text-gray-500 text-lg" />} items={items}
+            <CompareRow label="Room Charges" icon={<FaBed className="text-gray-500" />} items={items}
               render={(item) => {
                 const price = getLowestRoomPrice(item.roomTypes);
                 return price ? (
                   <div className="text-center">
-                    <p className="text-xs font-bold text-gray-500 uppercase">Starting From</p>
-                    <p className="text-2xl font-black text-blue-600">₹{price} <span className="text-sm text-gray-500">/day</span></p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase">Starting From</p>
+                    <p className="text-xl md:text-2xl font-black text-blue-600">₹{price} <span className="text-[10px] text-gray-500">/day</span></p>
                   </div>
-                ) : <span className="text-gray-400 font-bold">N/A</span>;
+                ) : <span className="text-gray-400 font-bold text-sm">N/A</span>;
               }}
               highlightBest={(item) => {
                 const price = getLowestRoomPrice(item.roomTypes);
@@ -324,22 +325,21 @@ const Compare = () => {
               }}
             />
 
-            {/* ✅ FIX: Displaying Package Names */}
-            <CompareRow label="Health Packages" icon={<FaClipboardList className="text-purple-500 text-lg" />} items={items}
+            <CompareRow label="Health Packages" icon={<FaClipboardList className="text-purple-500" />} items={items}
               render={(item) => (
-                <div className="flex flex-col items-center w-full">
+                <div className="flex flex-col items-center w-full max-w-[240px]">
                   {item.packages?.length > 0 ? (
                     <>
-                      <p className="font-bold text-purple-700">{item.packages.length} Packages</p>
-                      <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                      <p className="text-sm md:text-base font-bold text-purple-700">{item.packages.length} Packages</p>
+                      <div className="flex flex-wrap gap-1.5 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full p-1">
                         {item.packages.map((pkg, i) => (
-                          <span key={i} className="text-[10px] bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100 text-center leading-tight">
+                          <span key={i} className="text-[10px] md:text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-md border border-purple-100 text-center leading-tight break-words whitespace-normal max-w-full">
                             {pkg.name}
                           </span>
                         ))}
                       </div>
                     </>
-                  ) : <span className="text-gray-400 font-bold">None Listed</span>}
+                  ) : <span className="text-gray-400 font-bold text-sm">None Listed</span>}
                 </div>
               )}
             />
@@ -347,49 +347,48 @@ const Compare = () => {
             {/* ================= EMERGENCY & FACILITIES ================= */}
             <SectionHeader title="Emergency & Diagnostics" icon={<FaAmbulance className="text-red-400" />} />
             
-            <CompareRow label="24/7 Emergency" icon={<FaAmbulance className="text-red-500 text-lg" />} items={items}
+            <CompareRow label="24/7 Emergency" icon={<FaAmbulance className="text-red-500" />} items={items}
               render={(item) => (
                 item.emergencyAvailable ? (
                   <div className="flex flex-col items-center">
-                    <FaCheckCircle className="text-3xl text-green-500 mb-1" />
-                    <span className="text-xs font-bold text-green-700 uppercase">Available</span>
+                    <FaCheckCircle className="text-2xl md:text-3xl text-green-500 mb-1" />
+                    <span className="text-[10px] font-bold text-green-700 uppercase">Available</span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center opacity-50">
-                    <FaTimesCircle className="text-3xl text-red-400 mb-1" />
-                    <span className="text-xs font-bold text-red-600 uppercase">No</span>
+                    <FaTimesCircle className="text-2xl md:text-3xl text-red-400 mb-1" />
+                    <span className="text-[10px] font-bold text-red-600 uppercase">No</span>
                   </div>
                 )
               )}
             />
 
-            <CompareRow label="Ambulances" icon={<FaAmbulance className="text-gray-500 text-lg" />} items={items}
+            <CompareRow label="Ambulances" icon={<FaAmbulance className="text-gray-500" />} items={items}
               render={(item) => (
-                <p className="text-xl font-black text-gray-800">{item.emergencyDetails?.ambulanceCount || 'N/A'}</p>
+                <p className="text-xl md:text-2xl font-black text-gray-800">{item.emergencyDetails?.ambulanceCount || 'N/A'}</p>
               )}
               highlightBest={(item) => item.emergencyDetails?.ambulanceCount || 0}
             />
 
-            <CompareRow label="In-House Lab" icon={<FaFlask className="text-purple-500 text-lg" />} items={items}
+            <CompareRow label="In-House Lab" icon={<FaFlask className="text-purple-500" />} items={items}
               render={(item) => (
                 item.diagnosticCenterDetails?.labAvailable ? (
-                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold text-sm">Available</span>
-                ) : <span className="text-gray-400 font-bold">N/A</span>
+                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold text-xs md:text-sm">Available</span>
+                ) : <span className="text-gray-400 font-bold text-sm">N/A</span>
               )}
             />
 
             {/* ================= TOTAL SERVICES SUMMARY ================= */}
-            <SectionHeader title="Available Services Summary" icon={<FaPills className="text-green-400" />} />
+            <SectionHeader title="Available Services" icon={<FaPills className="text-green-400" />} />
             
-            {/* ✅ FIX: Displaying Surgeries List */}
-            <CompareRow label="Surgeries" icon={<FaCut className="text-red-500 text-lg" />} items={items}
+            <CompareRow label="Surgeries" icon={<FaCut className="text-red-500" />} items={items}
               render={(item) => (
-                <div className="flex flex-col items-center w-full">
-                  <p className="text-lg font-bold text-gray-800">{item.surgeries?.length || 0} Listed</p>
+                <div className="flex flex-col items-center w-full max-w-[240px]">
+                  <p className="text-sm md:text-base font-bold text-gray-800">{item.surgeries?.length || 0} Listed</p>
                   {item.surgeries?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                    <div className="flex flex-wrap gap-1.5 justify-center mt-2 max-h-28 overflow-y-auto custom-scrollbar w-full p-1">
                       {item.surgeries.map((surg, i) => (
-                        <span key={i} className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded border border-red-100 text-center leading-tight">
+                        <span key={i} className="text-[10px] md:text-xs bg-red-50 text-red-700 px-2 py-1 rounded-md border border-red-200 text-center leading-tight break-words whitespace-normal max-w-full">
                           {surg}
                         </span>
                       ))}
@@ -400,15 +399,14 @@ const Compare = () => {
               highlightBest={(item) => item.surgeries?.length || 0}
             />
             
-            {/* ✅ FIX: Displaying Treatments List */}
-            <CompareRow label="Treatments" icon={<FaPills className="text-green-500 text-lg" />} items={items}
+            <CompareRow label="Treatments" icon={<FaPills className="text-green-500" />} items={items}
               render={(item) => (
-                 <div className="flex flex-col items-center w-full">
-                  <p className="text-lg font-bold text-gray-800">{item.treatments?.length || 0} Listed</p>
+                 <div className="flex flex-col items-center w-full max-w-[240px]">
+                  <p className="text-sm md:text-base font-bold text-gray-800">{item.treatments?.length || 0} Listed</p>
                   {item.treatments?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                    <div className="flex flex-wrap gap-1.5 justify-center mt-2 max-h-28 overflow-y-auto custom-scrollbar w-full p-1">
                       {item.treatments.map((treat, i) => (
-                        <span key={i} className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 text-center leading-tight">
+                        <span key={i} className="text-[10px] md:text-xs bg-green-50 text-green-700 px-2 py-1 rounded-md border border-green-200 text-center leading-tight break-words whitespace-normal max-w-full">
                           {treat}
                         </span>
                       ))}
@@ -419,15 +417,14 @@ const Compare = () => {
               highlightBest={(item) => item.treatments?.length || 0}
             />
             
-            {/* ✅ FIX: Displaying Insurance List */}
-            <CompareRow label="Insurance Tied-up" icon={<FaShieldAlt className="text-blue-500 text-lg" />} items={items}
+            <CompareRow label="Insurance Tied-up" icon={<FaShieldAlt className="text-blue-500" />} items={items}
               render={(item) => (
-                 <div className="flex flex-col items-center w-full">
-                  <p className="text-lg font-bold text-gray-800">{item.insuranceAccepted?.length || 0} Providers</p>
+                 <div className="flex flex-col items-center w-full max-w-[240px]">
+                  <p className="text-sm md:text-base font-bold text-gray-800">{item.insuranceAccepted?.length || 0} Providers</p>
                   {item.insuranceAccepted?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                    <div className="flex flex-wrap gap-1.5 justify-center mt-2 max-h-28 overflow-y-auto custom-scrollbar w-full p-1">
                       {item.insuranceAccepted.map((ins, i) => (
-                        <span key={i} className="text-[10px] bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-300 text-center leading-tight">
+                        <span key={i} className="text-[10px] md:text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md border border-gray-300 text-center leading-tight break-words whitespace-normal max-w-full">
                           {ins}
                         </span>
                       ))}
@@ -439,40 +436,39 @@ const Compare = () => {
             />
 
             {/* ================= CERTIFICATIONS ================= */}
-            <SectionHeader title="Certifications & Quality" icon={<FaAward className="text-yellow-400" />} />
+            <SectionHeader title="Certifications" icon={<FaAward className="text-yellow-400" />} />
             
-            <CompareRow label="NABH Accredited" icon={<FaAward className="text-yellow-600 text-lg" />} items={items}
+            <CompareRow label="NABH Accredited" icon={<FaAward className="text-yellow-600" />} items={items}
               render={(item) => (
-                item.documents?.nabhAccreditation ? <FaCheckCircle className="text-2xl text-green-500" /> : <span className="text-gray-300">-</span>
+                item.documents?.nabhAccreditation ? <FaCheckCircle className="text-xl md:text-2xl text-green-500" /> : <span className="text-gray-300">-</span>
               )}
             />
-            <CompareRow label="ISO Certified" icon={<FaCheckCircle className="text-blue-500 text-lg" />} items={items}
+            <CompareRow label="ISO Certified" icon={<FaCheckCircle className="text-blue-500" />} items={items}
               render={(item) => (
-                item.documents?.isoCertification ? <FaCheckCircle className="text-2xl text-blue-500" /> : <span className="text-gray-300">-</span>
+                item.documents?.isoCertification ? <FaCheckCircle className="text-xl md:text-2xl text-blue-500" /> : <span className="text-gray-300">-</span>
               )}
             />
 
             {/* ================= ACTION BUTTONS ================= */}
-            <div className="grid border-t-4 border-gray-200" style={{ gridTemplateColumns: `minmax(200px, 1fr) repeat(${items.length}, minmax(280px, 1fr))` }}>
-              <div className="bg-gray-100 p-6 flex flex-col justify-center items-center border-r border-gray-300">
-                <p className="text-gray-800 font-black text-lg uppercase">Final Decision</p>
-                <p className="text-gray-500 text-xs text-center mt-1">Choose the best fit</p>
+            <div className="grid border-t-4 border-gray-200" style={{ gridTemplateColumns: `140px repeat(${items.length}, minmax(260px, 1fr))` }}>
+              <div className="bg-gray-100 p-4 flex flex-col justify-center items-center border-r border-gray-300 sticky left-0 z-10">
+                <p className="text-gray-800 font-black text-xs md:text-sm uppercase text-center">Action</p>
               </div>
               
               {items.map((item, index) => (
-                <div key={item._id || index} className="bg-white p-6 space-y-3 border-r border-gray-200 flex flex-col justify-center">
+                <div key={item._id || index} className="bg-white p-4 md:p-6 space-y-3 border-r border-gray-200 flex flex-col justify-center">
                   <button onClick={() => navigate(`/${type}/${item._id}`)}
-                    className={`w-full py-3 rounded-xl font-black text-white text-sm sm:text-base ${themes[index].bg} hover:opacity-90 transition shadow-md`}>
+                    className={`w-full py-2.5 md:py-3 rounded-xl font-black text-white text-xs md:text-sm ${themes[index].bg} hover:opacity-90 transition shadow-md`}>
                     View Full Profile
                   </button>
                   
                   {item.owner && item.appointmentsEnabled ? (
                     <button onClick={() => navigate(`/appointments/book?${type}=${item._id}`)}
-                      className="w-full py-3 rounded-xl font-bold text-gray-800 text-sm sm:text-base bg-gray-100 border-2 border-gray-200 hover:bg-gray-200 hover:border-gray-300 transition shadow-sm">
+                      className="w-full py-2.5 md:py-3 rounded-xl font-bold text-gray-800 text-xs md:text-sm bg-gray-100 border-2 border-gray-200 hover:bg-gray-200 hover:border-gray-300 transition shadow-sm">
                       📅 Book Appointment
                     </button>
                   ) : (
-                    <button disabled className="w-full py-3 rounded-xl font-bold text-gray-400 text-sm sm:text-base bg-gray-50 border-2 border-gray-100 cursor-not-allowed">
+                    <button disabled className="w-full py-2.5 md:py-3 rounded-xl font-bold text-gray-400 text-xs md:text-sm bg-gray-50 border-2 border-gray-100 cursor-not-allowed">
                       Booking Unavailable
                     </button>
                   )}
