@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHospital, FaCalendarAlt, FaStar, FaEdit, FaArrowRight, FaClipboardList } from 'react-icons/fa';
+import { FaHospital, FaCalendarAlt, FaStar, FaEdit, FaArrowRight } from 'react-icons/fa';
 import axios from 'axios';
 import API_URL from '../../config/api';
 
@@ -68,7 +68,7 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch appointments count', e);
         }
 
-        // DYNAMICALLY FETCH REVIEWS FROM PUBLIC API (Matches Home Screen)
+        // Fetch Live Reviews
         let calcTotalReviews = 0;
         let calcRating = 0;
         try {
@@ -84,7 +84,7 @@ const OwnerDashboard = () => {
           console.error('Failed to fetch live reviews for dashboard', e);
         }
 
-        // Calculate Dynamic Listed Services securely
+        // Calculate Dynamic Listed Services
         let calcServices = 0;
         if (typeForApi === 'hospital') {
           calcServices = 
@@ -190,7 +190,6 @@ const OwnerDashboard = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           
-          {/* Total Reviews */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-yellow-400" />
@@ -200,7 +199,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Total Reviews</p>
           </div>
 
-          {/* Average Rating */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaStar className="text-3xl text-green-500" />
@@ -210,7 +208,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Average Rating</p>
           </div>
 
-          {/* Services */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <div className="text-3xl">💰</div>
@@ -220,7 +217,6 @@ const OwnerDashboard = () => {
             <p className="text-sm text-gray-500 mt-1">Listed Services</p>
           </div>
 
-          {/* Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
               <FaCalendarAlt className="text-3xl text-blue-500" />
@@ -232,10 +228,9 @@ const OwnerDashboard = () => {
 
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Quick Actions - FIXED: Removed "Manage Services" card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
-          {/* Manage Facility */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/facility')}>
             <div className="flex items-center justify-between">
               <div>
@@ -248,7 +243,6 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
-          {/* View Appointments */}
           <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer" onClick={() => navigate('/owner/appointments')}>
             <div className="flex items-center justify-between">
               <div>
@@ -258,20 +252,6 @@ const OwnerDashboard = () => {
                 </p>
               </div>
               <FaArrowRight className="text-2xl text-blue-500" />
-            </div>
-          </div>
-
-          {/* Manage Services Card */}
-          <div 
-            onClick={() => navigate('/owner/manage-services')}
-            className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Manage Services</h3>
-                <p className="text-gray-600 text-sm">Add doctors, tests, treatments & more</p>
-              </div>
-              <FaClipboardList className="text-4xl text-purple-500" />
             </div>
           </div>
 

@@ -34,6 +34,21 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
+    // ✅ FIX: CHECK FOR EXISTING PENDING APPOINTMENT
+    // User cannot book another appointment at the same facility if they already have one pending
+    const existingPendingAppointment = await Appointment.findOne({
+      user: req.user.id,
+      facility: facilityId,
+      status: 'pending'
+    });
+
+    if (existingPendingAppointment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You already have a pending appointment at this facility. Please wait for confirmation before booking another.'
+      });
+    }
+
     // Check facility exists
     const Model = facilityType.toLowerCase() === 'hospital' ? Hospital : Laboratory;
     const facility = await Model.findById(facilityId);
@@ -45,7 +60,7 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
-    // ✅ CHECK: Must have owner
+    // CHECK: Must have owner
     if (!facility.owner) {
       return res.status(403).json({
         success: false,
@@ -53,7 +68,7 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
-    // ✅ CHECK: Appointments must be enabled
+    // CHECK: Appointments must be enabled
     if (!facility.appointmentsEnabled) {
       return res.status(403).json({
         success: false,
@@ -100,9 +115,9 @@ router.get('/my-appointments', protect, async (req, res) => {
   try {
     console.log('📋 Fetching appointments for user:', req.user.email);
 
-    // FIXED: Let Mongoose handle the dynamic population using refPath automatically
+    // Let Mongoose handle the dynamic population using refPath automatically
     const appointments = await Appointment.find({ user: req.user.id })
-      .populate('facility', 'name address phone images themeColor') // Fetches the required facility details seamlessly
+      .populate('facility', 'name address phone images themeColor') 
       .sort({ appointmentDate: -1, createdAt: -1 });
 
     console.log('✅ Found appointments:', appointments.length);
@@ -185,7 +200,6 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     // Admin/Owner can edit any appointment
-    // FIXED: Added 'cancellationReason' to the allowed update fields
     const allowedFields = ['patientName', 'patientAge', 'patientGender', 'phone', 
                           'email', 'appointmentDate', 'appointmentTime', 'reason', 
                           'notes', 'status', 'cancellationReason'];

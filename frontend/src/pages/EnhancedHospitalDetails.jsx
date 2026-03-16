@@ -19,6 +19,7 @@ import {
   FaCalendarCheck
 } from 'react-icons/fa';
 import Footer from '../components/Footer';
+import API_URL from '../config/api';
 
 const EnhancedHospitalDetails = () => {
   const { id } = useParams();
@@ -36,13 +37,27 @@ const EnhancedHospitalDetails = () => {
 
   const fetchHospitalDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/hospitals/${id}`);
+      const response = await axios.get(`${API_URL}/api/hospitals/${id}`);
       setHospital(response.data.data);
     } catch (error) {
       console.error('Error fetching hospital:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBookAppointment = (doctorId = null) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in to book an appointment!');
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      navigate('/login');
+      return;
+    }
+    
+    // ✅ FIX: Route passes both hospital ID and specific doctor ID
+    const url = `/appointments/book?hospital=${hospital._id}${doctorId ? `&doctor=${doctorId}` : ''}`;
+    navigate(url);
   };
 
   if (loading) {
@@ -217,7 +232,7 @@ const EnhancedHospitalDetails = () => {
             {hospital.doctors && hospital.doctors.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {hospital.doctors.map((doctor, idx) => (
-                  <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition">
+                  <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition flex flex-col">
                     {/* Doctor Photo */}
                     <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-200">
                       {doctor.photo ? (
@@ -234,7 +249,7 @@ const EnhancedHospitalDetails = () => {
                     </div>
 
                     {/* Doctor Info */}
-                    <div className="p-4">
+                    <div className="p-4 flex-1 flex flex-col">
                       <h3 className="font-bold text-gray-900 mb-1">{doctor.name}</h3>
                       <p className="text-sm text-gray-600 mb-2">{doctor.specialization}</p>
                       
@@ -251,15 +266,28 @@ const EnhancedHospitalDetails = () => {
                         </p>
                       )}
 
+                      {/* ✅ FIX: Correctly mapping the schema fields */}
+                      {doctor.availability && (
+                        <p className="text-xs text-gray-700 font-semibold mb-1">
+                          Timing: {doctor.availability}
+                        </p>
+                      )}
+
                       {doctor.consultationFee && (
-                        <p className="text-xs text-gray-700 font-semibold mb-3">
+                        <p className="text-xs text-green-700 font-bold mb-3">
                           ₹{doctor.consultationFee} Consultation
                         </p>
                       )}
 
-                      <button className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
-                        Book Appointment
-                      </button>
+                      <div className="mt-auto pt-3">
+                        <button 
+                          onClick={() => handleBookAppointment(doctor._id)}
+                          disabled={!hospital.appointmentsEnabled}
+                          className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {hospital.appointmentsEnabled ? 'Book Appointment' : 'Currently Unavailable'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -347,7 +375,7 @@ const EnhancedHospitalDetails = () => {
 
               {hospital.owner && hospital.appointmentsEnabled && (
                 <button
-                  onClick={() => navigate(`/appointments/book?hospital=${hospital._id}`)}
+                  onClick={() => handleBookAppointment()}
                   className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition flex items-center gap-2"
                 >
                   <FaCalendarCheck /> Book Appointment

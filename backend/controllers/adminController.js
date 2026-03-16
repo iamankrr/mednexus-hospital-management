@@ -254,11 +254,8 @@ exports.approveHospital = async (req, res) => {
   try {
     const { isApproved } = req.body;
 
-    const hospital = await Hospital.findByIdAndUpdate(
-      req.params.id,
-      { isApproved },
-      { new: true }
-    );
+    // ✅ FIX: Find the hospital first, then update it
+    const hospital = await Hospital.findById(req.params.id);
 
     if (!hospital) {
       return res.status(404).json({
@@ -266,6 +263,15 @@ exports.approveHospital = async (req, res) => {
         message: 'Hospital not found'
       });
     }
+
+    hospital.isApproved = isApproved;
+
+    // ✅ NEW RULE: Auto enable appointments if approved AND has an owner
+    if (isApproved && hospital.owner) {
+      hospital.appointmentsEnabled = true;
+    }
+
+    await hospital.save();
 
     res.status(200).json({
       success: true,
@@ -289,11 +295,8 @@ exports.approveLaboratory = async (req, res) => {
   try {
     const { isApproved } = req.body;
 
-    const lab = await Laboratory.findByIdAndUpdate(
-      req.params.id,
-      { isApproved },
-      { new: true }
-    );
+    // ✅ FIX: Find the lab first, then update it
+    const lab = await Laboratory.findById(req.params.id);
 
     if (!lab) {
       return res.status(404).json({
@@ -301,6 +304,15 @@ exports.approveLaboratory = async (req, res) => {
         message: 'Laboratory not found'
       });
     }
+
+    lab.isApproved = isApproved;
+
+    // ✅ NEW RULE: Auto enable appointments if approved AND has an owner
+    if (isApproved && lab.owner) {
+      lab.appointmentsEnabled = true;
+    }
+
+    await lab.save();
 
     res.status(200).json({
       success: true,

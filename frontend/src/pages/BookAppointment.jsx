@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaEnvelope, FaNotesMedical } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaEnvelope, FaNotesMedical, FaStethoscope } from 'react-icons/fa';
 import axios from 'axios';
 import API_URL from '../config/api';
 
@@ -25,7 +25,8 @@ const BookAppointment = () => {
     appointmentDate: '',
     appointmentTime: '',
     reason: '',
-    notes: ''
+    notes: '',
+    selectedDoctor: '' // ✅ NEW: Track selected doctor
   });
 
   // Fetch facility based on URL query params
@@ -33,21 +34,20 @@ const BookAppointment = () => {
     const params = new URLSearchParams(location.search);
     const urlHospitalId = params.get('hospital');
     const urlLabId = params.get('lab');
+    const urlDoctorId = params.get('doctor'); // ✅ Check if a specific doctor was passed
 
-    // Also check location.state as a fallback if you still use navigate(..., {state}) somewhere else
     const stateFacility = location.state?.facility;
     const stateType = location.state?.type;
 
     if (urlHospitalId) {
       setFacilityType('hospital');
       setFacilityId(urlHospitalId);
-      fetchFacilityDetails('hospital', urlHospitalId);
+      fetchFacilityDetails('hospital', urlHospitalId, urlDoctorId);
     } else if (urlLabId) {
       setFacilityType('laboratory');
       setFacilityId(urlLabId);
       fetchFacilityDetails('laboratory', urlLabId);
     } else if (stateFacility) {
-      // Fallback if data was passed via state
       setFacility(stateFacility);
       setFacilityType(stateType === 'laboratory' ? 'laboratory' : 'hospital');
       setFacilityId(stateFacility._id || stateFacility.id);
@@ -58,7 +58,7 @@ const BookAppointment = () => {
     }
   }, [location, navigate]);
 
-  const fetchFacilityDetails = async (type, id) => {
+  const fetchFacilityDetails = async (type, id, urlDoctorId = null) => {
     try {
       setFetchingData(true);
       const endpoint = type === 'hospital' 
@@ -66,7 +66,16 @@ const BookAppointment = () => {
         : `${API_URL}/api/labs/${id}`;
       
       const response = await axios.get(endpoint);
-      setFacility(response.data.data);
+      const data = response.data.data;
+      setFacility(data);
+
+      // ✅ FIX: Auto-select doctor if ID was provided in URL
+      if (urlDoctorId && data.doctors) {
+        const docExists = data.doctors.find(d => d._id === urlDoctorId);
+        if (docExists) {
+          setFormData(prev => ({ ...prev, selectedDoctor: urlDoctorId }));
+        }
+      }
     } catch (error) {
       console.error('Fetch facility error:', error);
       alert('Error fetching facility details. Please go back and try again.');
@@ -88,21 +97,28 @@ const BookAppointment = () => {
 
     try {
       setLoading(true);
-      console.log('📅 Booking appointment for:', facility.name);
+
+      const payload = {
+        facilityType,
+        facilityId,
+        ...formData
+      };
+
+      // ✅ FIX: Append doctor name to notes to inform the owner
+      if (formData.selectedDoctor && facility.doctors) {
+         const doc = facility.doctors.find(d => d._id === formData.selectedDoctor);
+         if (doc) {
+            payload.notes = `Requested Doctor: Dr. ${doc.name} (${doc.specialization}). ${payload.notes}`;
+         }
+      }
 
       const response = await axios.post(
         `${API_URL}/api/appointments`,
-        {
-          facilityType: facilityType,
-          facilityId: facilityId,
-          ...formData
-        },
+        payload,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
-
-      console.log('✅ Response:', response.data);
 
       if (response.data.success) {
         // Success Modal
@@ -121,14 +137,10 @@ Status: Pending Confirmation
 You can view and manage your appointment in "My Appointments" section.`;
         
         alert(confirmMessage);
-        
-        // Redirect to My Appointments
         navigate('/appointments');
       }
     } catch (error) {
-      console.error('❌ Booking error:', error);
-      console.error('❌ Error response:', error.response?.data);
-      
+      console.error('❌ Booking error:', error.response?.data);
       const errorMessage = error.response?.data?.message || 'Failed to book appointment. Please try again.';
       alert(`❌ ${errorMessage}`);
     } finally {
@@ -256,6 +268,27 @@ You can view and manage your appointment in "My Appointments" section.`;
           </div>
 
           <h3 className="text-xl font-bold text-gray-800 border-b pb-3 pt-4">Appointment Details</h3>
+
+          {/* ✅ FIX: DOCTOR SELECTION DROPDOWN */}
+          {facilityType === 'hospital' && facility.doctors && facility.doctors.length > 0 && (
+            <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1">
+                 <FaStethoscope className="inline mr-2" />Select Doctor (Optional)
+               </label>
+               <select 
+                 value={formData.selectedDoctor} 
+                 onChange={(e) => setFormData({...formData, selectedDoctor: e.target.value})}
+                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-blue-50"
+               >
+                 <option value="">-- General Appointment / No Preference --</option>
+                 {facility.doctors.map(doc => (
+                    <option key={doc._id} value={doc._id}>
+                      Dr. {doc.name} ({doc.specialization}) {doc.consultationFee ? `- ₹${doc.consultationFee}` : ''}
+                    </option>
+                 ))}
+               </select>
+            </div>
+          )}
 
           {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

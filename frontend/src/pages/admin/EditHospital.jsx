@@ -37,7 +37,7 @@ const EditHospital = () => {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false); 
 
-  // Helpers for Purana Arrays (Unchanged)
+  // Helpers for Purana Arrays
   const [newTest, setNewTest] = useState('');
   const [newTreatment, setNewTreatment] = useState('');
   const [newSurgery, setNewSurgery] = useState('');
@@ -60,7 +60,6 @@ const EditHospital = () => {
     googlePlaceId: '', googleRating: 0, googleReviewCount: 0, establishedDate: '', 
     address: { street: '', area: '', city: '', state: '', pincode: '', landmark: '' },
     
-    // Purana Arrays
     facilities: [], tests: [], treatments: [], surgeries: [], procedures: [], therapies: [], 
     managementServices: [], insuranceAccepted: [], numberOfBeds: 0,
     
@@ -70,7 +69,6 @@ const EditHospital = () => {
     },
     emergencyAvailable: false, images: [], services: [],
     
-    // NAYA FIELDS
     doctors: [], departments: [], packages: [], roomTypes: [], announcements: [],
     emergencyDetails: { contactNumber: '', traumaCenter: false, ambulanceCount: 0, doctors24x7: false },
     staffAndManagement: { medicalDirector: '', chiefSurgeon: '', nursingHead: '', adminManager: '' },
@@ -375,37 +373,49 @@ const EditHospital = () => {
                 <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.isoCertification||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, isoCertification: e.target.checked}})} className="w-4 h-4" /> ISO Certification</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.governmentApproval||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, governmentApproval: e.target.checked}})} className="w-4 h-4" /> Government Approved</label>
                 
+                {/* ✅ FIX: ADD AWARDS BUG */}
                 <div className="mt-4">
-                  <label className="text-xs">Add Award</label>
-                  <div className="flex gap-2">
-                    <input type="text" value={newAward} onChange={e=>setNewAward(e.target.value)} className="flex-1 p-1 border rounded" />
+                  <label className="text-xs font-bold text-gray-700">Add Award / Certification</label>
+                  <div className="flex gap-2 mt-1">
+                    <input 
+                      type="text" 
+                      value={newAward} 
+                      onChange={e=>setNewAward(e.target.value)} 
+                      onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById('addAwardBtn').click(); } }} 
+                      className="flex-1 p-2 border rounded shadow-sm focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Type award name" 
+                    />
                     <button 
+                      id="addAwardBtn"
                       type="button" 
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
                         if (newAward.trim()) {
-                          setFormData({
-                            ...formData, 
-                            documents: {
-                              ...formData.documents, 
-                              awards: [...(formData.documents?.awards || []), newAward.trim()]
-                            }
-                          });
+                          const currentAwards = formData.documents?.awards || [];
+                          if(!currentAwards.includes(newAward.trim())){
+                            setFormData({
+                              ...formData, 
+                              documents: { ...formData.documents, awards: [...currentAwards, newAward.trim()] }
+                            });
+                          }
                           setNewAward('');
                         }
                       }} 
-                      className="bg-blue-600 text-white px-2 rounded"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 font-bold rounded shadow transition"
                     >
-                      +
+                      Add
                     </button>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {formData.documents?.awards?.map((a, i) => (
-                      <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      <span key={i} className="text-xs bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full flex items-center gap-1">
                         {a} 
-                        <button type="button" onClick={()=> {
+                        <button type="button" onClick={(e)=> {
+                          e.preventDefault();
                           const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); 
                           setFormData({...formData, documents: {...formData.documents, awards: newAw}})
-                        }} className="text-red-500 ml-1 font-bold">x</button>
+                        }} className="text-red-500 font-black hover:text-red-700 ml-1 text-sm">×</button>
                       </span>
                     ))}
                   </div>
