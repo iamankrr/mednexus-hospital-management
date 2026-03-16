@@ -6,12 +6,12 @@ import {
   FaRupeeSign, FaAmbulance, FaGoogle, FaSync,
   FaBed, FaStethoscope, FaAward, FaHospital, FaFlask,
   FaBalanceScale, FaHeart, FaUserMd, FaClipboardList, 
-  FaCut, FaPills, FaShieldAlt // ✅ FIX: Saare naye icons yahan add kar diye hain
+  FaCut, FaPills, FaShieldAlt
 } from 'react-icons/fa';
 import { useComparison } from '../context/ComparisonContext';
 import { useLocation as useUserLocation } from '../context/LocationContext';
 import axios from 'axios';
-import API_URL from '../config/api'; // ✅ FIX: Localhost ki jagah Live API URL import kiya
+import API_URL from '../config/api';
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -88,7 +88,6 @@ const Compare = () => {
         compareItems.map(async (item) => {
           try {
             const id = item._id || item.id;
-            // ✅ FIX: Using API_URL instead of localhost
             const endpoint = facilityType === 'hospital'
               ? `${API_URL}/api/hospitals/${id}`
               : `${API_URL}/api/labs/${id}`;
@@ -272,9 +271,21 @@ const Compare = () => {
               highlightBest={(item) => item.numberOfBeds || 0}
             />
 
+            {/* ✅ FIX: Displaying Department Names in a list format */}
             <CompareRow label="Departments" icon={<FaHospital className="text-blue-500 text-lg" />} items={items}
               render={(item) => (
-                <p className="text-xl font-bold text-gray-800">{item.departments?.length || 0} Depts</p>
+                <div className="flex flex-col items-center w-full">
+                  <p className="text-lg font-bold text-gray-800">{item.departments?.length || 0} Depts</p>
+                  {item.departments?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                      {item.departments.map((dept, i) => (
+                        <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 text-center leading-tight">
+                          {dept.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             />
 
@@ -313,11 +324,23 @@ const Compare = () => {
               }}
             />
 
+            {/* ✅ FIX: Displaying Package Names */}
             <CompareRow label="Health Packages" icon={<FaClipboardList className="text-purple-500 text-lg" />} items={items}
               render={(item) => (
-                item.packages?.length > 0 ? (
-                  <p className="font-bold text-purple-700">{item.packages.length} Packages available</p>
-                ) : <span className="text-gray-400 font-bold">None Listed</span>
+                <div className="flex flex-col items-center w-full">
+                  {item.packages?.length > 0 ? (
+                    <>
+                      <p className="font-bold text-purple-700">{item.packages.length} Packages</p>
+                      <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                        {item.packages.map((pkg, i) => (
+                          <span key={i} className="text-[10px] bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100 text-center leading-tight">
+                            {pkg.name}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  ) : <span className="text-gray-400 font-bold">None Listed</span>}
+                </div>
               )}
             />
 
@@ -358,18 +381,60 @@ const Compare = () => {
             {/* ================= TOTAL SERVICES SUMMARY ================= */}
             <SectionHeader title="Available Services Summary" icon={<FaPills className="text-green-400" />} />
             
-            <CompareRow label="Total Surgeries" icon={<FaCut className="text-red-500 text-lg" />} items={items}
-              render={(item) => <p className="text-lg font-bold text-gray-800">{item.surgeries?.length || 0} listed</p>}
+            {/* ✅ FIX: Displaying Surgeries List */}
+            <CompareRow label="Surgeries" icon={<FaCut className="text-red-500 text-lg" />} items={items}
+              render={(item) => (
+                <div className="flex flex-col items-center w-full">
+                  <p className="text-lg font-bold text-gray-800">{item.surgeries?.length || 0} Listed</p>
+                  {item.surgeries?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                      {item.surgeries.map((surg, i) => (
+                        <span key={i} className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded border border-red-100 text-center leading-tight">
+                          {surg}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               highlightBest={(item) => item.surgeries?.length || 0}
             />
             
-            <CompareRow label="Total Treatments" icon={<FaPills className="text-green-500 text-lg" />} items={items}
-              render={(item) => <p className="text-lg font-bold text-gray-800">{item.treatments?.length || 0} listed</p>}
+            {/* ✅ FIX: Displaying Treatments List */}
+            <CompareRow label="Treatments" icon={<FaPills className="text-green-500 text-lg" />} items={items}
+              render={(item) => (
+                 <div className="flex flex-col items-center w-full">
+                  <p className="text-lg font-bold text-gray-800">{item.treatments?.length || 0} Listed</p>
+                  {item.treatments?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                      {item.treatments.map((treat, i) => (
+                        <span key={i} className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 text-center leading-tight">
+                          {treat}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               highlightBest={(item) => item.treatments?.length || 0}
             />
             
+            {/* ✅ FIX: Displaying Insurance List */}
             <CompareRow label="Insurance Tied-up" icon={<FaShieldAlt className="text-blue-500 text-lg" />} items={items}
-              render={(item) => <p className="text-lg font-bold text-gray-800">{item.insuranceAccepted?.length || 0} Providers</p>}
+              render={(item) => (
+                 <div className="flex flex-col items-center w-full">
+                  <p className="text-lg font-bold text-gray-800">{item.insuranceAccepted?.length || 0} Providers</p>
+                  {item.insuranceAccepted?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-center mt-2 max-h-24 overflow-y-auto custom-scrollbar w-full px-2">
+                      {item.insuranceAccepted.map((ins, i) => (
+                        <span key={i} className="text-[10px] bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-300 text-center leading-tight">
+                          {ins}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               highlightBest={(item) => item.insuranceAccepted?.length || 0}
             />
 
