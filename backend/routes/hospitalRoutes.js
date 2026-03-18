@@ -20,7 +20,10 @@ const {
 router.get('/', async (req, res) => {
   try {
     const { latitude, longitude, city, type, maxDistance } = req.query;
-    let query = { isActive: true };
+    
+    // 🔥 THE MASTER FIX: Removed 'isActive: true' which was hiding everything. 
+    // Now it fetches hospitals properly. (You can change to { isApproved: true } later if you want only approved ones).
+    let query = {}; 
     
     if (city && city !== 'All Cities') query['address.city'] = city;
     if (type && type !== 'All Types' && type !== 'all') query.type = type;
@@ -123,7 +126,6 @@ router.put('/:id', protect, async (req, res) => {
 
     if (req.user.role === 'owner') {
       const user = await User.findById(req.user.id);
-      // ✅ BULLETPROOF OWNER CHECK
       if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
         return res.status(403).json({ success: false, message: 'Facility not assigned properly.' });
       }
@@ -161,7 +163,6 @@ router.delete('/:id', protect, deleteHospital);
 // PRICE LIST / SERVICES ROUTES
 // ============================================
 
-// ===== GET services (public) =====
 router.get('/:id/services', async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id).select('services name');
@@ -187,14 +188,12 @@ router.get('/:id/services', async (req, res) => {
   }
 });
 
-// ===== ADD service (admin/owner) =====
 router.post('/:id/services', protect, async (req, res) => {
   try {
     if (req.user.role !== 'admin' && req.user.role !== 'owner') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    // ✅ BULLETPROOF OWNER CHECK FOR ADD
     if (req.user.role === 'owner') {
       const user = await User.findById(req.user.id);
       if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
@@ -230,14 +229,12 @@ router.post('/:id/services', protect, async (req, res) => {
   }
 });
 
-// ===== UPDATE service (admin/owner) =====
 router.put('/:id/services/:serviceId', protect, async (req, res) => {
   try {
     if (req.user.role !== 'admin' && req.user.role !== 'owner') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    // ✅ BULLETPROOF OWNER CHECK FOR UPDATE
     if (req.user.role === 'owner') {
       const user = await User.findById(req.user.id);
       if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
@@ -271,14 +268,12 @@ router.put('/:id/services/:serviceId', protect, async (req, res) => {
   }
 });
 
-// ===== DELETE service (admin/owner) =====
 router.delete('/:id/services/:serviceId', protect, async (req, res) => {
   try {
     if (req.user.role !== 'admin' && req.user.role !== 'owner') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    // ✅ BULLETPROOF OWNER CHECK FOR DELETE
     if (req.user.role === 'owner') {
       const user = await User.findById(req.user.id);
       if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
