@@ -1,6 +1,7 @@
 // controllers/reviewController.js
 
 const Review = require('../models/Review');
+const Hospital = require('../models/Hospital'); // Ensure Hospital model is available if needed internally
 
 // ========== @desc    Add review for hospital or lab
 // ========== @route   POST /api/reviews
@@ -40,7 +41,7 @@ exports.addReview = async (req, res) => {
     const hospital = facilityType === 'hospital' ? facilityId : undefined;
     const laboratory = facilityType === 'laboratory' ? facilityId : undefined;
 
-    // Create review
+    // ✅ FIX: Set status to 'approved' for Instant Sync
     const review = await Review.create({
       user: req.user.id,
       facilityType: facilityType,
@@ -50,14 +51,19 @@ exports.addReview = async (req, res) => {
       rating: rating,
       title: title || '',
       comment: comment,
-      status: 'pending' 
+      status: 'approved' // <--- INSTANT APPROVAL
     });
+
+    // ✅ FIX: Force rating recalculation on the parent document instantly!
+    if (Review.updateFacilityRating) {
+      await Review.updateFacilityRating(facilityType, facilityId);
+    }
 
     await review.populate('user', 'name avatar phone email');
 
     res.status(201).json({
       success: true,
-      message: 'Review submitted successfully. It is pending admin approval.',
+      message: 'Review posted successfully! MedNexus rating updated.',
       data: review
     });
   } catch (error) {
@@ -85,7 +91,7 @@ exports.getReviews = async (req, res) => {
 
     const reviews = await Review.find({
       facilityId: id,
-      status: 'approved' // Only show approved to public
+      status: 'approved'
     })
       .populate('user', 'name avatar phone email')
       .sort('-createdAt');
@@ -179,8 +185,9 @@ exports.updateReviewStatus = async (req, res) => {
     
     if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
 
-    // Instantly syncs Home Screen Rating
-    await Review.updateFacilityRating(review.facilityType, review.facilityId);
+    if (Review.updateFacilityRating) {
+      await Review.updateFacilityRating(review.facilityType, review.facilityId);
+    }
 
     res.status(200).json({
       success: true,
@@ -196,7 +203,7 @@ exports.updateReviewStatus = async (req, res) => {
   }
 };
 
-// ========== @desc    Update review (user editing their own)
+// ========== @desc    Update review
 // ========== @route   PUT /api/reviews/:id
 // ========== @access  Private 
 exports.updateReview = async (req, res) => {
@@ -216,13 +223,16 @@ exports.updateReview = async (req, res) => {
     review.rating = rating;
     review.comment = comment;
     review.title = title;
-    review.status = 'pending'; 
     
     await review.save(); 
 
+    if (Review.updateFacilityRating) {
+      await Review.updateFacilityRating(review.facilityType, review.facilityId);
+    }
+
     res.status(200).json({
       success: true,
-      message: 'Review updated successfully and sent for approval',
+      message: 'Review updated successfully',
       data: review
     });
     
@@ -265,7 +275,7 @@ exports.ownerReply = async (req, res) => {
   }
 };
 
-// ========== @desc    Delete review (user's own or Admin)
+// ========== @desc    Delete review
 // ========== @route   DELETE /api/reviews/:id
 // ========== @access  Private
 exports.deleteReview = async (req, res) => {
@@ -285,8 +295,9 @@ exports.deleteReview = async (req, res) => {
 
     await review.deleteOne();
     
-    // Safety check recalculation
-    await Review.updateFacilityRating(facilityType, facilityId);
+    if (Review.updateFacilityRating) {
+      await Review.updateFacilityRating(facilityType, facilityId);
+    }
 
     res.status(200).json({
       success: true,
