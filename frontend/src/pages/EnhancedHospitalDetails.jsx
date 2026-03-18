@@ -252,23 +252,24 @@ const EnhancedHospitalDetails = () => {
               </div>
             </div>
 
-            {/* ✅ MOBILE RESPONSIVE TABS */}
+            
+            {/* ✅ MOBILE RESPONSIVE TABS - FIXED OVERLAP */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden min-h-[400px]">
-              <div className="flex border-b border-gray-100 overflow-x-auto scrollbar-hide snap-x">
-                {tabs.map(tab => (
-                  <button 
-                    key={tab} 
-                    onClick={() => setActiveTab(tab)} 
-                    className={`snap-start shrink-0 px-6 py-4 text-sm font-semibold capitalize transition-colors duration-200 whitespace-nowrap ${activeTab === tab ? 'text-white' : 'text-gray-500 hover:bg-gray-50'}`} 
-                    style={activeTab === tab ? { backgroundColor: theme } : {}}
-                  >
-                    {tab === 'overview'  && '📋 Overview'}
-                    {tab === 'packages & rooms' && '🛏️ Packages & Rooms'}
-                    {tab === 'services'  && '💰 Price List'}
-                    {tab === 'reviews'   && '⭐ Reviews'}
-                  </button>
-                ))}
-              </div>
+              <div className="flex flex-nowrap border-b border-gray-100 overflow-x-auto scrollbar-hide snap-x">
+             {tabs.map(tab => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)} 
+                className={`snap-start shrink-0 min-w-max px-6 py-4 text-sm font-semibold capitalize transition-colors duration-200 whitespace-nowrap ${activeTab === tab ? 'text-white' : 'text-gray-500 hover:bg-gray-50'}`} 
+                style={activeTab === tab ? { backgroundColor: theme } : {}}
+              >
+                {tab === 'overview'  && '📋 Overview'}
+                {tab === 'packages & rooms' && '🛏️ Packages & Rooms'}
+                {tab === 'services'  && '💰 Price List'}
+                {tab === 'reviews'   && '⭐ Reviews'}
+              </button>
+            ))}
+          </div>
 
               <div className="p-4 sm:p-6">
                 

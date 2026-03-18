@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaRupeeSign } from 'react-icons/fa';
 import axios from 'axios';
+import API_URL from '../config/api'; // ✅ FIX: Imported Live API_URL
 
 const CATEGORIES = [
   'Consultation', 'Pathology', 'Radiology', 'Diagnosis', 
@@ -23,26 +24,26 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
   const [editForm, setEditForm] = useState({});
 
   const getToken = () => localStorage.getItem('token');
+  
+  // ✅ FIX: Replaced localhost with dynamic API_URL
   const getEndpoint = () =>
-    `http://localhost:3000/api/${facilityType === 'hospital' ? 'hospitals' : 'labs'}/${facilityId}/services`;
+    `${API_URL}/api/${facilityType === 'hospital' ? 'hospitals' : 'labs'}/${facilityId}/services`;
 
   const resetForm = () => {
     setForm({ name: '', category: 'General', price: '', duration: '', description: '', isAvailable: true });
     setShowAddForm(false);
   };
 
-  // ✅ HELPER: Cleans payload so empty string price doesn't crash MongoDB
   const cleanPayload = (data) => {
     const payload = { ...data };
     if (!payload.price || payload.price === '') {
-      delete payload.price; // Removes key entirely
+      delete payload.price; 
     } else {
       payload.price = parseFloat(payload.price);
     }
     return payload;
   };
 
-  // ADD service
   const handleAdd = async () => {
     if (!form.name) {
       alert('Service name is required!');
@@ -68,7 +69,6 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     }
   };
 
-  // START EDIT
   const startEdit = (service) => {
     setEditingId(service._id);
     setEditForm({
@@ -81,7 +81,6 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     });
   };
 
-  // SAVE EDIT
   const handleSaveEdit = async (serviceId) => {
     try {
       setLoading(true);
@@ -102,7 +101,6 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     }
   };
 
-  // DELETE
   const handleDelete = async (serviceId, serviceName) => {
     if (!window.confirm(`Delete "${serviceName}"?`)) return;
     try {
