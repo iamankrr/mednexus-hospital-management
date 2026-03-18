@@ -6,6 +6,7 @@ import ServiceManager from '../../components/ServiceManager';
 import ThemeColorPicker from '../../components/ThemeColorPicker';
 import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
+import DoctorPhotoUpload from '../../components/DoctorPhotoUpload'; // 👈 Import added
 import { FaSave, FaArrowLeft, FaPlus, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import API_URL from '../../config/api';
 
@@ -41,7 +42,11 @@ const OwnerFacility = () => {
   const [newInsurance, setNewInsurance] = useState('');
 
   // ADDED photo field
-  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '', photo: '' });
+  const [newDoctor, setNewDoctor] = useState({ 
+    name: '', specialization: '', qualification: '', 
+    experience: '', consultationFee: '', availability: '', 
+    languages: '', photo: ''  // 👈 photo field added
+  });
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
   const [newRoomType, setNewRoomType] = useState({ type: '', pricePerDay: '', facilities: '' });
@@ -203,9 +208,25 @@ const OwnerFacility = () => {
                   <input type="number" placeholder="Fees (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="text" placeholder="OPD Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
                   
-                  {/* Updated columns to fit Photo URL */}
-                  <input type="text" placeholder="Languages (e.g. English, Hindi)" value={newDoctor.languages} onChange={e=>setNewDoctor({...newDoctor, languages: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-2" />
-                  <input type="text" placeholder="Photo URL (Optional)" value={newDoctor.photo} onChange={e=>setNewDoctor({...newDoctor, photo: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-1" />
+                  {/* 👇 Doctor Photo Upload - Added before languages input */}
+                  <div className="md:col-span-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Doctor Photo <span className="text-gray-400">(Optional)</span>
+                    </label>
+                    <DoctorPhotoUpload
+                      value={newDoctor.photo}
+                      onChange={(url) => setNewDoctor({ ...newDoctor, photo: url })}
+                    />
+                  </div>
+
+                  {/* Existing languages input */}
+                  <input 
+                    type="text" 
+                    placeholder="Languages (e.g. English, Hindi)" 
+                    value={newDoctor.languages} 
+                    onChange={e => setNewDoctor({...newDoctor, languages: e.target.value})} 
+                    className="p-2 border rounded shadow-sm md:col-span-3" 
+                  />
                 </div>
                 <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:'', photo:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
               </div>
