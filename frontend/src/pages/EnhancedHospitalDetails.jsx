@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios'; 
 import {
   FaStar, FaGoogle, FaPhone, FaEnvelope, FaMapMarkerAlt,
-  FaClock, FaAmbulance, FaHeart, FaArrowLeft,
+  FaClock, FaAmbulance, FaHeart, FaArrowLeft, FaGlobe,
   FaCheckCircle, FaBalanceScale, FaCalendarAlt, FaClipboardList,
   FaFlask, FaPills, FaCut, FaSpa, FaUserMd, FaShieldAlt, FaBed, 
   FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaAward, FaUserTie, FaStethoscope
@@ -54,6 +54,7 @@ const EnhancedHospitalDetails = () => {
   const [activeTab, setActiveTab]     = useState('overview');
   const [distance, setDistance]       = useState(initialData?.distance || null);
   const [isFavorite, setIsFavorite]   = useState(false);
+  const [isAboutExpanded, setIsAboutExpanded] = useState(false); // ✅ FIX: For description toggle
 
   useEffect(() => {
     window.scrollTo(0, 0); 
@@ -192,7 +193,11 @@ const EnhancedHospitalDetails = () => {
               {hospital.address && (
                 <p className="flex items-start sm:items-center gap-2 text-gray-600 mb-4 text-sm leading-snug">
                   <FaMapMarkerAlt className="mt-1 sm:mt-0 shrink-0" style={{ color: theme }} />
-                  <span>{[hospital.address.street, hospital.address.area, hospital.address.city, hospital.address.state, hospital.address.pincode].filter(Boolean).join(', ')}</span>
+                  {/* ✅ FIX: Added Landmark to main address bar */}
+                  <span>
+                    {[hospital.address.street, hospital.address.area, hospital.address.city, hospital.address.state, hospital.address.pincode].filter(Boolean).join(', ')}
+                    {hospital.address.landmark && ` (Landmark: ${hospital.address.landmark})`}
+                  </span>
                 </p>
               )}
 
@@ -234,7 +239,6 @@ const EnhancedHospitalDetails = () => {
                 )}
               </div>
 
-              {/* ✅ MOBILE RESPONSIVE ACTION BUTTONS */}
               <div className="flex flex-wrap gap-2 sm:gap-3">
                 {hospital.owner && hospital.appointmentsEnabled ? (
                   <button onClick={() => handleBookAppointment(null)} className="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 rounded-xl font-bold text-white transition hover:opacity-90 shadow-sm" style={{ backgroundColor: theme }}>📅 Book General Appointment</button>
@@ -252,8 +256,6 @@ const EnhancedHospitalDetails = () => {
               </div>
             </div>
 
-            
-            {/* ✅ MOBILE RESPONSIVE TABS - FIXED OVERLAP */}
             <div className="bg-white rounded-2xl shadow-md overflow-hidden min-h-[400px]">
               <div className="flex flex-nowrap border-b border-gray-100 overflow-x-auto scrollbar-hide snap-x">
              {tabs.map(tab => (
@@ -288,22 +290,38 @@ const EnhancedHospitalDetails = () => {
                       </div>
                     )}
 
+                    {/* ✅ FIX: Smart 'Read More' toggle for long descriptions */}
                     {hospital.description && (
                       <div>
                         <h3 className="font-bold text-gray-800 mb-3 text-lg">About</h3>
-                        <p className="text-gray-600 leading-relaxed text-sm md:text-base">{hospital.description}</p>
+                        <p className="text-gray-600 leading-relaxed text-sm md:text-base whitespace-pre-wrap">
+                          {isAboutExpanded || hospital.description.length <= 250 
+                            ? hospital.description 
+                            : `${hospital.description.substring(0, 250)}...`}
+                        </p>
+                        {hospital.description.length > 250 && (
+                          <button 
+                            onClick={() => setIsAboutExpanded(!isAboutExpanded)}
+                            className="text-blue-600 font-bold text-sm mt-2 hover:underline focus:outline-none"
+                          >
+                            {isAboutExpanded ? 'Read Less' : 'Read More'}
+                          </button>
+                        )}
                       </div>
                     )}
 
+                    {/* ✅ FIX: Added scrolling for Departments so it doesn't overwhelm UI */}
                     {hospital.departments?.length > 0 && (
                       <div>
-                        <h3 className="font-bold text-gray-800 mb-3 text-lg">Key Departments</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <h3 className="font-bold text-gray-800 mb-3 text-lg flex items-center justify-between">
+                          Key Departments <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{hospital.departments.length} Total</span>
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                           {hospital.departments.map((dept, i) => (
                             <div key={i} className="p-3 border border-gray-100 bg-gray-50 rounded-lg">
                               <p className="font-bold text-gray-800 text-sm">{dept.name}</p>
-                              {dept.headDoctor && <p className="text-xs text-gray-500 mt-1">Head: {dept.headDoctor}</p>}
-                              {dept.description && <p className="text-xs text-gray-600 mt-1">{dept.description}</p>}
+                              {dept.headDoctor && <p className="text-xs text-gray-500 mt-1">Head: <span className="font-semibold text-gray-700">{dept.headDoctor}</span></p>}
+                              {dept.description && <p className="text-xs text-gray-600 mt-1 line-clamp-2">{dept.description}</p>}
                             </div>
                           ))}
                         </div>
@@ -409,12 +427,26 @@ const EnhancedHospitalDetails = () => {
                 {hospital.phone && <a href={`tel:${hospital.phone}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaPhone className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Phone</p><p className="font-semibold text-gray-800 truncate">{hospital.phone}</p></div></a>}
                 {hospital.email && <a href={`mailto:${hospital.email}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaEnvelope className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Email</p><p className="font-semibold text-gray-800 text-sm truncate w-full">{hospital.email}</p></div></a>}
                 
+                {/* ✅ FIX: Added Website Link Rendering */}
+                {hospital.website && (
+                  <a href={hospital.website.startsWith('http') ? hospital.website : `https://${hospital.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
+                    <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white transition-transform group-hover:scale-105" style={{ backgroundColor: theme }}>
+                      <FaGlobe className="text-sm" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-xs text-gray-500 font-semibold">Website</p>
+                      <p className="font-semibold text-blue-600 text-sm truncate w-full group-hover:underline">{hospital.website}</p>
+                    </div>
+                  </a>
+                )}
+                
+                {/* Social Media Links */}
                 {hospital.socialMedia && (hospital.socialMedia.facebook || hospital.socialMedia.instagram || hospital.socialMedia.twitter || hospital.socialMedia.youtube) && (
-                  <div className="pt-3 border-t border-gray-100 flex justify-around">
-                    {hospital.socialMedia.facebook && <a href={hospital.socialMedia.facebook} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl"><FaFacebook /></a>}
-                    {hospital.socialMedia.instagram && <a href={hospital.socialMedia.instagram} target="_blank" rel="noreferrer" className="p-2 text-pink-600 hover:bg-pink-50 rounded-full text-xl"><FaInstagram /></a>}
-                    {hospital.socialMedia.twitter && <a href={hospital.socialMedia.twitter} target="_blank" rel="noreferrer" className="p-2 text-blue-400 hover:bg-blue-50 rounded-full text-xl"><FaTwitter /></a>}
-                    {hospital.socialMedia.youtube && <a href={hospital.socialMedia.youtube} target="_blank" rel="noreferrer" className="p-2 text-red-600 hover:bg-red-50 rounded-full text-xl"><FaYoutube /></a>}
+                  <div className="pt-4 mt-2 border-t border-gray-100 flex justify-around">
+                    {hospital.socialMedia.facebook && <a href={hospital.socialMedia.facebook} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaFacebook /></a>}
+                    {hospital.socialMedia.instagram && <a href={hospital.socialMedia.instagram} target="_blank" rel="noreferrer" className="p-2 text-pink-600 hover:bg-pink-50 rounded-full text-xl transition-transform hover:scale-110"><FaInstagram /></a>}
+                    {hospital.socialMedia.twitter && <a href={hospital.socialMedia.twitter} target="_blank" rel="noreferrer" className="p-2 text-blue-400 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaTwitter /></a>}
+                    {hospital.socialMedia.youtube && <a href={hospital.socialMedia.youtube} target="_blank" rel="noreferrer" className="p-2 text-red-600 hover:bg-red-50 rounded-full text-xl transition-transform hover:scale-110"><FaYoutube /></a>}
                   </div>
                 )}
               </div>
@@ -426,16 +458,30 @@ const EnhancedHospitalDetails = () => {
                  <div className="space-y-3 text-sm">
                    {hospital.staffAndManagement?.medicalDirector && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Medical Director</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.medicalDirector}</span></div>}
                    {hospital.staffAndManagement?.chiefSurgeon && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Chief Surgeon</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.chiefSurgeon}</span></div>}
-                   {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-green-600">✅ Yes</span></div>}
-                   {hospital.documents?.awards?.length > 0 && <div><span className="text-gray-500 block mb-2">Awards / Recognitions</span><div className="flex flex-wrap gap-1.5">{hospital.documents.awards.map((aw, i) => <span key={i} className="bg-yellow-50 text-yellow-700 text-[10px] px-2 py-1 rounded border border-yellow-200 font-bold">{aw}</span>)}</div></div>}
+                   
+                   {/* ✅ FIX: Added Nursing Head and Admin Manager */}
+                   {hospital.staffAndManagement?.nursingHead && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
+                   {hospital.staffAndManagement?.adminManager && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
+
+                   {/* ✅ FIX: Added Government Approved Badge */}
+                   {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
+                   {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
+                   
+                   {hospital.documents?.awards?.length > 0 && <div className="pt-1"><span className="text-gray-500 block mb-2 font-medium">Awards & Recognitions</span><div className="flex flex-wrap gap-1.5">{hospital.documents.awards.map((aw, i) => <span key={i} className="bg-yellow-50 text-yellow-700 text-[10px] px-2.5 py-1 rounded border border-yellow-200 font-bold tracking-wide">{aw}</span>)}</div></div>}
                  </div>
               </div>
             )}
 
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-3">📍 Location</h3>
-              <div className="h-32 rounded-xl flex items-center justify-center mb-3 border border-dashed border-gray-300" style={{ backgroundColor: theme + '05' }}>
-                <div className="text-center px-2"><FaMapMarkerAlt className="text-4xl mx-auto mb-1" style={{ color: theme }} /><p className="text-sm text-gray-600 font-medium truncate">{hospital.address?.city}, {hospital.address?.state}</p>{distance && <p className="text-xs text-green-600 font-semibold mt-1">{distance.toFixed(1)} km away</p>}</div>
+              <div className="h-auto py-6 rounded-xl flex items-center justify-center mb-3 border border-dashed border-gray-300" style={{ backgroundColor: theme + '05' }}>
+                <div className="text-center px-3">
+                  <FaMapMarkerAlt className="text-4xl mx-auto mb-2" style={{ color: theme }} />
+                  <p className="text-sm text-gray-700 font-medium leading-tight">{hospital.address?.city}, {hospital.address?.state}</p>
+                  {/* ✅ FIX: Added Landmark to Map Sidebar Box */}
+                  {hospital.address?.landmark && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
+                  {distance && <p className="text-xs text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-0.5 rounded">{distance.toFixed(1)} km away</p>}
+                </div>
               </div>
               <MapButton hospital={hospital} fullWidth={true} />
             </div>
@@ -488,7 +534,7 @@ const EnhancedHospitalDetails = () => {
                     onClick={() => handleBookAppointment(doctor._id)} 
                     disabled={!hospital.appointmentsEnabled}
                     className="w-full py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl text-sm sm:text-base font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5"
-                    style={{ width: 'calc(100% + 2rem)' }} // Account for negative margins on mobile
+                    style={{ width: 'calc(100% + 2rem)' }}
                   >
                     {hospital.appointmentsEnabled ? 'Book Appointment' : 'Booking Unavailable'}
                   </button>
