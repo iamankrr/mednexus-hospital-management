@@ -8,9 +8,8 @@ import {
   FaFlask, FaPills, FaCut, FaSpa, FaUserMd, FaShieldAlt, FaBed, 
   FaFacebook, FaInstagram, FaTwitter, FaYoutube, FaAward, FaUserTie, FaStethoscope
 } from 'react-icons/fa';
-import { hospitalAPI } from '../services/api';
-import PriceList from '../components/PriceList';
 import MapButton from '../components/MapButton';
+import PriceList from '../components/PriceList';
 import ReviewForm from '../components/ReviewForm';
 import PhotoGallery from '../components/PhotoGallery'; 
 import { useComparison } from '../context/ComparisonContext';
@@ -36,9 +35,9 @@ const getCategoryIcon = (category) => {
   return '💼'; 
 };
 
-// URL formatter
+// ✅ Safely formats URL
 const formatURL = (url) => {
-  if (!url || url.trim() === '') return null;
+  if (!url) return '#';
   return url.startsWith('http') ? url : `https://${url}`;
 };
 
@@ -142,7 +141,6 @@ const EnhancedHospitalDetails = () => {
   const theme = hospital.themeColor || '#1E40AF';
   const tabs  = ['overview', 'packages & rooms', 'services', 'reviews'];
 
-  // Proper count calculation without duplicates
   const unpricedServices = hospital.services?.filter(s => !s.price || s.price <= 0) || [];
   const combinedTests = Array.from(new Set([...(hospital.tests || []), ...unpricedServices.filter(s => ['Pathology', 'Radiology', 'Diagnosis'].includes(s.category)).map(s => s.name)]));
   const combinedTreatments = Array.from(new Set([...(hospital.treatments || []), ...unpricedServices.filter(s => ['Consultation', 'OPD', 'General', 'Other'].includes(s.category)).map(s => s.name)]));
@@ -202,7 +200,8 @@ const EnhancedHospitalDetails = () => {
                   <FaMapMarkerAlt className="mt-1 sm:mt-0 shrink-0" style={{ color: theme }} />
                   <span>
                     {[hospital.address.street, hospital.address.area, hospital.address.city, hospital.address.state, hospital.address.pincode].filter(Boolean).join(', ')}
-                    {hospital.address.landmark && hospital.address.landmark.trim() !== '' && ` (Landmark: ${hospital.address.landmark})`}
+                    {/* ✅ SIMPLIFIED LANDMARK CHECK */}
+                    {hospital.address.landmark && ` (Landmark: ${hospital.address.landmark})`}
                   </span>
                 </p>
               )}
@@ -296,7 +295,7 @@ const EnhancedHospitalDetails = () => {
                       </div>
                     )}
 
-                    {hospital.description && hospital.description.trim() !== '' && (
+                    {hospital.description && (
                       <div>
                         <h3 className="font-bold text-gray-800 mb-3 text-lg">About</h3>
                         <p className="text-gray-600 leading-relaxed text-sm md:text-base whitespace-pre-wrap">
@@ -431,7 +430,8 @@ const EnhancedHospitalDetails = () => {
                 {hospital.phone && <a href={`tel:${hospital.phone}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaPhone className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Phone</p><p className="font-semibold text-gray-800 truncate">{hospital.phone}</p></div></a>}
                 {hospital.email && <a href={`mailto:${hospital.email}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaEnvelope className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Email</p><p className="font-semibold text-gray-800 text-sm truncate w-full">{hospital.email}</p></div></a>}
                 
-                {hospital.website && hospital.website.trim() !== '' && (
+                {/* ✅ SIMPLIFIED WEBSITE CHECK */}
+                {hospital.website && (
                   <a href={formatURL(hospital.website)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
                     <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white transition-transform group-hover:scale-105" style={{ backgroundColor: theme }}>
                       <FaGlobe className="text-sm" />
@@ -443,7 +443,8 @@ const EnhancedHospitalDetails = () => {
                   </a>
                 )}
                 
-                {hospital.socialMedia && (hospital.socialMedia.facebook || hospital.socialMedia.instagram || hospital.socialMedia.twitter || hospital.socialMedia.youtube) && (
+                {/* ✅ SIMPLIFIED SOCIAL MEDIA CHECKS */}
+                {hospital.socialMedia && (
                   <div className="pt-4 mt-2 border-t border-gray-100 flex justify-around">
                     {hospital.socialMedia.facebook && <a href={formatURL(hospital.socialMedia.facebook)} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaFacebook /></a>}
                     {hospital.socialMedia.instagram && <a href={formatURL(hospital.socialMedia.instagram)} target="_blank" rel="noreferrer" className="p-2 text-pink-600 hover:bg-pink-50 rounded-full text-xl transition-transform hover:scale-110"><FaInstagram /></a>}
@@ -454,23 +455,23 @@ const EnhancedHospitalDetails = () => {
               </div>
             </div>
 
-            {(hospital.documents?.awards?.length > 0 || hospital.documents?.isoCertification || hospital.staffAndManagement?.medicalDirector) && (
-              <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
-                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FaUserTie style={{ color: theme }} /> Management & Certs</h3>
-                 <div className="space-y-3 text-sm">
-                   {hospital.staffAndManagement?.medicalDirector && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Medical Director</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.medicalDirector}</span></div>}
-                   {hospital.staffAndManagement?.chiefSurgeon && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Chief Surgeon</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.chiefSurgeon}</span></div>}
-                   
-                   {hospital.staffAndManagement?.nursingHead && hospital.staffAndManagement.nursingHead.trim() !== '' && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
-                   {hospital.staffAndManagement?.adminManager && hospital.staffAndManagement.adminManager.trim() !== '' && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
+            <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
+               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FaUserTie style={{ color: theme }} /> Management & Certs</h3>
+               <div className="space-y-3 text-sm">
+                 {hospital.staffAndManagement?.medicalDirector && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Medical Director</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.medicalDirector}</span></div>}
+                 {hospital.staffAndManagement?.chiefSurgeon && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Chief Surgeon</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.chiefSurgeon}</span></div>}
+                 
+                 {/* ✅ SIMPLIFIED STAFF CHECKS */}
+                 {hospital.staffAndManagement?.nursingHead && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
+                 {hospital.staffAndManagement?.adminManager && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
 
-                   {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
-                   {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
-                   
-                   {hospital.documents?.awards?.length > 0 && <div className="pt-1"><span className="text-gray-500 block mb-2 font-medium">Awards & Recognitions</span><div className="flex flex-wrap gap-1.5">{hospital.documents.awards.map((aw, i) => <span key={i} className="bg-yellow-50 text-yellow-700 text-[10px] px-2.5 py-1 rounded border border-yellow-200 font-bold tracking-wide">{aw}</span>)}</div></div>}
-                 </div>
-              </div>
-            )}
+                 {/* ✅ GOVT APPROVED BADGE */}
+                 {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
+                 {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
+                 
+                 {hospital.documents?.awards?.length > 0 && <div className="pt-1"><span className="text-gray-500 block mb-2 font-medium">Awards & Recognitions</span><div className="flex flex-wrap gap-1.5">{hospital.documents.awards.map((aw, i) => <span key={i} className="bg-yellow-50 text-yellow-700 text-[10px] px-2.5 py-1 rounded border border-yellow-200 font-bold tracking-wide">{aw}</span>)}</div></div>}
+               </div>
+            </div>
 
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
               <h3 className="font-bold text-gray-800 mb-3">📍 Location</h3>
@@ -478,7 +479,10 @@ const EnhancedHospitalDetails = () => {
                 <div className="text-center px-3">
                   <FaMapMarkerAlt className="text-4xl mx-auto mb-2" style={{ color: theme }} />
                   <p className="text-sm text-gray-700 font-medium leading-tight">{hospital.address?.city}, {hospital.address?.state}</p>
-                  {hospital.address?.landmark && hospital.address.landmark.trim() !== '' && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
+                  
+                  {/* ✅ SIMPLIFIED LANDMARK CHECK */}
+                  {hospital.address?.landmark && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
+                  
                   {distance && <p className="text-xs text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-0.5 rounded">{distance.toFixed(1)} km away</p>}
                 </div>
               </div>
@@ -511,13 +515,11 @@ const EnhancedHospitalDetails = () => {
                 <div className="pt-14 sm:pt-16 p-4 sm:p-5 flex-1 flex flex-col text-center">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">{doctor.name}</h3>
                   <p className="text-sm font-semibold mb-2" style={{ color: theme }}>{doctor.specialization}</p>
-                  
                   <div className="text-xs sm:text-sm text-gray-600 space-y-1 mb-4">
                     {doctor.qualification && <p>🎓 {doctor.qualification}</p>}
                     {doctor.experience && <p>⭐ {doctor.experience} Experience</p>}
                     {doctor.languages?.length > 0 && <p>🗣️ {doctor.languages.join(', ')}</p>}
                   </div>
-                  
                   <div className="mt-auto border-t pt-3 sm:pt-4 flex justify-between items-center bg-gray-50 -mx-4 sm:-mx-5 px-4 sm:px-5 py-3 mb-4">
                      <div className="text-left">
                        <p className="text-[9px] sm:text-[10px] text-gray-500 uppercase font-bold">OPD Timing</p>
@@ -528,13 +530,7 @@ const EnhancedHospitalDetails = () => {
                        <p className="text-base sm:text-lg font-black text-green-600">{doctor.consultationFee || doctor.fees ? `₹${doctor.consultationFee || doctor.fees}` : 'N/A'}</p>
                      </div>
                   </div>
-
-                  <button 
-                    onClick={() => handleBookAppointment(doctor._id)} 
-                    disabled={!hospital.appointmentsEnabled}
-                    className="w-full py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl text-sm sm:text-base font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5"
-                    style={{ width: 'calc(100% + 2rem)' }}
-                  >
+                  <button onClick={() => handleBookAppointment(doctor._id)} disabled={!hospital.appointmentsEnabled} className="w-full py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl text-sm sm:text-base font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 px-4 sm:px-5" style={{ width: 'calc(100% + 2rem)' }}>
                     {hospital.appointmentsEnabled ? 'Book Appointment' : 'Booking Unavailable'}
                   </button>
                 </div>
@@ -546,7 +542,6 @@ const EnhancedHospitalDetails = () => {
 
       <div id="services-section" className="max-w-6xl mx-auto px-4 py-8 scroll-mt-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">General Services & Facilities</h2>
-        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {combinedTests.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md p-5 sm:p-6 border border-gray-100 hover:shadow-lg transition">
