@@ -5,6 +5,7 @@ import ServiceManager from '../../components/ServiceManager';
 import ThemeColorPicker from '../../components/ThemeColorPicker';
 import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
+import DoctorPhotoUpload from '../../components/DoctorPhotoUpload'; // 👈 Import added
 import { FaSave, FaArrowLeft, FaTrash, FaSync, FaPlus, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { HOSPITAL_TYPES } from '../../components/HospitalTypeFilter';
 import axios from 'axios';
@@ -39,8 +40,12 @@ const EditHospital = () => {
   const [newInsurance, setNewInsurance] = useState('');
   const [customFacility, setCustomFacility] = useState(''); 
 
-  // ADDED photo field
-  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '', photo: '' });
+  // Updated with photo field
+  const [newDoctor, setNewDoctor] = useState({ 
+    name: '', specialization: '', qualification: '', 
+    experience: '', consultationFee: '', availability: '', 
+    languages: '', photo: ''  // 👈 photo field added
+  });
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
   const [newRoomType, setNewRoomType] = useState({ type: '', pricePerDay: '', facilities: '' });
@@ -157,7 +162,7 @@ const EditHospital = () => {
   const handleAddComplexItem = (field, item, setter, defaultState) => {
     if (item.name || item.type || item.title) { 
       setFormData({ ...formData, [field]: [...formData[field], item] });
-      setter(defaultState);
+      setter(defaultState); // Reset with photo field included
     } else alert("Please fill the required primary name/title field.");
   };
 
@@ -267,7 +272,6 @@ const EditHospital = () => {
           </FormSection>
 
           <FormSection title="Doctors & Departments" icon="🧑‍⚕️">
-             <p className="text-sm text-gray-500 mb-4 italic">(Doctors and Departments UI kept working as previous)</p>
             <div className="p-4 bg-blue-50 rounded-xl mb-6 border border-blue-100">
               <h4 className="font-bold mb-3 text-blue-800">Add New Doctor</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
@@ -278,9 +282,25 @@ const EditHospital = () => {
                 <input type="number" placeholder="Consultation Fee (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
                 <input type="text" placeholder="Availability / Timings" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
                 
-                {/* Updated columns to fit Photo URL */}
-                <input type="text" placeholder="Languages (e.g. English, Hindi)" value={newDoctor.languages} onChange={e=>setNewDoctor({...newDoctor, languages: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-2" />
-                <input type="text" placeholder="Photo URL (Optional)" value={newDoctor.photo} onChange={e=>setNewDoctor({...newDoctor, photo: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-1" />
+                {/* 👇 Doctor Photo Upload - Added before languages input */}
+                <div className="md:col-span-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Doctor Photo <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <DoctorPhotoUpload
+                    value={newDoctor.photo}
+                    onChange={(url) => setNewDoctor({ ...newDoctor, photo: url })}
+                  />
+                </div>
+
+                {/* Existing languages input */}
+                <input 
+                  type="text" 
+                  placeholder="Languages (e.g. English, Hindi)" 
+                  value={newDoctor.languages} 
+                  onChange={e => setNewDoctor({...newDoctor, languages: e.target.value})} 
+                  className="p-2 border rounded shadow-sm md:col-span-3" 
+                />
               </div>
               <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:'', photo:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
             </div>
@@ -289,7 +309,6 @@ const EditHospital = () => {
               {formData.doctors?.map((d, i) => (
                 <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
                   <div className="flex items-center gap-3">
-                    {/* Added simple display for doctor photo */}
                     {d.photo ? <img src={d.photo} alt={d.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-100" /> : <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs border-2 border-blue-100">Dr.</div>}
                     <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
                   </div>
@@ -343,7 +362,6 @@ const EditHospital = () => {
           </FormSection>
 
           <FormSection title="Emergency & Diagnostics" icon="🚑">
-             <p className="text-sm text-gray-500 mb-4 italic">(Emergency UI kept working as previous)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4 className="font-bold text-red-600 mb-3">Emergency Services</h4>
@@ -368,7 +386,6 @@ const EditHospital = () => {
           </FormSection>
 
           <FormSection title="Announcements & Campaigns" icon="📢">
-             <p className="text-sm text-gray-500 mb-4 italic">(Announcements UI kept working as previous)</p>
             <div className="p-4 bg-yellow-50 rounded-xl mb-4 border border-yellow-200">
               <h4 className="font-bold mb-3 text-yellow-800">Add Announcement (e.g. Free Blood Camp)</h4>
               <div className="flex flex-wrap gap-3 mb-3">
@@ -381,7 +398,6 @@ const EditHospital = () => {
           </FormSection>
 
           <FormSection title="General Facilities & Treatments" icon="🩺">
-             <p className="text-sm text-gray-500 mb-4 italic">(Facilities Arrays UI kept working as previous)</p>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (Add comma separated)</label>
               <div className="flex gap-2 mb-3">
