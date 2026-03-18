@@ -35,7 +35,7 @@ const getCategoryIcon = (category) => {
   return '💼'; 
 };
 
-// ✅ Safely formats URL
+// URL formatter ensures clickability
 const formatURL = (url) => {
   if (!url) return '#';
   return url.startsWith('http') ? url : `https://${url}`;
@@ -72,6 +72,10 @@ const EnhancedHospitalDetails = () => {
       if (!hospital) setLoading(true);
       const res = await axios.get(`${API_URL}/api/hospitals/${id}`);
       const data = res.data.data; 
+      
+      // ✅ DEV DEBUG LOG: Open your browser console (F12) to verify data arrives
+      console.log("FRESH API DATA ARRIVED:", data);
+      
       setHospital(data); 
       if (userLocation && data.location?.coordinates) {
         const dist = calculateDistance(userLocation.latitude, userLocation.longitude, data.location.coordinates[1], data.location.coordinates[0]);
@@ -200,7 +204,7 @@ const EnhancedHospitalDetails = () => {
                   <FaMapMarkerAlt className="mt-1 sm:mt-0 shrink-0" style={{ color: theme }} />
                   <span>
                     {[hospital.address.street, hospital.address.area, hospital.address.city, hospital.address.state, hospital.address.pincode].filter(Boolean).join(', ')}
-                    {/* ✅ SIMPLIFIED LANDMARK CHECK */}
+                    {/* ✅ FAIL-SAFE RENDER CHECK */}
                     {hospital.address.landmark && ` (Landmark: ${hospital.address.landmark})`}
                   </span>
                 </p>
@@ -430,7 +434,7 @@ const EnhancedHospitalDetails = () => {
                 {hospital.phone && <a href={`tel:${hospital.phone}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaPhone className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Phone</p><p className="font-semibold text-gray-800 truncate">{hospital.phone}</p></div></a>}
                 {hospital.email && <a href={`mailto:${hospital.email}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaEnvelope className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Email</p><p className="font-semibold text-gray-800 text-sm truncate w-full">{hospital.email}</p></div></a>}
                 
-                {/* ✅ SIMPLIFIED WEBSITE CHECK */}
+                {/* ✅ FAIL-SAFE WEBSITE LINK */}
                 {hospital.website && (
                   <a href={formatURL(hospital.website)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
                     <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white transition-transform group-hover:scale-105" style={{ backgroundColor: theme }}>
@@ -443,7 +447,7 @@ const EnhancedHospitalDetails = () => {
                   </a>
                 )}
                 
-                {/* ✅ SIMPLIFIED SOCIAL MEDIA CHECKS */}
+                {/* ✅ FAIL-SAFE SOCIAL MEDIA */}
                 {hospital.socialMedia && (
                   <div className="pt-4 mt-2 border-t border-gray-100 flex justify-around">
                     {hospital.socialMedia.facebook && <a href={formatURL(hospital.socialMedia.facebook)} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaFacebook /></a>}
@@ -458,14 +462,13 @@ const EnhancedHospitalDetails = () => {
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FaUserTie style={{ color: theme }} /> Management & Certs</h3>
                <div className="space-y-3 text-sm">
+                 {/* ✅ FAIL-SAFE STAFF LINKS */}
                  {hospital.staffAndManagement?.medicalDirector && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Medical Director</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.medicalDirector}</span></div>}
                  {hospital.staffAndManagement?.chiefSurgeon && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Chief Surgeon</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.chiefSurgeon}</span></div>}
-                 
-                 {/* ✅ SIMPLIFIED STAFF CHECKS */}
                  {hospital.staffAndManagement?.nursingHead && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
                  {hospital.staffAndManagement?.adminManager && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
 
-                 {/* ✅ GOVT APPROVED BADGE */}
+                 {/* ✅ FAIL-SAFE CERTIFICATION LINKS */}
                  {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
                  {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
                  
@@ -480,7 +483,7 @@ const EnhancedHospitalDetails = () => {
                   <FaMapMarkerAlt className="text-4xl mx-auto mb-2" style={{ color: theme }} />
                   <p className="text-sm text-gray-700 font-medium leading-tight">{hospital.address?.city}, {hospital.address?.state}</p>
                   
-                  {/* ✅ SIMPLIFIED LANDMARK CHECK */}
+                  {/* ✅ FAIL-SAFE LANDMARK RENDER */}
                   {hospital.address?.landmark && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
                   
                   {distance && <p className="text-xs text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-0.5 rounded">{distance.toFixed(1)} km away</p>}

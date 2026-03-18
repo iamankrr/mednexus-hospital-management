@@ -71,12 +71,12 @@ const EditHospital = () => {
       setFormData(prev => ({
         ...prev, ...h,
         establishedDate: h.establishedDate ? new Date(h.establishedDate).toISOString().split('T')[0] : '', 
-        address: { ...prev.address, ...h.address },
-        emergencyDetails: { ...prev.emergencyDetails, ...h.emergencyDetails },
-        staffAndManagement: { ...prev.staffAndManagement, ...h.staffAndManagement },
-        diagnosticCenterDetails: { ...prev.diagnosticCenterDetails, ...h.diagnosticCenterDetails },
-        documents: { ...prev.documents, ...h.documents },
-        socialMedia: { ...prev.socialMedia, ...h.socialMedia },
+        address: { ...prev.address, ...(h.address || {}) },
+        emergencyDetails: { ...prev.emergencyDetails, ...(h.emergencyDetails || {}) },
+        staffAndManagement: { ...prev.staffAndManagement, ...(h.staffAndManagement || {}) },
+        diagnosticCenterDetails: { ...prev.diagnosticCenterDetails, ...(h.diagnosticCenterDetails || {}) },
+        documents: { ...prev.documents, ...(h.documents || {}) },
+        socialMedia: { ...prev.socialMedia, ...(h.socialMedia || {}) },
         doctors: h.doctors || [], packages: h.packages || [], roomTypes: h.roomTypes || [],
         departments: h.departments || [], announcements: h.announcements || []
       }));
@@ -101,18 +101,42 @@ const EditHospital = () => {
     if (!formData.address?.city || !formData.address?.state || !formData.address?.pincode) return alert('City, State, and PIN Code are required fields!');
     try {
       setSaving(true);
+      // ✅ BULLETPROOF PAYLOAD CONSTRUCTION
       const payload = { 
         ...formData, 
-        website: formData.website?.trim() || '',
-        address: { ...formData.address, city: formData.address.city.trim(), state: formData.address.state.trim(), pincode: formData.address.pincode.trim(), landmark: formData.address.landmark?.trim() || '' },
-        socialMedia: { facebook: formData.socialMedia.facebook?.trim() || '', instagram: formData.socialMedia.instagram?.trim() || '', twitter: formData.socialMedia.twitter?.trim() || '', youtube: formData.socialMedia.youtube?.trim() || '' },
-        staffAndManagement: { medicalDirector: formData.staffAndManagement.medicalDirector?.trim() || '', chiefSurgeon: formData.staffAndManagement.chiefSurgeon?.trim() || '', nursingHead: formData.staffAndManagement.nursingHead?.trim() || '', adminManager: formData.staffAndManagement.adminManager?.trim() || '' }
+        website: formData.website || '',
+        address: { 
+          ...formData.address, 
+          landmark: formData.address?.landmark || '' 
+        },
+        socialMedia: { 
+          facebook: formData.socialMedia?.facebook || '', 
+          instagram: formData.socialMedia?.instagram || '', 
+          twitter: formData.socialMedia?.twitter || '', 
+          youtube: formData.socialMedia?.youtube || '' 
+        },
+        staffAndManagement: { 
+          medicalDirector: formData.staffAndManagement?.medicalDirector || '', 
+          chiefSurgeon: formData.staffAndManagement?.chiefSurgeon || '', 
+          nursingHead: formData.staffAndManagement?.nursingHead || '', 
+          adminManager: formData.staffAndManagement?.adminManager || '' 
+        },
+        documents: {
+          ...formData.documents,
+          governmentApproval: formData.documents?.governmentApproval || false
+        }
       };
-      delete payload.services; 
+      
+      delete payload.services; // ServiceManager handles its own updates
+      
       await hospitalAPI.update(id, payload);
       alert('✅ Hospital updated successfully!');
       navigate('/admin/hospitals');
-    } catch (error) { alert(error.response?.data?.message || 'Failed to save changes.'); } finally { setSaving(false); }
+    } catch (error) { 
+      alert(error.response?.data?.message || 'Failed to save changes.'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleDelete = async () => {
@@ -173,33 +197,32 @@ const EditHospital = () => {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Hospital Name *</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Hospital Type *</label><select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">{HOSPITAL_TYPES.filter(t => t.value !== 'all').map(type => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}</select></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Website</label><input type="text" value={formData.website} onChange={e => setFormData({...formData, website: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Established Date</label><input type="date" value={formData.establishedDate} onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })} max={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Hospital Name *</label><input type="text" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Hospital Type *</label><select value={formData.type || ''} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">{HOSPITAL_TYPES.filter(t => t.value !== 'all').map(type => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><input type="text" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Website</label><input type="text" value={formData.website || ''} onChange={e => setFormData({...formData, website: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Established Date</label><input type="date" value={formData.establishedDate || ''} onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })} max={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border rounded-lg" /></div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Google Place ID (Optional)</label>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <input type="text" value={formData.googlePlaceId} onChange={e => setFormData({...formData, googlePlaceId: e.target.value})} className="flex-1 px-4 py-2 border rounded-lg" placeholder="ChIJ..." />
+                  <input type="text" value={formData.googlePlaceId || ''} onChange={e => setFormData({...formData, googlePlaceId: e.target.value})} className="flex-1 px-4 py-2 border rounded-lg" placeholder="ChIJ..." />
                   <button type="button" onClick={handleSyncGoogle} disabled={syncing || !formData.googlePlaceId} className="px-6 py-2 bg-blue-100 text-blue-700 font-bold rounded-lg disabled:opacity-50"><FaSync className={syncing ? "animate-spin" : ""} /> {syncing ? 'Fetching...' : 'Sync Ratings'}</button>
                 </div>
-                {formData.googleReviewCount > 0 && <p className="text-sm text-green-600 mt-2 font-semibold">⭐ Synced Data: {formData.googleRating} Rating ({formData.googleReviewCount} Reviews)</p>}
               </div>
 
-              <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={4} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={4} className="w-full px-4 py-2 border rounded-lg" /></div>
             </div>
           </FormSection>
 
           <FormSection title="Address" icon="📍">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2"><CityStateSelector selectedState={formData.address.state} selectedCity={formData.address.city} onStateChange={(val) => setFormData({...formData, address: {...formData.address, state: val}})} onCityChange={(val) => setFormData({...formData, address: {...formData.address, city: val}})} /></div>
-              <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label><input type="text" value={formData.address.street} onChange={e => setFormData({...formData, address: {...formData.address, street: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Area</label><input type="text" value={formData.address.area} onChange={e => setFormData({...formData, address: {...formData.address, area: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label><input type="text" value={formData.address.pincode} maxLength={6} onChange={e => setFormData({...formData, address: {...formData.address, pincode: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
-              <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Landmark</label><input type="text" value={formData.address.landmark} onChange={e => setFormData({...formData, address: {...formData.address, landmark: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div className="md:col-span-2"><CityStateSelector selectedState={formData.address?.state || ''} selectedCity={formData.address?.city || ''} onStateChange={(val) => setFormData({...formData, address: {...formData.address, state: val}})} onCityChange={(val) => setFormData({...formData, address: {...formData.address, city: val}})} /></div>
+              <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label><input type="text" value={formData.address?.street || ''} onChange={e => setFormData({...formData, address: {...formData.address, street: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Area</label><input type="text" value={formData.address?.area || ''} onChange={e => setFormData({...formData, address: {...formData.address, area: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label><input type="text" value={formData.address?.pincode || ''} maxLength={6} onChange={e => setFormData({...formData, address: {...formData.address, pincode: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Landmark</label><input type="text" value={formData.address?.landmark || ''} onChange={e => setFormData({...formData, address: {...formData.address, landmark: e.target.value}})} className="w-full px-4 py-2 border rounded-lg" placeholder="Near YMCA Chowk..." /></div>
             </div>
           </FormSection>
 
@@ -208,7 +231,44 @@ const EditHospital = () => {
             <FormSection title="Photos" icon="📸"><ImageUploadManager images={formData.images || []} onImagesChange={(newImages) => setFormData({ ...formData, images: newImages })} maxImages={10} facilityId={id} facilityType="hospital" /></FormSection>
           </div>
 
+          <FormSection title="Management, Certifications & Social" icon="👔">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-800 border-b pb-2">Key Management</h4>
+                <div><label className="text-xs">Medical Director</label><input type="text" value={formData.staffAndManagement?.medicalDirector || ''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, medicalDirector: e.target.value}})} className="w-full p-2 border rounded" /></div>
+                <div><label className="text-xs">Chief Surgeon</label><input type="text" value={formData.staffAndManagement?.chiefSurgeon || ''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, chiefSurgeon: e.target.value}})} className="w-full p-2 border rounded" /></div>
+                <div><label className="text-xs">Nursing Head</label><input type="text" value={formData.staffAndManagement?.nursingHead || ''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, nursingHead: e.target.value}})} className="w-full p-2 border rounded" /></div>
+                <div><label className="text-xs">Admin Manager</label><input type="text" value={formData.staffAndManagement?.adminManager || ''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, adminManager: e.target.value}})} className="w-full p-2 border rounded" /></div>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-800 border-b pb-2">Certifications</h4>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.nabhAccreditation || false} onChange={e=> setFormData({...formData, documents: {...formData.documents, nabhAccreditation: e.target.checked}})} className="w-4 h-4" /> NABH Accreditation</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.isoCertification || false} onChange={e=> setFormData({...formData, documents: {...formData.documents, isoCertification: e.target.checked}})} className="w-4 h-4" /> ISO Certification</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.governmentApproval || false} onChange={e=> setFormData({...formData, documents: {...formData.documents, governmentApproval: e.target.checked}})} className="w-4 h-4" /> Government Approved</label>
+                <div className="mt-4">
+                  <label className="text-xs font-bold text-gray-700">Add Award / Certification</label>
+                  <div className="flex gap-2 mt-1">
+                    <input type="text" value={newAward} onChange={e=>setNewAward(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById('addAwardBtn').click(); } }} className="flex-1 p-2 border rounded shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Type award name" />
+                    <button id="addAwardBtn" type="button" onClick={(e) => { e.preventDefault(); if (newAward.trim()) { const currentAwards = formData.documents?.awards || []; if(!currentAwards.includes(newAward.trim())){ setFormData({...formData, documents: { ...formData.documents, awards: [...currentAwards, newAward.trim()] }}); } setNewAward(''); } }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 font-bold rounded shadow transition">Add</button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.documents?.awards?.map((a, i) => (<span key={i} className="text-xs bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full flex items-center gap-1">{a} <button type="button" onClick={(e)=> { e.preventDefault(); const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); setFormData({...formData, documents: {...formData.documents, awards: newAw}}) }} className="text-red-500 font-black hover:text-red-700 ml-1 text-sm">×</button></span>))}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-800 border-b pb-2">Social Media Links</h4>
+                <div><label className="text-xs">Facebook</label><input type="text" placeholder="https://..." value={formData.socialMedia?.facebook || ''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, facebook: e.target.value}})} className="w-full p-2 border rounded" /></div>
+                <div><label className="text-xs">Instagram</label><input type="text" placeholder="https://..." value={formData.socialMedia?.instagram || ''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, instagram: e.target.value}})} className="w-full p-2 border rounded" /></div>
+                <div><label className="text-xs">Twitter / X</label><input type="text" placeholder="https://..." value={formData.socialMedia?.twitter || ''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, twitter: e.target.value}})} className="w-full p-2 border rounded" /></div>
+                <div><label className="text-xs">YouTube</label><input type="text" placeholder="https://..." value={formData.socialMedia?.youtube || ''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, youtube: e.target.value}})} className="w-full p-2 border rounded" /></div>
+              </div>
+            </div>
+          </FormSection>
+
           <FormSection title="Doctors & Departments" icon="🧑‍⚕️">
+             <p className="text-sm text-gray-500 mb-4 italic">(Doctors and Departments UI kept working as previous)</p>
+            {/* Same code as you had for Doctors and Departments... */}
             <div className="p-4 bg-blue-50 rounded-xl mb-6 border border-blue-100">
               <h4 className="font-bold mb-3 text-blue-800">Add New Doctor</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
@@ -222,7 +282,15 @@ const EditHospital = () => {
               </div>
               <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
             </div>
-            <div className="space-y-2 mb-8">{formData.doctors?.map((d, i) => (<div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm"><div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div><button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline">Remove</button></div>))}</div>
+            
+            <div className="space-y-2 mb-8">
+              {formData.doctors?.map((d, i) => (
+                <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
+                  <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
+                  <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline">Remove</button>
+                </div>
+              ))}
+            </div>
 
             <div className="p-4 bg-purple-50 rounded-xl mb-4 border border-purple-100">
               <h4 className="font-bold mb-3 text-purple-800">Add Department</h4>
@@ -233,7 +301,14 @@ const EditHospital = () => {
               </div>
               <button type="button" onClick={() => handleAddComplexItem('departments', newDepartment, setNewDepartment, {name:'', description:'', headDoctor:''})} className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition">Add Department</button>
             </div>
-            <div className="space-y-2">{formData.departments?.map((d, i) => (<div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm"><div><span className="font-bold text-gray-800">{d.name}</span> {d.headDoctor && <span className="text-gray-600">(Head: {d.headDoctor})</span>}</div><button type="button" onClick={() => handleRemoveArrayItem('departments', i)} className="text-red-500 font-bold hover:underline">Remove</button></div>))}</div>
+            <div className="space-y-2">
+              {formData.departments?.map((d, i) => (
+                <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
+                  <div><span className="font-bold text-gray-800">{d.name}</span> {d.headDoctor && <span className="text-gray-600">(Head: {d.headDoctor})</span>}</div>
+                  <button type="button" onClick={() => handleRemoveArrayItem('departments', i)} className="text-red-500 font-bold hover:underline">Remove</button>
+                </div>
+              ))}
+            </div>
           </FormSection>
 
           <FormSection title="Room Types & Packages" icon="🛏️">
@@ -262,6 +337,7 @@ const EditHospital = () => {
           </FormSection>
 
           <FormSection title="Emergency & Diagnostics" icon="🚑">
+             <p className="text-sm text-gray-500 mb-4 italic">(Emergency UI kept working as previous)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4 className="font-bold text-red-600 mb-3">Emergency Services</h4>
@@ -285,42 +361,8 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
-          <FormSection title="Management, Certifications & Social" icon="👔">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-3">
-                <h4 className="font-bold text-gray-800 border-b pb-2">Key Management</h4>
-                <div><label className="text-xs">Medical Director</label><input type="text" value={formData.staffAndManagement?.medicalDirector||''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, medicalDirector: e.target.value}})} className="w-full p-2 border rounded" /></div>
-                <div><label className="text-xs">Chief Surgeon</label><input type="text" value={formData.staffAndManagement?.chiefSurgeon||''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, chiefSurgeon: e.target.value}})} className="w-full p-2 border rounded" /></div>
-                <div><label className="text-xs">Nursing Head</label><input type="text" value={formData.staffAndManagement?.nursingHead||''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, nursingHead: e.target.value}})} className="w-full p-2 border rounded" /></div>
-                <div><label className="text-xs">Admin Manager</label><input type="text" value={formData.staffAndManagement?.adminManager||''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, adminManager: e.target.value}})} className="w-full p-2 border rounded" /></div>
-              </div>
-              <div className="space-y-3">
-                <h4 className="font-bold text-gray-800 border-b pb-2">Certifications</h4>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.nabhAccreditation||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, nabhAccreditation: e.target.checked}})} className="w-4 h-4" /> NABH Accreditation</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.isoCertification||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, isoCertification: e.target.checked}})} className="w-4 h-4" /> ISO Certification</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.governmentApproval||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, governmentApproval: e.target.checked}})} className="w-4 h-4" /> Government Approved</label>
-                <div className="mt-4">
-                  <label className="text-xs font-bold text-gray-700">Add Award / Certification</label>
-                  <div className="flex gap-2 mt-1">
-                    <input type="text" value={newAward} onChange={e=>setNewAward(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById('addAwardBtn').click(); } }} className="flex-1 p-2 border rounded shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Type award name" />
-                    <button id="addAwardBtn" type="button" onClick={(e) => { e.preventDefault(); if (newAward.trim()) { const currentAwards = formData.documents?.awards || []; if(!currentAwards.includes(newAward.trim())){ setFormData({...formData, documents: { ...formData.documents, awards: [...currentAwards, newAward.trim()] }}); } setNewAward(''); } }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 font-bold rounded shadow transition">Add</button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {formData.documents?.awards?.map((a, i) => (<span key={i} className="text-xs bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full flex items-center gap-1">{a} <button type="button" onClick={(e)=> { e.preventDefault(); const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); setFormData({...formData, documents: {...formData.documents, awards: newAw}}) }} className="text-red-500 font-black hover:text-red-700 ml-1 text-sm">×</button></span>))}
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <h4 className="font-bold text-gray-800 border-b pb-2">Social Media Links</h4>
-                <div><label className="text-xs">Facebook</label><input type="text" placeholder="https://..." value={formData.socialMedia?.facebook||''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, facebook: e.target.value}})} className="w-full p-2 border rounded" /></div>
-                <div><label className="text-xs">Instagram</label><input type="text" placeholder="https://..." value={formData.socialMedia?.instagram||''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, instagram: e.target.value}})} className="w-full p-2 border rounded" /></div>
-                <div><label className="text-xs">Twitter / X</label><input type="text" placeholder="https://..." value={formData.socialMedia?.twitter||''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, twitter: e.target.value}})} className="w-full p-2 border rounded" /></div>
-                <div><label className="text-xs">YouTube</label><input type="text" placeholder="https://..." value={formData.socialMedia?.youtube||''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, youtube: e.target.value}})} className="w-full p-2 border rounded" /></div>
-              </div>
-            </div>
-          </FormSection>
-
           <FormSection title="Announcements & Campaigns" icon="📢">
+             <p className="text-sm text-gray-500 mb-4 italic">(Announcements UI kept working as previous)</p>
             <div className="p-4 bg-yellow-50 rounded-xl mb-4 border border-yellow-200">
               <h4 className="font-bold mb-3 text-yellow-800">Add Announcement (e.g. Free Blood Camp)</h4>
               <div className="flex flex-wrap gap-3 mb-3">
@@ -333,6 +375,7 @@ const EditHospital = () => {
           </FormSection>
 
           <FormSection title="General Facilities & Treatments" icon="🩺">
+             <p className="text-sm text-gray-500 mb-4 italic">(Facilities Arrays UI kept working as previous)</p>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (Add comma separated)</label>
               <div className="flex gap-2 mb-3">
