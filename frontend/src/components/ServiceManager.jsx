@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaRupeeSign } from 'react-icons/fa';
 import axios from 'axios';
-import API_URL from '../config/api'; // ✅ FIX: Imported Live API_URL
+import API_URL from '../config/api'; 
 
 const CATEGORIES = [
   'Consultation', 'Pathology', 'Radiology', 'Diagnosis', 
@@ -25,7 +25,6 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
 
   const getToken = () => localStorage.getItem('token');
   
-  // ✅ FIX: Replaced localhost with dynamic API_URL
   const getEndpoint = () =>
     `${API_URL}/api/${facilityType === 'hospital' ? 'hospitals' : 'labs'}/${facilityId}/services`;
 
@@ -34,35 +33,30 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     setShowAddForm(false);
   };
 
-  const cleanPayload = (data) => {
-    const payload = { ...data };
-    if (!payload.price || payload.price === '') {
-      delete payload.price; 
-    } else {
-      payload.price = parseFloat(payload.price);
-    }
-    return payload;
+  // ✅ THE MASTER FIX: Convert blank price to 0 so MongoDB doesn't crash!
+  const getSafePayload = (data) => {
+    return {
+      name: data.name,
+      category: data.category || 'General',
+      price: data.price ? Number(data.price) : 0, // 0 means "On Request"
+      duration: data.duration || '',
+      description: data.description || '',
+      isAvailable: data.isAvailable !== false
+    };
   };
 
   const handleAdd = async () => {
-    if (!form.name) {
-      alert('Service name is required!');
-      return;
-    }
+    if (!form.name) return alert('Service name is required!');
     try {
       setLoading(true);
-      const payload = cleanPayload(form);
-      
-      const res = await axios.post(getEndpoint(), payload, { 
-        headers: { Authorization: `Bearer ${getToken()}` } 
-      });
-      
+      const payload = getSafePayload(form);
+      const res = await axios.post(getEndpoint(), payload, { headers: { Authorization: `Bearer ${getToken()}` } });
       setServices(res.data.data);
       if (onUpdate) onUpdate(res.data.data);
       resetForm();
       alert('✅ Service added successfully!');
     } catch (err) {
-      console.error(err);
+      console.error('Add Service Error:', err);
       alert(err.response?.data?.message || 'Error adding service');
     } finally {
       setLoading(false);
@@ -74,7 +68,7 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     setEditForm({
       name: service.name,
       category: service.category || 'General',
-      price: service.price || '',
+      price: service.price === 0 ? '' : service.price,
       duration: service.duration || '',
       description: service.description || '',
       isAvailable: service.isAvailable !== false
@@ -84,12 +78,8 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
   const handleSaveEdit = async (serviceId) => {
     try {
       setLoading(true);
-      const payload = cleanPayload(editForm);
-
-      const res = await axios.put(`${getEndpoint()}/${serviceId}`, payload, { 
-        headers: { Authorization: `Bearer ${getToken()}` } 
-      });
-      
+      const payload = getSafePayload(editForm);
+      const res = await axios.put(`${getEndpoint()}/${serviceId}`, payload, { headers: { Authorization: `Bearer ${getToken()}` } });
       setServices(prev => prev.map(s => s._id === serviceId ? { ...s, ...payload } : s));
       if (onUpdate) onUpdate(services);
       setEditingId(null);
@@ -105,13 +95,10 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     if (!window.confirm(`Delete "${serviceName}"?`)) return;
     try {
       setLoading(true);
-      await axios.delete(`${getEndpoint()}/${serviceId}`, { 
-        headers: { Authorization: `Bearer ${getToken()}` } 
-      });
+      await axios.delete(`${getEndpoint()}/${serviceId}`, { headers: { Authorization: `Bearer ${getToken()}` } });
       const updated = services.filter(s => s._id !== serviceId);
       setServices(updated);
       if (onUpdate) onUpdate(updated);
-      alert('✅ Service deleted!');
     } catch (err) {
       alert(err.response?.data?.message || 'Error deleting service');
     } finally {
@@ -135,13 +122,8 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
     <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-5 text-white">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">💰 Manage Services</h2>
-            <p className="text-blue-100 text-sm mt-1">{services.length} services listed</p>
-          </div>
-          <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-2 bg-white text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-50 transition shadow-sm">
-            {showAddForm ? <><FaTimes /> Cancel</> : <><FaPlus /> Add Service</>}
-          </button>
+          <div><h2 className="text-xl font-bold flex items-center gap-2">💰 Manage Services</h2><p className="text-blue-100 text-sm mt-1">{services.length} services listed</p></div>
+          <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-2 bg-white text-blue-600 px-4 py-2 rounded-xl font-bold shadow-sm">{showAddForm ? <><FaTimes /> Cancel</> : <><FaPlus /> Add Service</>}</button>
         </div>
       </div>
 
@@ -149,32 +131,13 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
         <div className="p-5 bg-blue-50 border-b border-blue-200">
           <h3 className="font-bold text-blue-800 mb-4">➕ Add New Service</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Service Name *</label>
-              <input type="text" placeholder="e.g. Blood Test, X-Ray" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Category</label>
-              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Price (₹) (Optional)</label>
-              <input type="number" placeholder="Leave blank for 'On Request'" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Duration</label>
-              <input type="text" placeholder="e.g. 30 minutes" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Description</label>
-              <input type="text" placeholder="Brief description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-            </div>
+            <div><label className="text-sm font-medium text-gray-700">Service Name *</label><input type="text" placeholder="e.g. Blood Test, X-Ray" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="text-sm font-medium text-gray-700">Category</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">{CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
+            <div><label className="text-sm font-medium text-gray-700">Price (₹) (Optional)</label><input type="number" placeholder="Leave blank for 'On Request'" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="text-sm font-medium text-gray-700">Duration</label><input type="text" placeholder="e.g. 30 minutes" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
+            <div className="md:col-span-2"><label className="text-sm font-medium text-gray-700">Description</label><input type="text" placeholder="Brief description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
           </div>
-          <div className="flex gap-3 mt-5">
-            <button onClick={handleAdd} disabled={loading} className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition disabled:opacity-50 shadow-sm">{loading ? '⏳ Saving...' : <><FaSave /> Save Service</>}</button>
-          </div>
+          <div className="mt-5"><button onClick={handleAdd} disabled={loading} className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 shadow-sm">{loading ? '⏳ Saving...' : <><FaSave /> Save Service</>}</button></div>
         </div>
       )}
 
@@ -184,16 +147,11 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
 
       <div className="p-4 max-h-[600px] overflow-y-auto custom-scrollbar">
         {services.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <FaRupeeSign className="text-5xl mx-auto mb-3 text-gray-300" />
-            <p className="font-medium text-gray-600">No services added yet</p>
-          </div>
+          <div className="text-center py-12 text-gray-400"><FaRupeeSign className="text-5xl mx-auto mb-3 text-gray-300" /><p className="font-medium text-gray-600">No services added yet</p></div>
         ) : (
           Object.entries(grouped).map(([category, items]) => (
             <div key={category} className="mb-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <span className="h-px bg-gray-200 flex-1"></span>{category} ({items.length})<span className="h-px bg-gray-200 flex-1"></span>
-              </h3>
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2"><span className="h-px bg-gray-200 flex-1"></span>{category} ({items.length})<span className="h-px bg-gray-200 flex-1"></span></h3>
               <div className="space-y-3">
                 {items.map(service => (
                   <div key={service._id} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm hover:border-blue-300 transition">
@@ -219,8 +177,8 @@ const ServiceManager = ({ facilityId, facilityType = 'hospital', initialServices
                           {service.duration && <p className="text-xs text-gray-400 mt-1 font-medium">⏱ {service.duration}</p>}
                         </div>
                         <div className="flex items-center gap-4 border-l pl-4 border-gray-100">
-                          <span className={`text-lg font-black ${service.price ? 'text-blue-600' : 'text-gray-400 text-sm'}`}>
-                            {service.price ? `₹${service.price.toLocaleString()}` : 'On Request'}
+                          <span className={`text-lg font-black ${service.price > 0 ? 'text-blue-600' : 'text-gray-400 text-sm'}`}>
+                            {service.price > 0 ? `₹${service.price.toLocaleString()}` : 'On Request'}
                           </span>
                           <div className="flex flex-col gap-1">
                              <button onClick={() => startEdit(service)} className="text-blue-500 hover:text-blue-700 bg-blue-50 p-2 rounded-md"><FaEdit /></button>

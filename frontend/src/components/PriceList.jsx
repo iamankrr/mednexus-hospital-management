@@ -5,8 +5,7 @@ const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
-  // ✅ FIX: Ab ye un sabhi services ko lega jo 'isAvailable: false' nahi hain. 
-  // Agar price blank hoga toh wo automatically 'On Request' dikhayega.
+  // ✅ THE MASTER FIX: Filter out only logically unavailable ones. 0 price is allowed!
   const activeServices = services.filter(s => s.isAvailable !== false);
 
   if (!activeServices || activeServices.length === 0) {
@@ -19,7 +18,6 @@ const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
     );
   }
 
-  // Filter by search + category
   const filtered = activeServices.filter(s => {
     const matchSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.description && s.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -111,7 +109,7 @@ const PriceList = ({ services = [], themeColor = '#1E40AF' }) => {
                     </div>
                     
                     <div className="text-left sm:text-right border-t sm:border-t-0 sm:border-l border-gray-100 pt-3 sm:pt-0 sm:pl-5 shrink-0">
-                      {service.price ? (
+                      {service.price > 0 ? (
                         <>
                           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">Price</p>
                           <p className="text-2xl font-black tracking-tight" style={{ color: themeColor }}>₹{service.price.toLocaleString()}</p>
