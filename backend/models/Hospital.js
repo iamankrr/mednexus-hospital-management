@@ -1,193 +1,304 @@
-const mongoose = require('mongoose');
+const express = require('express');
+const router = express.Router();
+const Hospital = require('../models/Hospital'); 
+const User = require('../models/User');         
+const { protect } = require('../middleware/authMiddleware');
+const googlePlaces = require('../services/googlePlaces'); 
 
-const hospitalSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please provide hospital name'],
-    trim: true
-  },
-  type: {
-    type: String,
-    required: [true, 'Please provide hospital type'],
-    trim: true 
-  },
-  category: {
-    type: String,
-    enum: ['Private', 'Government', 'Charity', 'Public', 'private', 'government', 'charity', 'public'], 
-    default: 'private'
-  },
-  description: {
-    type: String
-  },
-  address: {
-    street: String,
-    area: String,
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: { type: String, required: true },
-    landmark: String
-  },
-  location: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      default: 'Point'
-    },
-    coordinates: {
-      type: [Number],
-      required: true
+const {
+  getHospitalById,
+  searchHospitals,
+  getNearbyHospitals,
+  deleteHospital
+} = require('../controllers/hospitalController');
+
+// ============================================
+// ROUTES
+// ============================================
+
+// GET /api/hospitals - Get all hospitals
+router.get('/', async (req, res) => {
+  try {
+    const { latitude, longitude, city, type, maxDistance } = req.query;
+    let query = { isActive: true };
+    
+    if (city && city !== 'All Cities') query['address.city'] = city;
+    if (type && type !== 'All Types' && type !== 'all') query.type = type;
+    
+    let hospitals = await Hospital.find(query)
+      .populate('owner', 'name email phone')
+      .select('-__v -createdAt -updatedAt') 
+      .lean()
+      .limit(50); 
+      
+    if (latitude && longitude) {
+      const userLat = parseFloat(latitude);
+      const userLng = parseFloat(longitude);
+      
+      hospitals = hospitals.map(hospital => {
+        if (hospital.location && hospital.location.coordinates) {
+          const [hospLng, hospLat] = hospital.location.coordinates;
+          const R = 6371; 
+          const dLat = (hospLat - userLat) * Math.PI / 180;
+          const dLon = (hospLng - userLng) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(userLat * Math.PI / 180) * Math.cos(hospLat * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c;
+          
+          return { ...hospital, distance: Math.round(distance * 10) / 10 };
+        }
+        return hospital;
+      });
+      
+      if (maxDistance) {
+        const maxDistanceKm = parseFloat(maxDistance);
+        hospitals = hospitals.filter(h => !h.distance || h.distance <= maxDistanceKm);
+      }
+      
+      hospitals.sort((a, b) => {
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      });
     }
-  },
-  phone: {
-    type: String,
-    required: true,
-    validate: {
-      validator: function(v) {
-        return /^[0-9]{10}$/.test(v) || /^0[0-9]{10}$/.test(v);
-      },
-      message: props => `${props.value} is not a valid phone number!`
-    }
-  },
-  email: {
-    type: String,
-    required: false
-  },
-  website: String,
-  operatingHours: {
-    monday: { type: String, default: '9:00 AM - 6:00 PM' },
-    tuesday: { type: String, default: '9:00 AM - 6:00 PM' },
-    wednesday: { type: String, default: '9:00 AM - 6:00 PM' },
-    thursday: { type: String, default: '9:00 AM - 6:00 PM' },
-    friday: { type: String, default: '9:00 AM - 6:00 PM' },
-    saturday: { type: String, default: '9:00 AM - 2:00 PM' },
-    sunday: { type: String, default: 'Closed' }
-  },
-  
-  // 🚑 Emergency Info (Upgraded)
-  emergencyAvailable: { type: Boolean, default: false },
-  emergencyDetails: {
-    contactNumber: String,
-    traumaCenter: { type: Boolean, default: false },
-    ambulanceCount: { type: Number, default: 0 },
-    doctors24x7: { type: Boolean, default: false }
-  },
-
-  facilities: [String],
-  images: [String],
-  
-  googleRating: { type: Number, min: 0, max: 5, default: 0 },
-  googleReviewCount: { type: Number, default: 0 },
-  appRating: { type: Number, min: 0, max: 5, default: 0 },
-  appReviewCount: { type: Number, default: 0 },
-  googlePlaceId: String,
-  
-  isActive: { type: Boolean, default: true },
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  appointmentsEnabled: { type: Boolean, default: false },
-  themeColor: { type: String, default: '#2563EB' },
-  establishedDate: { type: Date, required: false },
-  
-  // Service Arrays
-  tests: [{ type: String }],
-  treatments: [{ type: String }],
-  surgeries: [{ type: String }],
-  procedures: [{ type: String }],
-  therapies: [{ type: String }],
-  managementServices: [{ type: String }],
-  insuranceAccepted: [{ type: String }],
-  
-  numberOfBeds: { type: Number, default: 0 },
-
-  // 🧑‍⚕️ Doctors Section (Upgraded)
-  doctors: [{
-    name: { type: String, required: true },
-    photo: { type: String },
-    specialization: { type: String, required: true },
-    rating: { type: Number, default: 0 },
-    experience: { type: String }, // e.g., "18 Years"
-    qualification: { type: String }, // e.g., "MBBS, MD"
-    availability: { type: String }, // e.g., "Mon-Sat 10AM-2PM"
-    consultationFee: { type: Number },
-    languages: [{ type: String }] // e.g., ["English", "Hindi"]
-  }],
-
-  // 🏢 Departments
-  departments: [{
-    name: { type: String },
-    description: { type: String },
-    headDoctor: { type: String }
-  }],
-
-  // 💰 Packages & Price List
-  packages: [{
-    name: { type: String }, // e.g., "Full Body Checkup"
-    price: { type: Number },
-    includedTests: [{ type: String }],
-    duration: { type: String }
-  }],
-
-  // 🛏️ Room Types
-  roomTypes: [{
-    type: { type: String }, // e.g., "General Ward", "ICU"
-    pricePerDay: { type: Number },
-    facilities: [{ type: String }]
-  }],
-
-  // 🧑‍💼 Staff & Management
-  staffAndManagement: {
-    medicalDirector: String,
-    chiefSurgeon: String,
-    nursingHead: String,
-    adminManager: String
-  },
-
-  // 🧪 Diagnostic Center Details
-  diagnosticCenterDetails: {
-    labAvailable: { type: Boolean, default: false },
-    nablCertified: { type: Boolean, default: false },
-    reportTime: String,
-    homeSampleCollection: { type: Boolean, default: false }
-  },
-
-  // 📄 Documents / Certificates
-  documents: {
-    nabhAccreditation: { type: Boolean, default: false },
-    isoCertification: { type: Boolean, default: false },
-    governmentApproval: { type: Boolean, default: false },
-    awards: [{ type: String }]
-  },
-
-  // 📱 Social Media
-  socialMedia: {
-    facebook: String,
-    instagram: String,
-    twitter: String,
-    youtube: String
-  },
-
-  // 🔔 Announcements
-  announcements: [{
-    title: String,
-    description: String,
-    date: { type: Date, default: Date.now }
-  }],
-
-  services: [{
-    name: { type: String, required: true },
-    category: { type: String, default: 'General' },
-    price: { type: Number, default: null },
-    duration: { type: String },
-    description: { type: String },
-    isAvailable: { type: Boolean, default: true }
-  }],
-  customServices: [{
-    category: { type: String },
-    name: { type: String }
-  }]
-}, {
-  timestamps: true
+    
+    res.status(200).json({ success: true, count: hospitals.length, data: hospitals });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
-hospitalSchema.index({ location: '2dsphere' });
+router.get('/search', searchHospitals);
+router.get('/nearby', getNearbyHospitals);
+router.get('/:id', getHospitalById);
 
-module.exports = mongoose.model('Hospital', hospitalSchema);
+// POST /api/hospitals - Create hospital
+router.post('/', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only admin can add hospitals' });
+    }
+
+    if (!req.body.name) return res.status(400).json({ success: false, message: 'Hospital name is required' });
+    if (!req.body.type) return res.status(400).json({ success: false, message: 'Hospital type is required' });
+
+    const { name, phone, googlePlaceId, address } = req.body;
+
+    if (googlePlaceId && googlePlaceId.trim() !== '') {
+      const existingById = await Hospital.findOne({ googlePlaceId });
+      if (existingById) return res.status(400).json({ success: false, message: 'Google Place ID already exists!' });
+    }
+
+    if (phone || (name && address?.city)) {
+      const existingByNameOrPhone = await Hospital.findOne({
+        $or: [
+          { phone: phone },
+          { name: { $regex: new RegExp(`^${name}$`, 'i') }, 'address.city': address?.city }
+        ]
+      });
+      if (existingByNameOrPhone) return res.status(400).json({ success: false, message: 'Hospital already exists.' });
+    }
+
+    const hospital = await Hospital.create(req.body);
+    res.status(201).json({ success: true, message: 'Hospital created', data: hospital });
+
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
+    res.status(500).json({ success: false, message: error.message || 'Failed to create hospital' });
+  }
+});
+
+// PUT - Update Hospital
+router.put('/:id', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    if (req.user.role === 'owner') {
+      const user = await User.findById(req.user.id);
+      // ✅ BULLETPROOF OWNER CHECK
+      if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
+        return res.status(403).json({ success: false, message: 'Facility not assigned properly.' });
+      }
+      if (user.ownerProfile.facilityId.toString() !== req.params.id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied. Not your facility.' });
+      }
+    }
+
+    let updateData = { ...req.body };
+    if (updateData.googlePlaceId && updateData.googlePlaceId.trim() !== '') {
+      try {
+        const placeData = await googlePlaces.getPlaceDetails(updateData.googlePlaceId);
+        if (placeData) {
+          updateData.googleRating = placeData.googleRating || 0;
+          updateData.googleReviewCount = placeData.googleReviewCount || 0;
+        }
+      } catch (googleError) {
+        console.error('Failed to fetch fresh Google Data.');
+      }
+    }
+
+    const hospital = await Hospital.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
+    if (!hospital) return res.status(404).json({ success: false, message: 'Hospital not found' });
+
+    res.status(200).json({ success: true, message: 'Hospital updated', data: hospital });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE
+router.delete('/:id', protect, deleteHospital);
+
+// ============================================
+// PRICE LIST / SERVICES ROUTES
+// ============================================
+
+// ===== GET services (public) =====
+router.get('/:id/services', async (req, res) => {
+  try {
+    const hospital = await Hospital.findById(req.params.id).select('services name');
+    if (!hospital) return res.status(404).json({ success: false, message: 'Hospital not found' });
+
+    const grouped = {};
+    if (hospital.services) {
+      hospital.services.forEach(service => {
+        const cat = service.category || 'General';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(service);
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: hospital.services ? hospital.services.length : 0,
+      data: hospital.services || [],
+      grouped
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== ADD service (admin/owner) =====
+router.post('/:id/services', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // ✅ BULLETPROOF OWNER CHECK FOR ADD
+    if (req.user.role === 'owner') {
+      const user = await User.findById(req.user.id);
+      if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
+        return res.status(403).json({ success: false, message: 'Facility not assigned.' });
+      }
+      if (user.ownerProfile.facilityId.toString() !== req.params.id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied. Not your facility.' });
+      }
+    }
+
+    const { name, category, price, duration, description, isAvailable } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Service name is required' });
+
+    const hospital = await Hospital.findById(req.params.id);
+    if (!hospital) return res.status(404).json({ success: false, message: 'Hospital not found' });
+
+    if (!hospital.services) hospital.services = [];
+
+    hospital.services.push({
+      name, 
+      category: category || 'General',
+      price: (price !== undefined && price !== null && price !== '') ? Number(price) : null,
+      duration, 
+      description,
+      isAvailable: isAvailable !== undefined ? isAvailable : true
+    });
+
+    await hospital.save();
+
+    res.status(201).json({ success: true, message: 'Service added successfully', data: hospital.services });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== UPDATE service (admin/owner) =====
+router.put('/:id/services/:serviceId', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // ✅ BULLETPROOF OWNER CHECK FOR UPDATE
+    if (req.user.role === 'owner') {
+      const user = await User.findById(req.user.id);
+      if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
+        return res.status(403).json({ success: false, message: 'Facility not assigned.' });
+      }
+      if (user.ownerProfile.facilityId.toString() !== req.params.id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied. Not your facility.' });
+      }
+    }
+
+    const hospital = await Hospital.findById(req.params.id);
+    if (!hospital) return res.status(404).json({ success: false, message: 'Hospital not found' });
+
+    const service = hospital.services.id(req.params.serviceId);
+    if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
+
+    const { name, category, price, duration, description, isAvailable } = req.body;
+    
+    if (name) service.name = name;
+    if (category) service.category = category;
+    if (price !== undefined) service.price = (price !== null && price !== '') ? Number(price) : null;
+    if (duration !== undefined) service.duration = duration;
+    if (description !== undefined) service.description = description;
+    if (isAvailable !== undefined) service.isAvailable = isAvailable;
+
+    await hospital.save();
+
+    res.status(200).json({ success: true, message: 'Service updated', data: service });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ===== DELETE service (admin/owner) =====
+router.delete('/:id/services/:serviceId', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // ✅ BULLETPROOF OWNER CHECK FOR DELETE
+    if (req.user.role === 'owner') {
+      const user = await User.findById(req.user.id);
+      if (!user || !user.ownerProfile || !user.ownerProfile.facilityId) {
+        return res.status(403).json({ success: false, message: 'Facility not assigned.' });
+      }
+      if (user.ownerProfile.facilityId.toString() !== req.params.id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied. Not your facility.' });
+      }
+    }
+
+    const hospital = await Hospital.findById(req.params.id);
+    if (!hospital) return res.status(404).json({ success: false, message: 'Hospital not found' });
+
+    hospital.services.pull(req.params.serviceId);
+    await hospital.save();
+
+    res.status(200).json({ success: true, message: 'Service deleted', data: hospital.services });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router;
