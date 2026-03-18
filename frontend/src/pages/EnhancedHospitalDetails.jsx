@@ -36,6 +36,12 @@ const getCategoryIcon = (category) => {
   return '💼'; 
 };
 
+// URL formatter
+const formatURL = (url) => {
+  if (!url || url.trim() === '') return null;
+  return url.startsWith('http') ? url : `https://${url}`;
+};
+
 const EnhancedHospitalDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,7 +60,7 @@ const EnhancedHospitalDetails = () => {
   const [activeTab, setActiveTab]     = useState('overview');
   const [distance, setDistance]       = useState(initialData?.distance || null);
   const [isFavorite, setIsFavorite]   = useState(false);
-  const [isAboutExpanded, setIsAboutExpanded] = useState(false); // ✅ FIX: For description toggle
+  const [isAboutExpanded, setIsAboutExpanded] = useState(false); 
 
   useEffect(() => {
     window.scrollTo(0, 0); 
@@ -136,6 +142,7 @@ const EnhancedHospitalDetails = () => {
   const theme = hospital.themeColor || '#1E40AF';
   const tabs  = ['overview', 'packages & rooms', 'services', 'reviews'];
 
+  // Proper count calculation without duplicates
   const unpricedServices = hospital.services?.filter(s => !s.price || s.price <= 0) || [];
   const combinedTests = Array.from(new Set([...(hospital.tests || []), ...unpricedServices.filter(s => ['Pathology', 'Radiology', 'Diagnosis'].includes(s.category)).map(s => s.name)]));
   const combinedTreatments = Array.from(new Set([...(hospital.treatments || []), ...unpricedServices.filter(s => ['Consultation', 'OPD', 'General', 'Other'].includes(s.category)).map(s => s.name)]));
@@ -143,7 +150,7 @@ const EnhancedHospitalDetails = () => {
   const combinedTherapies = Array.from(new Set([...(hospital.therapies || []), ...unpricedServices.filter(s => s.category === 'Therapy').map(s => s.name)]));
   const combinedProcedures = Array.from(new Set([...(hospital.procedures || []), ...unpricedServices.filter(s => ['Dental', 'Eye', 'Orthopedic', 'Maternity', 'Cardiology', 'Neurology'].includes(s.category)).map(s => s.name)]));
 
-  const totalServicesListed = (hospital.services?.length || 0) + combinedTests.length + combinedTreatments.length + combinedSurgeries.length + combinedTherapies.length + combinedProcedures.length + (hospital.managementServices?.length || 0) + (hospital.insuranceAccepted?.length || 0);
+  const totalServicesListed = combinedTests.length + combinedTreatments.length + combinedSurgeries.length + combinedTherapies.length + combinedProcedures.length + (hospital.managementServices?.length || 0) + (hospital.insuranceAccepted?.length || 0);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
@@ -193,10 +200,9 @@ const EnhancedHospitalDetails = () => {
               {hospital.address && (
                 <p className="flex items-start sm:items-center gap-2 text-gray-600 mb-4 text-sm leading-snug">
                   <FaMapMarkerAlt className="mt-1 sm:mt-0 shrink-0" style={{ color: theme }} />
-                  {/* ✅ FIX: Added Landmark to main address bar */}
                   <span>
                     {[hospital.address.street, hospital.address.area, hospital.address.city, hospital.address.state, hospital.address.pincode].filter(Boolean).join(', ')}
-                    {hospital.address.landmark && ` (Landmark: ${hospital.address.landmark})`}
+                    {hospital.address.landmark && hospital.address.landmark.trim() !== '' && ` (Landmark: ${hospital.address.landmark})`}
                   </span>
                 </p>
               )}
@@ -290,8 +296,7 @@ const EnhancedHospitalDetails = () => {
                       </div>
                     )}
 
-                    {/* ✅ FIX: Smart 'Read More' toggle for long descriptions */}
-                    {hospital.description && (
+                    {hospital.description && hospital.description.trim() !== '' && (
                       <div>
                         <h3 className="font-bold text-gray-800 mb-3 text-lg">About</h3>
                         <p className="text-gray-600 leading-relaxed text-sm md:text-base whitespace-pre-wrap">
@@ -310,7 +315,6 @@ const EnhancedHospitalDetails = () => {
                       </div>
                     )}
 
-                    {/* ✅ FIX: Added scrolling for Departments so it doesn't overwhelm UI */}
                     {hospital.departments?.length > 0 && (
                       <div>
                         <h3 className="font-bold text-gray-800 mb-3 text-lg flex items-center justify-between">
@@ -427,9 +431,8 @@ const EnhancedHospitalDetails = () => {
                 {hospital.phone && <a href={`tel:${hospital.phone}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaPhone className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Phone</p><p className="font-semibold text-gray-800 truncate">{hospital.phone}</p></div></a>}
                 {hospital.email && <a href={`mailto:${hospital.email}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaEnvelope className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Email</p><p className="font-semibold text-gray-800 text-sm truncate w-full">{hospital.email}</p></div></a>}
                 
-                {/* ✅ FIX: Added Website Link Rendering */}
-                {hospital.website && (
-                  <a href={hospital.website.startsWith('http') ? hospital.website : `https://${hospital.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
+                {hospital.website && hospital.website.trim() !== '' && (
+                  <a href={formatURL(hospital.website)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
                     <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white transition-transform group-hover:scale-105" style={{ backgroundColor: theme }}>
                       <FaGlobe className="text-sm" />
                     </div>
@@ -440,13 +443,12 @@ const EnhancedHospitalDetails = () => {
                   </a>
                 )}
                 
-                {/* Social Media Links */}
                 {hospital.socialMedia && (hospital.socialMedia.facebook || hospital.socialMedia.instagram || hospital.socialMedia.twitter || hospital.socialMedia.youtube) && (
                   <div className="pt-4 mt-2 border-t border-gray-100 flex justify-around">
-                    {hospital.socialMedia.facebook && <a href={hospital.socialMedia.facebook} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaFacebook /></a>}
-                    {hospital.socialMedia.instagram && <a href={hospital.socialMedia.instagram} target="_blank" rel="noreferrer" className="p-2 text-pink-600 hover:bg-pink-50 rounded-full text-xl transition-transform hover:scale-110"><FaInstagram /></a>}
-                    {hospital.socialMedia.twitter && <a href={hospital.socialMedia.twitter} target="_blank" rel="noreferrer" className="p-2 text-blue-400 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaTwitter /></a>}
-                    {hospital.socialMedia.youtube && <a href={hospital.socialMedia.youtube} target="_blank" rel="noreferrer" className="p-2 text-red-600 hover:bg-red-50 rounded-full text-xl transition-transform hover:scale-110"><FaYoutube /></a>}
+                    {hospital.socialMedia.facebook && <a href={formatURL(hospital.socialMedia.facebook)} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaFacebook /></a>}
+                    {hospital.socialMedia.instagram && <a href={formatURL(hospital.socialMedia.instagram)} target="_blank" rel="noreferrer" className="p-2 text-pink-600 hover:bg-pink-50 rounded-full text-xl transition-transform hover:scale-110"><FaInstagram /></a>}
+                    {hospital.socialMedia.twitter && <a href={formatURL(hospital.socialMedia.twitter)} target="_blank" rel="noreferrer" className="p-2 text-blue-400 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaTwitter /></a>}
+                    {hospital.socialMedia.youtube && <a href={formatURL(hospital.socialMedia.youtube)} target="_blank" rel="noreferrer" className="p-2 text-red-600 hover:bg-red-50 rounded-full text-xl transition-transform hover:scale-110"><FaYoutube /></a>}
                   </div>
                 )}
               </div>
@@ -459,11 +461,9 @@ const EnhancedHospitalDetails = () => {
                    {hospital.staffAndManagement?.medicalDirector && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Medical Director</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.medicalDirector}</span></div>}
                    {hospital.staffAndManagement?.chiefSurgeon && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Chief Surgeon</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.chiefSurgeon}</span></div>}
                    
-                   {/* ✅ FIX: Added Nursing Head and Admin Manager */}
-                   {hospital.staffAndManagement?.nursingHead && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
-                   {hospital.staffAndManagement?.adminManager && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
+                   {hospital.staffAndManagement?.nursingHead && hospital.staffAndManagement.nursingHead.trim() !== '' && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
+                   {hospital.staffAndManagement?.adminManager && hospital.staffAndManagement.adminManager.trim() !== '' && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
 
-                   {/* ✅ FIX: Added Government Approved Badge */}
                    {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
                    {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
                    
@@ -478,8 +478,7 @@ const EnhancedHospitalDetails = () => {
                 <div className="text-center px-3">
                   <FaMapMarkerAlt className="text-4xl mx-auto mb-2" style={{ color: theme }} />
                   <p className="text-sm text-gray-700 font-medium leading-tight">{hospital.address?.city}, {hospital.address?.state}</p>
-                  {/* ✅ FIX: Added Landmark to Map Sidebar Box */}
-                  {hospital.address?.landmark && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
+                  {hospital.address?.landmark && hospital.address.landmark.trim() !== '' && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
                   {distance && <p className="text-xs text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-0.5 rounded">{distance.toFixed(1)} km away</p>}
                 </div>
               </div>
