@@ -61,10 +61,15 @@ const EnhancedHospitalDetails = () => {
   const [isFavorite, setIsFavorite]   = useState(false);
   const [isAboutExpanded, setIsAboutExpanded] = useState(false); 
 
+  // New States for Reviews
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   useEffect(() => {
     window.scrollTo(0, 0); 
     fetchHospital();
     checkIfFavorite(); 
+    fetchReviews(); // 👈 Added review fetching
   }, [id]);
 
   const fetchHospital = async () => {
@@ -73,7 +78,6 @@ const EnhancedHospitalDetails = () => {
       const res = await axios.get(`${API_URL}/api/hospitals/${id}`);
       const data = res.data.data; 
       
-      // ✅ DEV DEBUG LOG: Open your browser console (F12) to verify data arrives
       console.log("FRESH API DATA ARRIVED:", data);
       
       setHospital(data); 
@@ -82,6 +86,18 @@ const EnhancedHospitalDetails = () => {
         setDistance(dist);
       }
     } catch (err) { console.error('Error fetching hospital:', err); } finally { setLoading(false); }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const res = await axios.get(`${API_URL}/api/reviews/hospital/${id}`);
+      setReviews(res.data.data || []);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
   };
 
   const checkIfFavorite = async () => {
@@ -168,15 +184,25 @@ const EnhancedHospitalDetails = () => {
 
       <div className="max-w-6xl mx-auto px-4">
         
+        {/* Fixed Announcements Section */}
         {hospital.announcements?.length > 0 && (
           <div className="mb-6 space-y-3">
             {hospital.announcements.map((ann, idx) => (
               <div key={idx} className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl shadow-sm flex items-start gap-3">
-                 <span className="text-2xl mt-1">📢</span>
-                 <div>
-                   <h4 className="text-yellow-800 font-bold">{ann.title}</h4>
-                   <p className="text-sm text-yellow-700">{ann.description}</p>
-                 </div>
+                <span className="text-2xl mt-1">📢</span>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-yellow-800 font-bold">{ann.title}</h4>
+                    {ann.date && (
+                      <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full shrink-0">
+                        {new Date(ann.date).toLocaleDateString('en-IN', {
+                          day: 'numeric', month: 'short', year: 'numeric'
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-yellow-700">{ann.description}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -204,7 +230,6 @@ const EnhancedHospitalDetails = () => {
                   <FaMapMarkerAlt className="mt-1 sm:mt-0 shrink-0" style={{ color: theme }} />
                   <span>
                     {[hospital.address.street, hospital.address.area, hospital.address.city, hospital.address.state, hospital.address.pincode].filter(Boolean).join(', ')}
-                    {/* ✅ FAIL-SAFE RENDER CHECK */}
                     {hospital.address.landmark && ` (Landmark: ${hospital.address.landmark})`}
                   </span>
                 </p>
@@ -355,9 +380,15 @@ const EnhancedHospitalDetails = () => {
                        </div>
                     )}
 
+                    {/* Fixed Working Hours Section */}
                     {hospital.operatingHours && (
                       <div>
-                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg"><FaClock style={{ color: theme }} /> Working Hours</h3>
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
+                          <FaClock style={{ color: theme }} /> OPD Hours
+                          <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full ml-1">
+                            Emergency: 24/7
+                          </span>
+                        </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
                           {['monday','tuesday','wednesday','thursday', 'friday','saturday','sunday'].map(day => (
                             <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -420,7 +451,78 @@ const EnhancedHospitalDetails = () => {
                 )}
 
                 {activeTab === 'services' && <div className="animate-fadeIn"><PriceList services={hospital.services || []} themeColor={theme} /></div>}
-                {activeTab === 'reviews' && <div className="animate-fadeIn"><ReviewForm facilityId={hospital._id || hospital.id} facilityType="hospital" onReviewSubmitted={fetchHospital} /></div>}
+                
+                {/* Fixed Reviews Tab Section */}
+                {activeTab === 'reviews' && (
+                  <div className="animate-fadeIn space-y-6">
+                    {reviewsLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                      </div>
+                    ) : reviews.length > 0 ? (
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-lg mb-4">
+                          Patient Reviews 
+                          <span className="ml-2 text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            {reviews.length} total
+                          </span>
+                        </h3>
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                          {reviews.map((review, idx) => (
+                            <div key={idx} className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm">
+                                    {review.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-gray-800 text-sm">
+                                      {review.user?.name || 'Anonymous'}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                      {new Date(review.createdAt).toLocaleDateString('en-IN', {
+                                        day: 'numeric', month: 'short', year: 'numeric'
+                                      })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {[1,2,3,4,5].map(star => (
+                                    <FaStar 
+                                      key={star} 
+                                      className={`text-xs ${star <= review.rating ? 'text-yellow-400' : 'text-gray-200'}`} 
+                                    />
+                                  ))}
+                                  <span className="text-xs font-bold text-gray-600 ml-1">{review.rating}/5</span>
+                                </div>
+                              </div>
+                              {review.comment && (
+                                <p className="text-sm text-gray-600 leading-relaxed mt-2 pl-10">
+                                  {review.comment}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 rounded-xl">
+                        <p className="text-gray-400 text-2xl mb-2">💬</p>
+                        <p className="text-gray-500 font-medium">No reviews yet</p>
+                        <p className="text-gray-400 text-sm">Be the first to share your experience!</p>
+                      </div>
+                    )}
+                    
+                    <div className="border-t border-gray-100 pt-4">
+                      <h3 className="font-bold text-gray-800 text-base mb-4">Write a Review</h3>
+                      <ReviewForm 
+                        facilityId={hospital._id || hospital.id} 
+                        facilityType="hospital" 
+                        onReviewSubmitted={() => { fetchHospital(); fetchReviews(); }} 
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -434,7 +536,6 @@ const EnhancedHospitalDetails = () => {
                 {hospital.phone && <a href={`tel:${hospital.phone}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaPhone className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Phone</p><p className="font-semibold text-gray-800 truncate">{hospital.phone}</p></div></a>}
                 {hospital.email && <a href={`mailto:${hospital.email}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"><div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: theme }}><FaEnvelope className="text-sm" /></div><div className="overflow-hidden"><p className="text-xs text-gray-500 font-semibold">Email</p><p className="font-semibold text-gray-800 text-sm truncate w-full">{hospital.email}</p></div></a>}
                 
-                {/* ✅ FAIL-SAFE WEBSITE LINK */}
                 {hospital.website && (
                   <a href={formatURL(hospital.website)} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
                     <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white transition-transform group-hover:scale-105" style={{ backgroundColor: theme }}>
@@ -447,7 +548,6 @@ const EnhancedHospitalDetails = () => {
                   </a>
                 )}
                 
-                {/* ✅ FAIL-SAFE SOCIAL MEDIA */}
                 {hospital.socialMedia && (
                   <div className="pt-4 mt-2 border-t border-gray-100 flex justify-around">
                     {hospital.socialMedia.facebook && <a href={formatURL(hospital.socialMedia.facebook)} target="_blank" rel="noreferrer" className="p-2 text-blue-600 hover:bg-blue-50 rounded-full text-xl transition-transform hover:scale-110"><FaFacebook /></a>}
@@ -462,13 +562,11 @@ const EnhancedHospitalDetails = () => {
             <div className="bg-white rounded-2xl shadow-md p-5 border border-gray-100">
                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FaUserTie style={{ color: theme }} /> Management & Certs</h3>
                <div className="space-y-3 text-sm">
-                 {/* ✅ FAIL-SAFE STAFF LINKS */}
                  {hospital.staffAndManagement?.medicalDirector && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Medical Director</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.medicalDirector}</span></div>}
                  {hospital.staffAndManagement?.chiefSurgeon && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Chief Surgeon</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.chiefSurgeon}</span></div>}
                  {hospital.staffAndManagement?.nursingHead && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Nursing Head</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.nursingHead}</span></div>}
                  {hospital.staffAndManagement?.adminManager && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
 
-                 {/* ✅ FAIL-SAFE CERTIFICATION LINKS */}
                  {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
                  {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
                  
@@ -483,7 +581,6 @@ const EnhancedHospitalDetails = () => {
                   <FaMapMarkerAlt className="text-4xl mx-auto mb-2" style={{ color: theme }} />
                   <p className="text-sm text-gray-700 font-medium leading-tight">{hospital.address?.city}, {hospital.address?.state}</p>
                   
-                  {/* ✅ FAIL-SAFE LANDMARK RENDER */}
                   {hospital.address?.landmark && <p className="text-xs text-gray-500 mt-1.5 italic">Landmark: {hospital.address.landmark}</p>}
                   
                   {distance && <p className="text-xs text-green-600 font-bold mt-2 bg-green-50 inline-block px-2 py-0.5 rounded">{distance.toFixed(1)} km away</p>}
