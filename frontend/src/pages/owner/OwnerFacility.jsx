@@ -40,8 +40,8 @@ const OwnerFacility = () => {
   const [newManagement, setNewManagement] = useState('');
   const [newInsurance, setNewInsurance] = useState('');
 
-  // Complex Objects Handlers State - FIXED DOCTOR SCHEMA KEYS
-  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '' });
+  // ADDED photo field
+  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '', photo: '' });
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
   const [newRoomType, setNewRoomType] = useState({ type: '', pricePerDay: '', facilities: '' });
@@ -202,14 +202,21 @@ const OwnerFacility = () => {
                   <input type="text" placeholder="Experience (e.g. 18 Years)" value={newDoctor.experience} onChange={e=>setNewDoctor({...newDoctor, experience: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="number" placeholder="Fees (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="text" placeholder="OPD Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
-                  <input type="text" placeholder="Languages (e.g. English, Hindi)" value={newDoctor.languages} onChange={e=>setNewDoctor({...newDoctor, languages: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-3" />
+                  
+                  {/* Updated columns to fit Photo URL */}
+                  <input type="text" placeholder="Languages (e.g. English, Hindi)" value={newDoctor.languages} onChange={e=>setNewDoctor({...newDoctor, languages: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-2" />
+                  <input type="text" placeholder="Photo URL (Optional)" value={newDoctor.photo} onChange={e=>setNewDoctor({...newDoctor, photo: e.target.value})} className="p-2 border rounded shadow-sm md:col-span-1" />
                 </div>
-                <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
+                <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:'', photo:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
               </div>
               <div className="space-y-2 mb-8">
                 {formData.doctors?.map((d, i) => (
                   <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
-                    <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
+                    <div className="flex items-center gap-3">
+                      {/* Added simple display for doctor photo */}
+                      {d.photo ? <img src={d.photo} alt={d.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-100" /> : <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs border-2 border-blue-100">Dr.</div>}
+                      <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
+                    </div>
                     <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline">Remove</button>
                   </div>
                 ))}
