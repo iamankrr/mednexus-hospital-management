@@ -52,12 +52,11 @@ const EnhancedHospitalDetails = () => {
   const comparisonList = comparisonContext.comparisonList || comparisonContext.compareList || [];
   
   const { userLocation } = useUserLocation();
-  const initialData = locationRouter.state?.facilityData; 
 
-  const [hospital, setHospital]       = useState(initialData || null);
-  const [loading, setLoading]         = useState(!initialData); 
+  const [hospital, setHospital]       = useState(null);
+  const [loading, setLoading]         = useState(true); 
   const [activeTab, setActiveTab]     = useState('overview');
-  const [distance, setDistance]       = useState(initialData?.distance || null);
+  const [distance, setDistance]       = useState(null);
   const [isFavorite, setIsFavorite]   = useState(false);
   const [isAboutExpanded, setIsAboutExpanded] = useState(false); 
 
@@ -69,12 +68,14 @@ const EnhancedHospitalDetails = () => {
     window.scrollTo(0, 0); 
     fetchHospital();
     checkIfFavorite(); 
-    fetchReviews(); // 👈 Added review fetching
+    fetchReviews(); 
   }, [id]);
 
   const fetchHospital = async () => {
     try {
-      if (!hospital) setLoading(true);
+      // 👈 FIX: Hamesha loading true set karo jab naya fetch start ho
+      setLoading(true);
+      
       const res = await axios.get(`${API_URL}/api/hospitals/${id}`);
       const data = res.data.data; 
       
@@ -85,7 +86,11 @@ const EnhancedHospitalDetails = () => {
         const dist = calculateDistance(userLocation.latitude, userLocation.longitude, data.location.coordinates[1], data.location.coordinates[0]);
         setDistance(dist);
       }
-    } catch (err) { console.error('Error fetching hospital:', err); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error('Error fetching hospital:', err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const fetchReviews = async () => {
@@ -568,6 +573,15 @@ const EnhancedHospitalDetails = () => {
                  {hospital.staffAndManagement?.adminManager && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Admin Manager</span><span className="font-semibold text-right pl-2">{hospital.staffAndManagement.adminManager}</span></div>}
 
                  {hospital.documents?.governmentApproval && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Govt. Approved</span><span className="font-bold text-green-600">✅ Yes</span></div>}
+                 
+                 {/* 👈 FIX 2: NABH Accredited badge added here */}
+                 {hospital.documents?.nabhAccreditation && (
+                   <div className="flex justify-between border-b pb-2">
+                     <span className="text-gray-500">NABH Accredited</span>
+                     <span className="font-bold text-purple-600">✅ Yes</span>
+                   </div>
+                 )}
+
                  {hospital.documents?.isoCertification && <div className="flex justify-between border-b pb-2"><span className="text-gray-500">ISO Certified</span><span className="font-bold text-blue-600">✅ Yes</span></div>}
                  
                  {hospital.documents?.awards?.length > 0 && <div className="pt-1"><span className="text-gray-500 block mb-2 font-medium">Awards & Recognitions</span><div className="flex flex-wrap gap-1.5">{hospital.documents.awards.map((aw, i) => <span key={i} className="bg-yellow-50 text-yellow-700 text-[10px] px-2.5 py-1 rounded border border-yellow-200 font-bold tracking-wide">{aw}</span>)}</div></div>}
