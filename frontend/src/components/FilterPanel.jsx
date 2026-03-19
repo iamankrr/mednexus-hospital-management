@@ -1,217 +1,297 @@
-import React, { useState } from 'react';
-import { FaStar, FaMapMarkerAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaStar, FaMapMarkerAlt, FaTimes, FaFilter, FaAmbulance } from 'react-icons/fa';
 
 const FilterPanel = ({ onFilterChange, availableFacilities = [] }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState({
     minRating: 0,
     maxDistance: 50,
     emergencyOnly: false,
     selectedFacilities: [],
-    minBudget: 0,
-    maxBudget: 10000,
     selectedSpecializations: []
   });
 
+  // Lock body scroll when drawer open on mobile
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   const handleFilterChange = (filterName, value) => {
-    const updatedFilters = {
-      ...filters,
-      [filterName]: value
-    };
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+    const updated = { ...filters, [filterName]: value };
+    setFilters(updated);
+    onFilterChange(updated);
   };
 
-  const handleResetFilters = () => {
-    const defaultFilters = {
+  const handleReset = () => {
+    const def = {
       minRating: 0,
       maxDistance: 50,
       emergencyOnly: false,
       selectedFacilities: [],
-      minBudget: 0,
-      maxBudget: 10000,
       selectedSpecializations: []
     };
-    setFilters(defaultFilters);
-    onFilterChange(defaultFilters);
+    setFilters(def);
+    onFilterChange(def);
   };
 
-  const activeFiltersCount = 
+  const activeCount =
     (filters.minRating > 0 ? 1 : 0) +
     (filters.maxDistance < 50 ? 1 : 0) +
     (filters.emergencyOnly ? 1 : 0) +
     (filters.selectedFacilities.length > 0 ? 1 : 0) +
-    (filters.minBudget > 0 || filters.maxBudget < 10000 ? 1 : 0) +
     (filters.selectedSpecializations.length > 0 ? 1 : 0);
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Filters</h2>
-        <button
-          onClick={handleResetFilters}
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-        >
-          Reset All
-        </button>
-      </div>
+  const specializations = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'General', 'Gynecology', 'Dermatology', 'ENT'];
 
-      {/* Rating Filter */}
+  const ratingLabels = { 1: 'Any', 2: 'Good', 3: 'Very Good', 4: 'Excellent', 5: 'Top' };
+
+  // ── Panel content (shared between desktop sidebar and mobile drawer)
+  const PanelContent = () => (
+    <>
+      {/* Rating */}
       <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <FaStar className="text-yellow-500" /> Minimum Rating
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <FaStar className="text-yellow-400" /> Minimum Rating
         </h3>
-        <div className="space-y-2">
-          {[0, 1, 2, 3, 4, 5].map(rating => (
-            <label key={rating} className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="rating"
-                checked={filters.minRating === rating}
-                onChange={() => handleFilterChange('minRating', rating)}
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                {rating === 0 ? 'All' : `${rating}★ & up`}
-              </span>
-            </label>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => handleFilterChange('minRating', 0)}
+            className={`py-2 rounded-xl text-xs font-semibold transition-all ${
+              filters.minRating === 0
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          {[2, 3, 4, 5].map(r => (
+            <button
+              key={r}
+              onClick={() => handleFilterChange('minRating', filters.minRating === r ? 0 : r)}
+              className={`py-2 rounded-xl text-xs font-semibold transition-all flex flex-col items-center gap-0.5 ${
+                filters.minRating === r
+                  ? 'bg-yellow-400 text-white shadow-sm scale-105'
+                  : 'bg-gray-100 text-gray-600 hover:bg-yellow-50 hover:text-yellow-700'
+              }`}
+            >
+              <span className="font-bold">{r}+⭐</span>
+              <span className="text-[10px] opacity-80">{ratingLabels[r]}</span>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Distance Filter */}
+      {/* Distance */}
       <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
           <FaMapMarkerAlt className="text-blue-500" /> Max Distance
         </h3>
-        <div className="space-y-2">
-          <input
-            type="range"
-            min="1"
-            max="50"
-            value={filters.maxDistance}
-            onChange={(e) => handleFilterChange('maxDistance', parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="text-center text-sm font-semibold text-blue-600">
-            {filters.maxDistance} km
-          </div>
+        <input
+          type="range"
+          min="1"
+          max="50"
+          step="1"
+          value={filters.maxDistance}
+          onChange={(e) => handleFilterChange('maxDistance', parseInt(e.target.value))}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+        />
+        <div className="flex justify-between mt-2 text-xs text-gray-400">
+          <span>1 km</span>
+          <span className="text-blue-600 font-bold text-sm">{filters.maxDistance} km</span>
+          <span>50 km</span>
         </div>
       </div>
 
-      {/* Emergency Services */}
+      {/* Emergency */}
       <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="text-red-500">🚨</span> Emergency Services
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <FaAmbulance className="text-red-400" /> Availability
         </h3>
-        <label className="flex items-center cursor-pointer">
+        <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+          filters.emergencyOnly ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-red-200'
+        }`}>
+          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+            filters.emergencyOnly ? 'bg-red-500 border-red-500' : 'border-gray-300'
+          }`}>
+            {filters.emergencyOnly && <span className="text-white text-xs font-bold">✓</span>}
+          </div>
           <input
             type="checkbox"
+            className="hidden"
             checked={filters.emergencyOnly}
             onChange={(e) => handleFilterChange('emergencyOnly', e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded"
           />
-          <span className="ml-2 text-sm text-gray-700">24/7 Emergency Available</span>
+          <div>
+            <p className="text-sm font-bold text-gray-800">24/7 Emergency Only</p>
+            <p className="text-xs text-gray-500">Round-the-clock emergency care</p>
+          </div>
         </label>
       </div>
 
-      {/* Budget Range */}
+      {/* Specialization */}
       <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="text-green-500">💰</span> Budget Range
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+          🏥 Specialization
         </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-gray-600 block mb-1">Min Budget: ₹{filters.minBudget}</label>
-            <input
-              type="range"
-              min="0"
-              max="10000"
-              step="100"
-              value={filters.minBudget}
-              onChange={(e) => handleFilterChange('minBudget', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-600 block mb-1">Max Budget: ₹{filters.maxBudget}</label>
-            <input
-              type="range"
-              min="0"
-              max="10000"
-              step="100"
-              value={filters.maxBudget}
-              onChange={(e) => handleFilterChange('maxBudget', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            />
-          </div>
-          <div className="text-center text-sm font-semibold text-green-600 bg-green-50 py-2 rounded">
-            ₹{filters.minBudget} - ₹{filters.maxBudget}
-          </div>
-        </div>
-      </div>
-
-      {/* Specialization Filter */}
-      <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <span className="text-purple-500">🏥</span> Specialization
-        </h3>
-        <div className="space-y-2">
-          {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'General'].map(spec => (
-            <label key={spec} className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={filters.selectedSpecializations?.includes(spec)}
-                onChange={(e) => {
-                  const current = filters.selectedSpecializations || [];
-                  const updated = e.target.checked
-                    ? [...current, spec]
-                    : current.filter(s => s !== spec);
+        <div className="flex flex-wrap gap-2">
+          {specializations.map(spec => {
+            const active = filters.selectedSpecializations.includes(spec);
+            return (
+              <button
+                key={spec}
+                onClick={() => {
+                  const updated = active
+                    ? filters.selectedSpecializations.filter(s => s !== spec)
+                    : [...filters.selectedSpecializations, spec];
                   handleFilterChange('selectedSpecializations', updated);
                 }}
-                className="w-4 h-4 text-purple-600 rounded"
-              />
-              <span className="ml-2 text-sm text-gray-700">{spec}</span>
-            </label>
-          ))}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  active
+                    ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-600'
+                }`}
+              >
+                {spec}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Facilities Filter */}
-      <div className="mb-6">
-        <h3 className="font-semibold text-gray-700 mb-3">Facilities</h3>
-        <div className="space-y-2">
-          {availableFacilities.length > 0 ? (
-            availableFacilities.slice(0, 10).map(facility => (
-              <label key={facility} className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.selectedFacilities.includes(facility)}
-                  onChange={(e) => {
-                    const updated = e.target.checked
-                      ? [...filters.selectedFacilities, facility]
-                      : filters.selectedFacilities.filter(f => f !== facility);
+      {/* Facilities */}
+      {availableFacilities.length > 0 && (
+        <div className="mb-2">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+            🏨 Facilities
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {availableFacilities.slice(0, 12).map(facility => {
+              const active = filters.selectedFacilities.includes(facility);
+              return (
+                <button
+                  key={facility}
+                  onClick={() => {
+                    const updated = active
+                      ? filters.selectedFacilities.filter(f => f !== facility)
+                      : [...filters.selectedFacilities, facility];
                     handleFilterChange('selectedFacilities', updated);
                   }}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">{facility}</span>
-              </label>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">No facilities available</p>
-          )}
-        </div>
-      </div>
-
-      {/* Active Filters Count */}
-      {activeFiltersCount > 0 && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-sm text-center text-gray-600">
-            <span className="font-semibold text-blue-600">{activeFiltersCount}</span> active filter{activeFiltersCount !== 1 ? 's' : ''}
-          </p>
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    active
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
+                  }`}
+                >
+                  {facility}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* ── Mobile: Filter trigger button ── */}
+      <div className="lg:hidden mb-4">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm font-semibold text-gray-700 hover:border-blue-400 hover:text-blue-600 transition-all"
+        >
+          <FaFilter className="text-sm" />
+          <span>Filters</span>
+          {activeCount > 0 && (
+            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              {activeCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ── Mobile: Drawer overlay ── */}
+      {isOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Drawer — slides from bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl flex flex-col"
+            style={{ maxHeight: '85vh' }}>
+
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-gray-800 text-base">Filters</span>
+                {activeCount > 0 && (
+                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {activeCount} active
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {activeCount > 0 && (
+                  <button onClick={handleReset} className="text-sm text-red-500 font-semibold hover:underline">
+                    Reset
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable filter content */}
+            <div className="overflow-y-auto flex-1 px-5 py-4">
+              <PanelContent />
+            </div>
+
+            {/* Drawer footer */}
+            <div className="px-5 py-4 border-t border-gray-100 shrink-0"
+              style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm"
+              >
+                Show Results {activeCount > 0 ? `(${activeCount} filters applied)` : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop: Sticky sidebar ── */}
+      <div className="hidden lg:block bg-white rounded-2xl shadow-md p-5 sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+            <FaFilter className="text-blue-500 text-sm" /> Filters
+            {activeCount > 0 && (
+              <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {activeCount}
+              </span>
+            )}
+          </h2>
+          {activeCount > 0 && (
+            <button onClick={handleReset} className="text-sm text-red-500 font-semibold hover:underline">
+              Reset All
+            </button>
+          )}
+        </div>
+        <PanelContent />
+      </div>
+    </>
   );
 };
 
