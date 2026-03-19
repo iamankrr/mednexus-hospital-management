@@ -73,23 +73,28 @@ const EnhancedHospitalDetails = () => {
 
   const fetchHospital = async () => {
     try {
-      // 👈 FIX: Hamesha loading true set karo jab naya fetch start ho
       setLoading(true);
-      
+      console.log("FETCHING HOSPITAL:", id); // 👈 Step 1 check
       const res = await axios.get(`${API_URL}/api/hospitals/${id}`);
-      const data = res.data.data; 
+      console.log("RAW RESPONSE:", res.data); // 👈 Step 2 check
+      const data = res.data.data;
+      console.log("WEBSITE:", data?.website);
+      console.log("LANDMARK:", data?.address?.landmark);
+      console.log("ANN DATE:", data?.announcements?.[0]?.date);
       
-      console.log("FRESH API DATA ARRIVED:", data);
+      setHospital(data);
       
-      setHospital(data); 
       if (userLocation && data.location?.coordinates) {
-        const dist = calculateDistance(userLocation.latitude, userLocation.longitude, data.location.coordinates[1], data.location.coordinates[0]);
+        const dist = calculateDistance(
+          userLocation.latitude, userLocation.longitude,
+          data.location.coordinates[1], data.location.coordinates[0]
+        );
         setDistance(dist);
       }
-    } catch (err) { 
-      console.error('Error fetching hospital:', err); 
-    } finally { 
-      setLoading(false); 
+    } catch (err) {
+      console.error('Error fetching hospital:', err);
+    } finally {
+      setLoading(false);
     }
   };
 

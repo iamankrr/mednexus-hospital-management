@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast'; // ✅ ADDED THIS
+import { Toaster } from 'react-hot-toast';
 import BottomNav from './components/BottomNav'; 
 import Navbar from './components/Navbar'; 
 import Home from './pages/Home';
@@ -61,7 +61,6 @@ import ChangePassword from './pages/ChangePassword';
 function App() {
   return (
     <div className="App">
-      {/* ✅ ADDED TOASTER HERE FOR GLOBAL NOTIFICATIONS */}
       <Toaster 
         position="top-center"
         toastOptions={{
@@ -83,11 +82,9 @@ function App() {
         <Route path="/hospitals" element={<Hospitals />} />
         <Route path="/labs" element={<Labs />} />
         
-        <Route path="/hospital/:id" element={<HospitalDetails />} /> 
-        <Route path="/lab/:id" element={<LabDetails />} /> 
-
-        <Route path="/hospital/:id/services" element={<EnhancedHospitalDetails />} />
-        <Route path="/lab/:id/services" element={<EnhancedLabDetails />} />
+        {/* ✅ FIXED: EnhancedHospitalDetails ab /hospital/:id pe load hoga */}
+        <Route path="/hospital/:id" element={<EnhancedHospitalDetails />} />
+        <Route path="/lab/:id" element={<EnhancedLabDetails />} />
         
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/login" element={<Login />} />
