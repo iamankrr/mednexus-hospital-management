@@ -127,8 +127,9 @@ const Navbar = () => {
             <Link to="/" className="flex items-center gap-3">
               <img src="/logo.png" alt="MedNexus" className="h-10 w-10 object-contain" />
               <div>
-                <h1 className="text-2xl font-bold text-blue-600">MedNexus</h1>
-                <p className="text-xs text-gray-500">The smarter way to choose your care</p>
+                {/* FIX 1: Responsive Logo Text */}
+                <h1 className="text-xl sm:text-2xl font-bold text-blue-600">MedNexus</h1>
+                <p className="text-xs text-gray-500 hidden sm:block">The smarter way to choose your care</p>
               </div>
             </Link>
 
@@ -136,7 +137,6 @@ const Navbar = () => {
             <div className="hidden md:flex items-center gap-6">
               <Link to="/" className="text-gray-700 hover:text-blue-600">Home</Link>
               
-              {/* ✅ FIX: Route Admin to Manage Hospitals & Manage Labs correctly */}
               <Link to={user?.role === 'admin' ? "/admin/hospitals" : "/hospitals"} className="text-gray-700 hover:text-blue-600">Hospitals</Link>
               <Link to={user?.role === 'admin' ? "/admin/labs" : "/labs"} className="text-gray-700 hover:text-blue-600">Labs</Link>
 
@@ -254,7 +254,6 @@ const Navbar = () => {
           <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3 shadow-inner">
             <Link to="/" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Home</Link>
             
-            {/* ✅ FIX: Apply same Admin logic for Mobile Links too */}
             <Link to={user?.role === 'admin' ? "/admin/hospitals" : "/hospitals"} onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Hospitals</Link>
             <Link to={user?.role === 'admin' ? "/admin/labs" : "/labs"} onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 font-medium">Labs</Link>
 
@@ -267,10 +266,17 @@ const Navbar = () => {
               </button>
             )}
 
+            {/* FIX 2: Added user info before logout button */}
             {user ? (
-              <button onClick={handleLogout} className="w-full mt-4 bg-red-500 text-white py-3 rounded-lg font-bold shadow-sm">
-                Logout
-              </button>
+              <>
+                <div className="py-2 border-t border-gray-100 mt-2">
+                  <p className="text-sm font-bold text-gray-800">{user.name}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+                <button onClick={handleLogout} className="w-full mt-2 bg-red-500 text-white py-3 rounded-lg font-bold shadow-sm">
+                  Logout
+                </button>
+              </>
             ) : (
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <Link to="/login" className="text-center py-2 border border-blue-600 text-blue-600 rounded-lg font-medium">Login</Link>

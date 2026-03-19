@@ -11,9 +11,8 @@ const BottomNav = () => {
 
   const [compareCount, setCompareCount] = useState(0);
 
-  // Get user from local storage
   const user = JSON.parse(localStorage.getItem('user') || 'null');
-  const role = user?.role || 'user'; // default to user if not logged in
+  const role = user?.role || 'user';
 
   useEffect(() => {
     const updateCompareCount = () => {
@@ -22,12 +21,10 @@ const BottomNav = () => {
     };
 
     updateCompareCount();
-    
     window.addEventListener('storage', updateCompareCount);
     return () => window.removeEventListener('storage', updateCompareCount);
   }, []);
 
-  // ✅ DYNAMIC NAV ITEMS BASED ON ROLE
   let navItems = [];
 
   if (role === 'admin') {
@@ -47,7 +44,6 @@ const BottomNav = () => {
       { name: 'Profile', icon: FaUser, path: '/profile' }
     ];
   } else {
-    // Default User/Guest
     navItems = [
       { name: 'Home', icon: FaHome, path: '/' },
       { name: 'Search', icon: FaSearch, path: '/search' },
@@ -58,28 +54,40 @@ const BottomNav = () => {
   }
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around items-center py-2 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <div
+      className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
+      style={{ paddingTop: '0.5rem', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+    >
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = path === item.path || (path === '/login' && item.path === '/profile');
 
         return (
-          <Link 
-            key={item.name} 
-            to={item.path} 
-            className="flex flex-col items-center w-full py-1 relative"
+          <Link
+            key={item.name}
+            to={item.path}
+            className="flex flex-col items-center w-full relative"
           >
-            <div className={`p-1.5 rounded-full relative transition-all duration-300 ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:text-blue-500'}`}>
+            {/* Active top indicator bar */}
+            {isActive && (
+              <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-blue-600 rounded-full" />
+            )}
+
+            <div className={`p-1.5 rounded-full relative transition-all duration-200 ${
+              isActive ? 'bg-blue-100 text-blue-600 scale-110' : 'text-gray-400 hover:text-blue-500'
+            }`}>
               <Icon className="text-xl" />
-              
+
               {item.badgeCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {item.badgeCount}
                 </span>
               )}
             </div>
-            
-            <span className={`text-[10px] mt-1 font-semibold transition-all duration-300 ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
+
+            <span className={`text-[10px] mt-0.5 transition-all duration-200 ${
+              isActive ? 'text-blue-600 font-bold' : 'text-gray-400 font-medium'
+            }`}>
               {item.name}
             </span>
           </Link>

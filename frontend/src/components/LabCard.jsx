@@ -82,8 +82,9 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
             <img src={lab.images[currentImageIndex]} alt={lab.name} className="w-full h-full object-cover" />
             {lab.images.length > 1 && (
               <>
-                <button onClick={handlePrevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"><FaChevronLeft className="text-gray-700" /></button>
-                <button onClick={handleNextImage} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"><FaChevronRight className="text-gray-700" /></button>
+                {/* FIX 1: Mobile pe visible arrows */}
+                <button onClick={handlePrevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-white"><FaChevronLeft className="text-gray-700" /></button>
+                <button onClick={handleNextImage} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 p-2 rounded-full shadow-lg opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-white"><FaChevronRight className="text-gray-700" /></button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
                   {lab.images.map((_, idx) => (
                     <div key={idx} className={`w-2 h-2 rounded-full transition-all ${idx === currentImageIndex ? 'bg-white w-6' : 'bg-white/50'}`} />
@@ -110,7 +111,8 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
       </div>
 
       <div className="p-5 flex flex-col flex-grow">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition cursor-pointer" onClick={() => navigate(`/lab/${lab._id}`)}>
+        {/* FIX 2: Responsive lab name text size */}
+        <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition cursor-pointer" onClick={() => navigate(`/lab/${lab._id}`)}>
           {lab.name}
         </h3>
 
@@ -147,17 +149,20 @@ const LabCard = ({ lab, onFavoriteToggle, isFavorite }) => {
             View Details
           </button>
 
+          {/* FIX 3: Increased Y-padding (py-2.5) */}
           {comparison && (
-            <button onClick={handleCompareToggle} className={`flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition ${isInComparison(lab._id || lab.id) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
+            <button onClick={handleCompareToggle} className={`flex items-center justify-center gap-1 py-2.5 rounded-lg font-medium transition ${isInComparison(lab._id || lab.id) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
               <FaExchangeAlt className="text-sm" /><span className="text-xs">Compare</span>
             </button>
           )}
 
-          <button onClick={handleCall} disabled={!lab.phone} className={`flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${comparison ? '' : 'col-span-1'}`}>
+          {/* FIX 3: Increased Y-padding (py-2.5) */}
+          <button onClick={handleCall} disabled={!lab.phone} className={`flex items-center justify-center gap-1 bg-green-100 text-green-700 py-2.5 rounded-lg font-medium hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed ${comparison ? '' : 'col-span-1'}`}>
             <FaPhone className="text-sm" /><span className="text-xs">Call</span>
           </button>
 
-          <button onClick={handleMapOpen} className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2 rounded-lg font-medium hover:bg-purple-200 transition ${comparison ? '' : 'col-span-2'}`}>
+          {/* FIX 3: Increased Y-padding (py-2.5) */}
+          <button onClick={handleMapOpen} className={`flex items-center justify-center gap-1 bg-purple-100 text-purple-700 py-2.5 rounded-lg font-medium hover:bg-purple-200 transition ${comparison ? '' : 'col-span-2'}`}>
             <FaMapMarkerAlt className="text-sm" /><span className="text-xs">Map</span>
           </button>
         </div>
