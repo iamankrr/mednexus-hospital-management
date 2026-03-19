@@ -12,3 +12,29 @@ body {
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #F9FAFB;
 }
+
+/* ── Feature 7: Print styles ── */
+@media print {
+  .print\:hidden { display: none !important; }
+
+  body { background: white !important; font-size: 12px; }
+
+  .max-w-6xl { max-width: 100% !important; padding: 0 16px !important; }
+
+  .bg-white { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+
+  .grid.grid-cols-1.lg\:grid-cols-3 { grid-template-columns: 1fr !important; }
+
+  h1 { font-size: 20px !important; }
+  h2 { font-size: 16px !important; }
+  h3 { font-size: 14px !important; }
+
+  a { color: inherit !important; text-decoration: none !important; }
+
+  .shadow-md, .shadow-lg, .shadow-xl { box-shadow: none !important; }
+
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+}
