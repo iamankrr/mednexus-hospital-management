@@ -16,9 +16,7 @@ const hospitalSchema = new mongoose.Schema({
     enum: ['Private', 'Government', 'Charity', 'Public', 'private', 'government', 'charity', 'public'], 
     default: 'private'
   },
-  description: {
-    type: String
-  },
+  description: { type: String },
   address: {
     street: String,
     area: String,
@@ -28,15 +26,8 @@ const hospitalSchema = new mongoose.Schema({
     landmark: String
   },
   location: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      default: 'Point'
-    },
-    coordinates: {
-      type: [Number],
-      required: true
-    }
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], required: true }
   },
   phone: {
     type: String,
@@ -48,10 +39,7 @@ const hospitalSchema = new mongoose.Schema({
       message: props => `${props.value} is not a valid phone number!`
     }
   },
-  email: {
-    type: String,
-    required: false
-  },
+  email: { type: String, required: false },
   website: String,
   operatingHours: {
     monday: { type: String, default: '9:00 AM - 6:00 PM' },
@@ -62,8 +50,8 @@ const hospitalSchema = new mongoose.Schema({
     saturday: { type: String, default: '9:00 AM - 2:00 PM' },
     sunday: { type: String, default: 'Closed' }
   },
-  
-  // 🚑 Emergency Info (Upgraded)
+
+  // 🚑 Emergency Info
   emergencyAvailable: { type: Boolean, default: false },
   emergencyDetails: {
     contactNumber: String,
@@ -74,19 +62,19 @@ const hospitalSchema = new mongoose.Schema({
 
   facilities: [String],
   images: [String],
-  
+
   googleRating: { type: Number, min: 0, max: 5, default: 0 },
   googleReviewCount: { type: Number, default: 0 },
   appRating: { type: Number, min: 0, max: 5, default: 0 },
   appReviewCount: { type: Number, default: 0 },
   googlePlaceId: String,
-  
+
   isActive: { type: Boolean, default: true },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   appointmentsEnabled: { type: Boolean, default: false },
   themeColor: { type: String, default: '#2563EB' },
   establishedDate: { type: Date, required: false },
-  
+
   // Service Arrays
   tests: [{ type: String }],
   treatments: [{ type: String }],
@@ -95,20 +83,22 @@ const hospitalSchema = new mongoose.Schema({
   therapies: [{ type: String }],
   managementServices: [{ type: String }],
   insuranceAccepted: [{ type: String }],
-  
+
   numberOfBeds: { type: Number, default: 0 },
 
-  // 🧑‍⚕️ Doctors Section (Upgraded)
+  // 🧑‍⚕️ Doctors Section
   doctors: [{
     name: { type: String, required: true },
     photo: { type: String },
     specialization: { type: String, required: true },
     rating: { type: Number, default: 0 },
-    experience: { type: String }, // e.g., "18 Years"
-    qualification: { type: String }, // e.g., "MBBS, MD"
-    availability: { type: String }, // e.g., "Mon-Sat 10AM-2PM"
+    experience: { type: String },
+    qualification: { type: String },
+    availability: { type: String },
     consultationFee: { type: Number },
-    languages: [{ type: String }] // e.g., ["English", "Hindi"]
+    languages: [{ type: String }],
+    // ✅ Feature 14: Next available slot
+    nextAvailable: { type: String, default: '' } // e.g. "Today 3PM", "Mon 10AM", "This week"
   }],
 
   // 🏢 Departments
@@ -120,7 +110,7 @@ const hospitalSchema = new mongoose.Schema({
 
   // 💰 Packages & Price List
   packages: [{
-    name: { type: String }, // e.g., "Full Body Checkup"
+    name: { type: String },
     price: { type: Number },
     includedTests: [{ type: String }],
     duration: { type: String }
@@ -128,7 +118,7 @@ const hospitalSchema = new mongoose.Schema({
 
   // 🛏️ Room Types
   roomTypes: [{
-    type: { type: String }, // e.g., "General Ward", "ICU"
+    type: { type: String },
     pricePerDay: { type: Number },
     facilities: [{ type: String }]
   }],
@@ -180,10 +170,18 @@ const hospitalSchema = new mongoose.Schema({
     description: { type: String },
     isAvailable: { type: Boolean, default: true }
   }],
+
   customServices: [{
     category: { type: String },
     name: { type: String }
+  }],
+
+  // ✅ Feature 15: FAQ Section
+  faqs: [{
+    question: { type: String, required: true },
+    answer: { type: String, required: true }
   }]
+
 }, {
   timestamps: true
 });

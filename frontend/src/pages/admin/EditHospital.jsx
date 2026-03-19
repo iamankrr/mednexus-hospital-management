@@ -5,7 +5,7 @@ import ServiceManager from '../../components/ServiceManager';
 import ThemeColorPicker from '../../components/ThemeColorPicker';
 import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
-import DoctorPhotoUpload from '../../components/DoctorPhotoUpload'; // 👈 Import added
+import DoctorPhotoUpload from '../../components/DoctorPhotoUpload';
 import { FaSave, FaArrowLeft, FaTrash, FaSync, FaPlus, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { HOSPITAL_TYPES } from '../../components/HospitalTypeFilter';
 import axios from 'axios';
@@ -29,7 +29,7 @@ const EditHospital = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false); 
+  const [syncing, setSyncing] = useState(false);
 
   const [newTest, setNewTest] = useState('');
   const [newTreatment, setNewTreatment] = useState('');
@@ -38,29 +38,35 @@ const EditHospital = () => {
   const [newTherapy, setNewTherapy] = useState('');
   const [newManagement, setNewManagement] = useState('');
   const [newInsurance, setNewInsurance] = useState('');
-  const [customFacility, setCustomFacility] = useState(''); 
+  const [customFacility, setCustomFacility] = useState('');
 
-  // Updated with photo field
-  const [newDoctor, setNewDoctor] = useState({ 
-    name: '', specialization: '', qualification: '', 
-    experience: '', consultationFee: '', availability: '', 
-    languages: '', photo: ''  // 👈 photo field added
+  // ✅ Feature 14: nextAvailable added to doctor state
+  const [newDoctor, setNewDoctor] = useState({
+    name: '', specialization: '', qualification: '',
+    experience: '', consultationFee: '', availability: '',
+    languages: '', photo: '', nextAvailable: ''
   });
+
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
   const [newRoomType, setNewRoomType] = useState({ type: '', pricePerDay: '', facilities: '' });
   const [newAward, setNewAward] = useState('');
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', description: '' });
 
+  // ✅ Feature 15: FAQ state
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
+
   const [formData, setFormData] = useState({
     name: '', category: 'Private', type: 'general', description: '', phone: '', email: '', website: '', themeColor: '#1E40AF',
-    googlePlaceId: '', googleRating: 0, googleReviewCount: 0, establishedDate: '', 
+    googlePlaceId: '', googleRating: 0, googleReviewCount: 0, establishedDate: '',
     address: { street: '', area: '', city: '', state: '', pincode: '', landmark: '' },
-    facilities: [], tests: [], treatments: [], surgeries: [], procedures: [], therapies: [], 
+    facilities: [], tests: [], treatments: [], surgeries: [], procedures: [], therapies: [],
     managementServices: [], insuranceAccepted: [], numberOfBeds: 0,
     operatingHours: { monday: '9:00 AM - 5:00 PM', tuesday: '9:00 AM - 5:00 PM', wednesday: '9:00 AM - 5:00 PM', thursday: '9:00 AM - 5:00 PM', friday: '9:00 AM - 5:00 PM', saturday: '9:00 AM - 2:00 PM', sunday: 'Closed' },
     emergencyAvailable: false, images: [], services: [],
     doctors: [], departments: [], packages: [], roomTypes: [], announcements: [],
+    // ✅ Feature 15: faqs array
+    faqs: [],
     emergencyDetails: { contactNumber: '', traumaCenter: false, ambulanceCount: 0, doctors24x7: false },
     staffAndManagement: { medicalDirector: '', chiefSurgeon: '', nursingHead: '', adminManager: '' },
     diagnosticCenterDetails: { labAvailable: false, nablCertified: false, reportTime: '', homeSampleCollection: false },
@@ -76,7 +82,7 @@ const EditHospital = () => {
       const h = res.data.data;
       setFormData(prev => ({
         ...prev, ...h,
-        establishedDate: h.establishedDate ? new Date(h.establishedDate).toISOString().split('T')[0] : '', 
+        establishedDate: h.establishedDate ? new Date(h.establishedDate).toISOString().split('T')[0] : '',
         address: { ...prev.address, ...(h.address || {}) },
         emergencyDetails: { ...prev.emergencyDetails, ...(h.emergencyDetails || {}) },
         staffAndManagement: { ...prev.staffAndManagement, ...(h.staffAndManagement || {}) },
@@ -84,7 +90,8 @@ const EditHospital = () => {
         documents: { ...prev.documents, ...(h.documents || {}) },
         socialMedia: { ...prev.socialMedia, ...(h.socialMedia || {}) },
         doctors: h.doctors || [], packages: h.packages || [], roomTypes: h.roomTypes || [],
-        departments: h.departments || [], announcements: h.announcements || []
+        departments: h.departments || [], announcements: h.announcements || [],
+        faqs: h.faqs || []
       }));
     } catch (error) { alert('Failed to load hospital'); } finally { setLoading(false); }
   };
@@ -107,40 +114,32 @@ const EditHospital = () => {
     if (!formData.address?.city || !formData.address?.state || !formData.address?.pincode) return alert('City, State, and PIN Code are required fields!');
     try {
       setSaving(true);
-      const payload = { 
-        ...formData, 
+      const payload = {
+        ...formData,
         website: formData.website || '',
-        address: { 
-          ...formData.address, 
-          landmark: formData.address?.landmark || '' 
+        address: { ...formData.address, landmark: formData.address?.landmark || '' },
+        socialMedia: {
+          facebook: formData.socialMedia?.facebook || '',
+          instagram: formData.socialMedia?.instagram || '',
+          twitter: formData.socialMedia?.twitter || '',
+          youtube: formData.socialMedia?.youtube || ''
         },
-        socialMedia: { 
-          facebook: formData.socialMedia?.facebook || '', 
-          instagram: formData.socialMedia?.instagram || '', 
-          twitter: formData.socialMedia?.twitter || '', 
-          youtube: formData.socialMedia?.youtube || '' 
+        staffAndManagement: {
+          medicalDirector: formData.staffAndManagement?.medicalDirector || '',
+          chiefSurgeon: formData.staffAndManagement?.chiefSurgeon || '',
+          nursingHead: formData.staffAndManagement?.nursingHead || '',
+          adminManager: formData.staffAndManagement?.adminManager || ''
         },
-        staffAndManagement: { 
-          medicalDirector: formData.staffAndManagement?.medicalDirector || '', 
-          chiefSurgeon: formData.staffAndManagement?.chiefSurgeon || '', 
-          nursingHead: formData.staffAndManagement?.nursingHead || '', 
-          adminManager: formData.staffAndManagement?.adminManager || '' 
-        },
-        documents: {
-          ...formData.documents,
-          governmentApproval: formData.documents?.governmentApproval || false
-        }
+        documents: { ...formData.documents, governmentApproval: formData.documents?.governmentApproval || false }
       };
-      
-      delete payload.services; 
-      
+      delete payload.services;
       await hospitalAPI.update(id, payload);
       alert('✅ Hospital updated successfully!');
       navigate('/admin/hospitals');
-    } catch (error) { 
-      alert(error.response?.data?.message || 'Failed to save changes.'); 
-    } finally { 
-      setSaving(false); 
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to save changes.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -153,27 +152,32 @@ const EditHospital = () => {
     if (value.trim()) {
       const items = value.split(',').map(item => item.trim()).filter(item => item && !formData[field].includes(item));
       if (items.length > 0) setFormData({ ...formData, [field]: [...formData[field], ...items] });
-      setter(''); 
+      setter('');
     }
   };
 
   const handleRemoveArrayItem = (field, index) => setFormData({ ...formData, [field]: formData[field].filter((_, i) => i !== index) });
 
   const handleAddComplexItem = (field, item, setter, defaultState) => {
-    if (item.name || item.type || item.title) { 
+    if (item.name || item.type || item.title || item.question) {
       setFormData({ ...formData, [field]: [...formData[field], item] });
-      setter(defaultState); // Reset with photo field included
-    } else alert("Please fill the required primary name/title field.");
+      setter(defaultState);
+    } else alert("Please fill the required primary field.");
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div></div>;
 
-  const categories = [ { label: 'Government', value: 'Government', icon: '🏛️' }, { label: 'Public', value: 'Public', icon: '🏥' }, { label: 'Private', value: 'Private', icon: '💼' }, { label: 'Charity/NGO', value: 'Charity', icon: '❤️' } ];
+  const categories = [
+    { label: 'Government', value: 'Government', icon: '🏛️' },
+    { label: 'Public', value: 'Public', icon: '🏥' },
+    { label: 'Private', value: 'Private', icon: '💼' },
+    { label: 'Charity/NGO', value: 'Charity', icon: '❤️' }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        
+
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/admin/hospitals')} className="text-gray-600 hover:text-blue-600"><FaArrowLeft className="text-xl" /></button>
@@ -190,6 +194,8 @@ const EditHospital = () => {
         </div>
 
         <div className="space-y-4">
+
+          {/* Basic Information */}
           <FormSection title="Basic Information" icon="📝" defaultOpen={true}>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
@@ -208,7 +214,6 @@ const EditHospital = () => {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Website</label><input type="text" value={formData.website || ''} onChange={e => setFormData({...formData, website: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Established Date</label><input type="date" value={formData.establishedDate || ''} onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })} max={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border rounded-lg" /></div>
-              
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Google Place ID (Optional)</label>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -216,11 +221,11 @@ const EditHospital = () => {
                   <button type="button" onClick={handleSyncGoogle} disabled={syncing || !formData.googlePlaceId} className="px-6 py-2 bg-blue-100 text-blue-700 font-bold rounded-lg disabled:opacity-50"><FaSync className={syncing ? "animate-spin" : ""} /> {syncing ? 'Fetching...' : 'Sync Ratings'}</button>
                 </div>
               </div>
-
               <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={4} className="w-full px-4 py-2 border rounded-lg" /></div>
             </div>
           </FormSection>
 
+          {/* Address */}
           <FormSection title="Address" icon="📍">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2"><CityStateSelector selectedState={formData.address?.state || ''} selectedCity={formData.address?.city || ''} onStateChange={(val) => setFormData({...formData, address: {...formData.address, state: val}})} onCityChange={(val) => setFormData({...formData, address: {...formData.address, city: val}})} /></div>
@@ -231,11 +236,13 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
+          {/* Theme & Photos */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormSection title="Theme Color" icon="🎨"><ThemeColorPicker value={formData.themeColor} onChange={(color) => setFormData({...formData, themeColor: color})} /></FormSection>
             <FormSection title="Photos" icon="📸"><ImageUploadManager images={formData.images || []} onImagesChange={(newImages) => setFormData({ ...formData, images: newImages })} maxImages={10} facilityId={id} facilityType="hospital" /></FormSection>
           </div>
 
+          {/* Management, Certs & Social */}
           <FormSection title="Management, Certifications & Social" icon="👔">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-3">
@@ -254,10 +261,10 @@ const EditHospital = () => {
                   <label className="text-xs font-bold text-gray-700">Add Award / Certification</label>
                   <div className="flex gap-2 mt-1">
                     <input type="text" value={newAward} onChange={e=>setNewAward(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById('addAwardBtn').click(); } }} className="flex-1 p-2 border rounded shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Type award name" />
-                    <button id="addAwardBtn" type="button" onClick={(e) => { e.preventDefault(); if (newAward.trim()) { const currentAwards = formData.documents?.awards || []; if(!currentAwards.includes(newAward.trim())){ setFormData({...formData, documents: { ...formData.documents, awards: [...currentAwards, newAward.trim()] }}); } setNewAward(''); } }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 font-bold rounded shadow transition">Add</button>
+                    <button id="addAwardBtn" type="button" onClick={() => { if (newAward.trim()) { const cur = formData.documents?.awards || []; if(!cur.includes(newAward.trim())){ setFormData({...formData, documents: { ...formData.documents, awards: [...cur, newAward.trim()] }}); } setNewAward(''); } }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 font-bold rounded shadow transition">Add</button>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {formData.documents?.awards?.map((a, i) => (<span key={i} className="text-xs bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full flex items-center gap-1">{a} <button type="button" onClick={(e)=> { e.preventDefault(); const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); setFormData({...formData, documents: {...formData.documents, awards: newAw}}) }} className="text-red-500 font-black hover:text-red-700 ml-1 text-sm">×</button></span>))}
+                    {formData.documents?.awards?.map((a, i) => (<span key={i} className="text-xs bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full flex items-center gap-1">{a} <button type="button" onClick={() => { const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); setFormData({...formData, documents: {...formData.documents, awards: newAw}}) }} className="text-red-500 font-black hover:text-red-700 ml-1 text-sm">×</button></span>))}
                   </div>
                 </div>
               </div>
@@ -271,6 +278,7 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
+          {/* Doctors & Departments */}
           <FormSection title="Doctors & Departments" icon="🧑‍⚕️">
             <div className="p-4 bg-blue-50 rounded-xl mb-6 border border-blue-100">
               <h4 className="font-bold mb-3 text-blue-800">Add New Doctor</h4>
@@ -280,9 +288,23 @@ const EditHospital = () => {
                 <input type="text" placeholder="Qualification (e.g. MBBS, MD)" value={newDoctor.qualification} onChange={e=>setNewDoctor({...newDoctor, qualification: e.target.value})} className="p-2 border rounded shadow-sm" />
                 <input type="text" placeholder="Experience (e.g. 18 Years)" value={newDoctor.experience} onChange={e=>setNewDoctor({...newDoctor, experience: e.target.value})} className="p-2 border rounded shadow-sm" />
                 <input type="number" placeholder="Consultation Fee (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
-                <input type="text" placeholder="Availability / Timings" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
-                
-                {/* 👇 Doctor Photo Upload - Added before languages input */}
+                <input type="text" placeholder="Availability / Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
+
+                {/* ✅ Feature 14: Next Available Slot */}
+                <div className="md:col-span-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Next Available Slot <span className="text-gray-400">(e.g. "Today 3PM", "Mon 10AM", "This week")</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Today 3:00 PM / Mon–Wed 10AM / This week"
+                    value={newDoctor.nextAvailable}
+                    onChange={e => setNewDoctor({...newDoctor, nextAvailable: e.target.value})}
+                    className="w-full p-2 border rounded shadow-sm focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+
+                {/* Doctor Photo Upload */}
                 <div className="md:col-span-3">
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     Doctor Photo <span className="text-gray-400">(Optional)</span>
@@ -293,26 +315,44 @@ const EditHospital = () => {
                   />
                 </div>
 
-                {/* Existing languages input */}
-                <input 
-                  type="text" 
-                  placeholder="Languages (e.g. English, Hindi)" 
-                  value={newDoctor.languages} 
-                  onChange={e => setNewDoctor({...newDoctor, languages: e.target.value})} 
-                  className="p-2 border rounded shadow-sm md:col-span-3" 
+                <input
+                  type="text"
+                  placeholder="Languages (e.g. English, Hindi)"
+                  value={newDoctor.languages}
+                  onChange={e => setNewDoctor({...newDoctor, languages: e.target.value})}
+                  className="p-2 border rounded shadow-sm md:col-span-3"
                 />
               </div>
-              <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:'', photo:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
+              <button
+                type="button"
+                onClick={() => handleAddComplexItem(
+                  'doctors',
+                  { ...newDoctor, languages: newDoctor.languages.split(',').map(l => l.trim()) },
+                  setNewDoctor,
+                  { name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '', photo: '', nextAvailable: '' }
+                )}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition"
+              >
+                Add Doctor
+              </button>
             </div>
-            
+
             <div className="space-y-2 mb-8">
               {formData.doctors?.map((d, i) => (
                 <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
                   <div className="flex items-center gap-3">
-                    {d.photo ? <img src={d.photo} alt={d.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-100" /> : <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs border-2 border-blue-100">Dr.</div>}
-                    <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
+                    {d.photo
+                      ? <img src={d.photo} alt={d.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-100" />
+                      : <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs border-2 border-blue-100">Dr.</div>
+                    }
+                    <div>
+                      <span className="font-bold text-gray-800">{d.name}</span>
+                      <span className="text-gray-600"> ({d.specialization})</span>
+                      <span className="text-green-600 font-semibold"> — ₹{d.consultationFee || 'N/A'}</span>
+                      {d.nextAvailable && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{d.nextAvailable}</span>}
+                    </div>
                   </div>
-                  <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline">Remove</button>
+                  <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline shrink-0">Remove</button>
                 </div>
               ))}
             </div>
@@ -336,6 +376,7 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
+          {/* Room Types & Packages */}
           <FormSection title="Room Types & Packages" icon="🛏️">
             <div className="p-4 bg-orange-50 rounded-xl mb-4 border border-orange-100">
               <h4 className="font-bold mb-3 text-orange-800">Add Room Type</h4>
@@ -361,6 +402,7 @@ const EditHospital = () => {
             <div className="space-y-2">{formData.packages?.map((p, i) => (<div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm"><div><span className="font-bold text-gray-800">{p.name}</span> - <span className="text-green-600 font-semibold">₹{p.price}</span></div><button type="button" onClick={() => handleRemoveArrayItem('packages', i)} className="text-red-500 font-bold hover:underline">Remove</button></div>))}</div>
           </FormSection>
 
+          {/* Emergency & Diagnostics */}
           <FormSection title="Emergency & Diagnostics" icon="🚑">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
@@ -385,9 +427,10 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
+          {/* Announcements */}
           <FormSection title="Announcements & Campaigns" icon="📢">
             <div className="p-4 bg-yellow-50 rounded-xl mb-4 border border-yellow-200">
-              <h4 className="font-bold mb-3 text-yellow-800">Add Announcement (e.g. Free Blood Camp)</h4>
+              <h4 className="font-bold mb-3 text-yellow-800">Add Announcement</h4>
               <div className="flex flex-wrap gap-3 mb-3">
                 <input type="text" placeholder="Title *" value={newAnnouncement.title} onChange={e=>setNewAnnouncement({...newAnnouncement, title: e.target.value})} className="w-1/3 p-2 border rounded shadow-sm" />
                 <input type="text" placeholder="Description" value={newAnnouncement.description} onChange={e=>setNewAnnouncement({...newAnnouncement, description: e.target.value})} className="flex-1 p-2 border rounded shadow-sm" />
@@ -397,9 +440,57 @@ const EditHospital = () => {
             <div className="space-y-2">{formData.announcements?.map((a, i) => (<div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm border-l-4 border-l-yellow-400"><div><span className="font-bold text-gray-800">{a.title}</span><p className="text-sm text-gray-600">{a.description}</p></div><button type="button" onClick={() => handleRemoveArrayItem('announcements', i)} className="text-red-500 font-bold hover:underline">Remove</button></div>))}</div>
           </FormSection>
 
+          {/* ✅ Feature 15: FAQ Section */}
+          <FormSection title="FAQ (Frequently Asked Questions)" icon="❓">
+            <p className="text-sm text-gray-500 mb-4">Add common questions patients ask. These will show on the hospital detail page.</p>
+            <div className="p-4 bg-indigo-50 rounded-xl mb-4 border border-indigo-100">
+              <h4 className="font-bold mb-3 text-indigo-800">Add FAQ</h4>
+              <div className="space-y-3 mb-3">
+                <input
+                  type="text"
+                  placeholder="Question * (e.g. Is cashless treatment available?)"
+                  value={newFaq.question}
+                  onChange={e => setNewFaq({...newFaq, question: e.target.value})}
+                  className="w-full p-2 border rounded shadow-sm focus:ring-2 focus:ring-indigo-400"
+                />
+                <textarea
+                  placeholder="Answer * (e.g. Yes, we accept cashless treatment for Ayushman Bharat, Star Health...)"
+                  value={newFaq.answer}
+                  onChange={e => setNewFaq({...newFaq, answer: e.target.value})}
+                  rows={3}
+                  className="w-full p-2 border rounded shadow-sm focus:ring-2 focus:ring-indigo-400 resize-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddComplexItem('faqs', newFaq, setNewFaq, {question:'', answer:''})}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition"
+              >
+                Add FAQ
+              </button>
+            </div>
+            <div className="space-y-3">
+              {formData.faqs?.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No FAQs added yet.</p>
+              )}
+              {formData.faqs?.map((f, i) => (
+                <div key={i} className="bg-white p-4 border border-gray-100 rounded-xl shadow-sm">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-800 text-sm mb-1">Q: {f.question}</p>
+                      <p className="text-sm text-gray-600">A: {f.answer}</p>
+                    </div>
+                    <button type="button" onClick={() => handleRemoveArrayItem('faqs', i)} className="text-red-500 font-bold hover:underline shrink-0 text-sm">Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FormSection>
+
+          {/* General Facilities */}
           <FormSection title="General Facilities & Treatments" icon="🩺">
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (Add comma separated)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities</label>
               <div className="flex gap-2 mb-3">
                 <input type="text" value={customFacility} onChange={e => setCustomFacility(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('facilities', customFacility, setCustomFacility)} placeholder="Type facility name and press Enter" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
                 <button type="button" onClick={() => handleAddArrayItem('facilities', customFacility, setCustomFacility)} className="px-6 py-2 bg-blue-600 text-white rounded-lg"><FaPlus /></button>
@@ -408,26 +499,17 @@ const EditHospital = () => {
             </div>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Tests Available</label>
-              <div className="flex gap-2 mb-3">
-                <input type="text" value={newTest} onChange={e => setNewTest(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('tests', newTest, setNewTest)} placeholder="e.g., Blood Test, X-Ray" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                <button type="button" onClick={() => handleAddArrayItem('tests', newTest, setNewTest)} className="px-6 py-2 bg-blue-600 text-white rounded-lg"><FaPlus /></button>
-              </div>
+              <div className="flex gap-2 mb-3"><input type="text" value={newTest} onChange={e => setNewTest(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('tests', newTest, setNewTest)} placeholder="e.g., Blood Test, X-Ray" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" /><button type="button" onClick={() => handleAddArrayItem('tests', newTest, setNewTest)} className="px-6 py-2 bg-blue-600 text-white rounded-lg"><FaPlus /></button></div>
               <div className="flex flex-wrap gap-2">{formData.tests.map((item, i) => (<span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('tests', i)} className="text-red-500 font-bold hover:text-red-700">×</button></span>))}</div>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Treatments</label>
-              <div className="flex gap-2 mb-3">
-                <input type="text" value={newTreatment} onChange={e => setNewTreatment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('treatments', newTreatment, setNewTreatment)} placeholder="e.g., Diabetes Management" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                <button type="button" onClick={() => handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="px-6 py-2 bg-green-600 text-white rounded-lg"><FaPlus /></button>
-              </div>
+              <div className="flex gap-2 mb-3"><input type="text" value={newTreatment} onChange={e => setNewTreatment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('treatments', newTreatment, setNewTreatment)} placeholder="e.g., Diabetes Management" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" /><button type="button" onClick={() => handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="px-6 py-2 bg-green-600 text-white rounded-lg"><FaPlus /></button></div>
               <div className="flex flex-wrap gap-2">{formData.treatments.map((item, i) => (<span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('treatments', i)} className="text-red-500 font-bold hover:text-red-700">×</button></span>))}</div>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Surgeries</label>
-              <div className="flex gap-2 mb-3">
-                <input type="text" value={newSurgery} onChange={e => setNewSurgery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} placeholder="e.g., Cardiac Surgery, Endoscopy" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" />
-                <button type="button" onClick={() => handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="px-6 py-2 bg-red-600 text-white rounded-lg"><FaPlus /></button>
-              </div>
+              <div className="flex gap-2 mb-3"><input type="text" value={newSurgery} onChange={e => setNewSurgery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} placeholder="e.g., Cardiac Surgery" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg" /><button type="button" onClick={() => handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="px-6 py-2 bg-red-600 text-white rounded-lg"><FaPlus /></button></div>
               <div className="flex flex-wrap gap-2">{formData.surgeries.map((item, i) => (<span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium border border-red-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('surgeries', i)} className="text-red-500 font-bold hover:text-red-700">×</button></span>))}</div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -460,6 +542,7 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
+          {/* Working Hours */}
           <FormSection title="Working Hours" icon="🕐">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map(day => (
@@ -471,6 +554,7 @@ const EditHospital = () => {
             </div>
           </FormSection>
 
+          {/* Services */}
           <FormSection title="Custom Services & Master Price List" icon="💰">
             <p className="text-sm text-gray-500 mb-4">Services added here with a price will show in the "Price List" tab.</p>
             <ServiceManager facilityId={id} facilityType="hospital" initialServices={formData.services} onUpdate={(services) => setFormData({...formData, services})} />

@@ -82,6 +82,27 @@ const getOpenStatus = (operatingHours) => {
   return { open: false, text: 'Closed now' };
 };
 
+// ─── FAQ accordion item helper ─────────────────────────────────────────────
+const FaqItem = ({ question, answer }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-gray-100 rounded-xl overflow-hidden bg-white shadow-sm">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition"
+      >
+        <span className="font-semibold text-gray-800 text-sm pr-4">{question}</span>
+        {open ? <FaChevronUp className="text-gray-400 shrink-0" /> : <FaChevronDown className="text-gray-400 shrink-0" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-50">
+          <p className="pt-3">{answer}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 const EnhancedHospitalDetails = () => {
   const { id } = useParams();
@@ -1082,10 +1103,17 @@ const EnhancedHospitalDetails = () => {
                     {doctor.experience && <p>⭐ {doctor.experience} Experience</p>}
                     {doctor.languages?.length > 0 && <p>🗣️ {doctor.languages.join(', ')}</p>}
                   </div>
-                  <div className="mt-auto border-t pt-3 sm:pt-4 flex justify-between items-center bg-gray-50 -mx-4 sm:-mx-5 px-4 sm:px-5 py-3 mb-4">
+                  <div className="mt-auto border-t pt-3 sm:pt-4 flex justify-between items-start bg-gray-50 -mx-4 sm:-mx-5 px-4 sm:px-5 py-3 mb-4">
                     <div className="text-left">
                       <p className="text-[9px] sm:text-[10px] text-gray-500 uppercase font-bold">OPD Timing</p>
-                      <p className="text-xs sm:text-sm font-semibold text-gray-800">{doctor.availability || doctor.opdTiming || 'Contact Hospital'}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-800">
+                        {doctor.availability || doctor.opdTiming || 'Contact Hospital'}
+                      </p>
+                      {doctor.nextAvailable && (
+                        <span className="inline-block mt-1 text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                          🟢 {doctor.nextAvailable}
+                        </span>
+                      )}
                     </div>
                     <div className="text-right pl-2">
                       <p className="text-[9px] sm:text-[10px] text-gray-500 uppercase font-bold">Consultation</p>
@@ -1210,6 +1238,20 @@ const EnhancedHospitalDetails = () => {
                   )}
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Feature 15: FAQ Section ── */}
+      {hospital.faqs?.length > 0 && (
+        <div className="max-w-6xl mx-auto px-4 pb-8 print:hidden">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            ❓ Frequently Asked Questions
+          </h2>
+          <div className="space-y-3">
+            {hospital.faqs.map((faq, idx) => (
+              <FaqItem key={idx} question={faq.question} answer={faq.answer} />
             ))}
           </div>
         </div>
