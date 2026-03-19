@@ -6,11 +6,10 @@ import ServiceManager from '../../components/ServiceManager';
 import ThemeColorPicker from '../../components/ThemeColorPicker';
 import ImageUploadManager from '../../components/ImageUploadManager';
 import CityStateSelector from '../../components/CityStateSelector';
-import DoctorPhotoUpload from '../../components/DoctorPhotoUpload'; // 👈 Import added
+import DoctorPhotoUpload from '../../components/DoctorPhotoUpload';
 import { FaSave, FaArrowLeft, FaPlus, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import API_URL from '../../config/api';
 
-// Accordion Component
 const FormSection = ({ title, icon, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
@@ -31,7 +30,6 @@ const OwnerFacility = () => {
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Array Handlers State
   const [customFacility, setCustomFacility] = useState('');
   const [newTest, setNewTest] = useState('');
   const [newTreatment, setNewTreatment] = useState('');
@@ -41,31 +39,32 @@ const OwnerFacility = () => {
   const [newManagement, setNewManagement] = useState('');
   const [newInsurance, setNewInsurance] = useState('');
 
-  // ADDED photo field
+  // ✅ Feature 14: nextAvailable added
   const [newDoctor, setNewDoctor] = useState({ 
     name: '', specialization: '', qualification: '', 
     experience: '', consultationFee: '', availability: '', 
-    languages: '', photo: ''  // 👈 photo field added
+    languages: '', photo: '', nextAvailable: ''
   });
+
   const [newDepartment, setNewDepartment] = useState({ name: '', description: '', headDoctor: '' });
   const [newPackage, setNewPackage] = useState({ name: '', price: '', includedTests: '', duration: '' });
   const [newRoomType, setNewRoomType] = useState({ type: '', pricePerDay: '', facilities: '' });
   const [newAward, setNewAward] = useState('');
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', description: '' });
 
+  // ✅ Feature 15: FAQ state
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
+
   const [formData, setFormData] = useState({
     name: '', description: '', phone: '', email: '', website: '', themeColor: '#1E40AF', establishedDate: '', 
     address: { street: '', area: '', city: '', state: '', pincode: '', landmark: '' },
-    
-    // Original Arrays
     facilities: [], tests: [], treatments: [], surgeries: [], procedures: [], therapies: [], 
     managementServices: [], insuranceAccepted: [], numberOfBeds: 0,
-    
     operatingHours: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' },
     emergencyAvailable: false, images: [],
-    
-    // NEW FIELDS
     doctors: [], departments: [], packages: [], roomTypes: [], announcements: [],
+    // ✅ Feature 15: faqs array
+    faqs: [],
     emergencyDetails: { contactNumber: '', traumaCenter: false, ambulanceCount: 0, doctors24x7: false },
     staffAndManagement: { medicalDirector: '', chiefSurgeon: '', nursingHead: '', adminManager: '' },
     diagnosticCenterDetails: { labAvailable: false, nablCertified: false, reportTime: '', homeSampleCollection: false },
@@ -104,7 +103,9 @@ const OwnerFacility = () => {
           documents: fac.documents || prev.documents,
           socialMedia: fac.socialMedia || prev.socialMedia,
           doctors: fac.doctors || [], packages: fac.packages || [], roomTypes: fac.roomTypes || [],
-          departments: fac.departments || [], announcements: fac.announcements || []
+          departments: fac.departments || [], announcements: fac.announcements || [],
+          // ✅ Feature 15: load faqs
+          faqs: fac.faqs || []
         }));
       }
     } catch (error) { alert('Failed to load facility'); } finally { setLoading(false); }
@@ -120,7 +121,6 @@ const OwnerFacility = () => {
     } catch (error) { alert(error.response?.data?.message || 'Failed to save changes'); } finally { setSaving(false); }
   };
 
-  // Array Handlers
   const handleAddArrayItem = (field, value, setter) => {
     if (value.trim()) {
       const items = value.split(',').map(item => item.trim()).filter(item => item && !formData[field].includes(item));
@@ -134,14 +134,21 @@ const OwnerFacility = () => {
   };
 
   const handleAddComplexItem = (field, item, setter, defaultState) => {
-    if (item.name || item.type || item.title) { 
+    if (item.name || item.type || item.title || item.question) { 
       setFormData({ ...formData, [field]: [...formData[field], item] });
       setter(defaultState);
-    } else alert("Please fill the required primary name/title field.");
+    } else alert("Please fill the required primary field.");
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div></div>;
-  if (!facility) return <div className="min-h-screen flex items-center justify-center"><div className="text-center"><p className="text-gray-500 text-xl mb-4">No facility assigned</p><button onClick={() => navigate('/owner/dashboard')} className="text-blue-600 hover:text-blue-800 underline">Back to Dashboard</button></div></div>;
+  if (!facility) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-500 text-xl mb-4">No facility assigned</p>
+        <button onClick={() => navigate('/owner/dashboard')} className="text-blue-600 hover:text-blue-800 underline">Back to Dashboard</button>
+      </div>
+    </div>
+  );
 
   const isHospital = user.ownerProfile.facilityType === 'hospital';
 
@@ -149,13 +156,14 @@ const OwnerFacility = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/owner/dashboard')} className="text-gray-600 hover:text-blue-600"><FaArrowLeft className="text-xl" /></button>
             <div><h1 className="text-3xl font-bold text-gray-900">Manage Your Facility</h1><p className="text-gray-500">{facility.name}</p></div>
           </div>
-          <button onClick={handleSave} disabled={saving} className="flex gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50"><FaSave />{saving ? 'Saving...' : 'Save Changes'}</button>
+          <button onClick={handleSave} disabled={saving} className="flex gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50">
+            <FaSave />{saving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
 
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
@@ -207,8 +215,22 @@ const OwnerFacility = () => {
                   <input type="text" placeholder="Experience (e.g. 18 Years)" value={newDoctor.experience} onChange={e=>setNewDoctor({...newDoctor, experience: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="number" placeholder="Fees (₹)" value={newDoctor.consultationFee} onChange={e=>setNewDoctor({...newDoctor, consultationFee: e.target.value})} className="p-2 border rounded shadow-sm" />
                   <input type="text" placeholder="OPD Timings (e.g. Mon-Sat 10AM-2PM)" value={newDoctor.availability} onChange={e=>setNewDoctor({...newDoctor, availability: e.target.value})} className="p-2 border rounded shadow-sm" />
-                  
-                  {/* 👇 Doctor Photo Upload - Added before languages input */}
+
+                  {/* ✅ Feature 14: Next Available Slot */}
+                  <div className="md:col-span-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Next Available Slot <span className="text-gray-400">(e.g. "Today 3PM", "Mon 10AM", "This week")</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Today 3:00 PM / Mon–Wed 10AM / This week"
+                      value={newDoctor.nextAvailable}
+                      onChange={e => setNewDoctor({...newDoctor, nextAvailable: e.target.value})}
+                      className="w-full p-2 border rounded shadow-sm focus:ring-2 focus:ring-green-400"
+                    />
+                  </div>
+
+                  {/* Doctor Photo Upload */}
                   <div className="md:col-span-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">
                       Doctor Photo <span className="text-gray-400">(Optional)</span>
@@ -219,7 +241,6 @@ const OwnerFacility = () => {
                     />
                   </div>
 
-                  {/* Existing languages input */}
                   <input 
                     type="text" 
                     placeholder="Languages (e.g. English, Hindi)" 
@@ -228,17 +249,38 @@ const OwnerFacility = () => {
                     className="p-2 border rounded shadow-sm md:col-span-3" 
                   />
                 </div>
-                <button type="button" onClick={() => handleAddComplexItem('doctors', {...newDoctor, languages: newDoctor.languages.split(',').map(l=>l.trim())}, setNewDoctor, {name:'', specialization:'', qualification:'', experience:'', consultationFee:'', availability:'', languages:'', photo:''})} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition">Add Doctor</button>
+                <button
+                  type="button"
+                  onClick={() => handleAddComplexItem(
+                    'doctors',
+                    { ...newDoctor, languages: newDoctor.languages.split(',').map(l => l.trim()) },
+                    setNewDoctor,
+                    { name: '', specialization: '', qualification: '', experience: '', consultationFee: '', availability: '', languages: '', photo: '', nextAvailable: '' }
+                  )}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition"
+                >
+                  Add Doctor
+                </button>
               </div>
+
               <div className="space-y-2 mb-8">
                 {formData.doctors?.map((d, i) => (
                   <div key={i} className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
                     <div className="flex items-center gap-3">
-                      {/* Added simple display for doctor photo */}
-                      {d.photo ? <img src={d.photo} alt={d.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-100" /> : <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs border-2 border-blue-100">Dr.</div>}
-                      <div><span className="font-bold text-gray-800">{d.name}</span> <span className="text-gray-600">({d.specialization})</span> - <span className="text-green-600 font-semibold">₹{d.consultationFee || 'N/A'}</span></div>
+                      {d.photo
+                        ? <img src={d.photo} alt={d.name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-100" />
+                        : <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold text-xs border-2 border-blue-100">Dr.</div>
+                      }
+                      <div>
+                        <span className="font-bold text-gray-800">{d.name}</span>
+                        <span className="text-gray-600"> ({d.specialization})</span>
+                        <span className="text-green-600 font-semibold"> — ₹{d.consultationFee || 'N/A'}</span>
+                        {d.nextAvailable && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{d.nextAvailable}</span>
+                        )}
+                      </div>
                     </div>
-                    <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline">Remove</button>
+                    <button type="button" onClick={() => handleRemoveArrayItem('doctors', i)} className="text-red-500 font-bold hover:underline shrink-0">Remove</button>
                   </div>
                 ))}
               </div>
@@ -325,7 +367,6 @@ const OwnerFacility = () => {
                   </div>
                 </div>
               )}
-
               <div>
                 <h4 className="font-bold text-purple-600 mb-3">Diagnostic Center Details</h4>
                 <label className="flex items-center gap-3 cursor-pointer p-3 bg-purple-50 rounded-xl mb-4 border border-purple-100">
@@ -341,7 +382,7 @@ const OwnerFacility = () => {
             </div>
           </FormSection>
 
-          {/* 7. STAFF, DOCUMENTS & SOCIAL MEDIA */}
+          {/* 7. STAFF, DOCUMENTS & SOCIAL */}
           <FormSection title="Management, Certifications & Social" icon="👔">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-3">
@@ -351,7 +392,6 @@ const OwnerFacility = () => {
                 <div><label className="text-xs">Nursing Head</label><input type="text" value={formData.staffAndManagement?.nursingHead||''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, nursingHead: e.target.value}})} className="w-full p-2 border rounded" /></div>
                 <div><label className="text-xs">Admin Manager</label><input type="text" value={formData.staffAndManagement?.adminManager||''} onChange={e=>setFormData({...formData, staffAndManagement: {...formData.staffAndManagement, adminManager: e.target.value}})} className="w-full p-2 border rounded" /></div>
               </div>
-
               <div className="space-y-3">
                 <h4 className="font-bold text-gray-800 border-b pb-2">Certifications</h4>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={formData.documents?.nabhAccreditation||false} onChange={e=> setFormData({...formData, documents: {...formData.documents, nabhAccreditation: e.target.checked}})} className="w-4 h-4" /> NABH Accreditation</label>
@@ -361,39 +401,15 @@ const OwnerFacility = () => {
                   <label className="text-xs">Add Award</label>
                   <div className="flex gap-2">
                     <input type="text" value={newAward} onChange={e=>setNewAward(e.target.value)} className="flex-1 p-1 border rounded" />
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        if (newAward.trim()) {
-                          setFormData({
-                            ...formData, 
-                            documents: {
-                              ...formData.documents, 
-                              awards: [...(formData.documents?.awards || []), newAward.trim()]
-                            }
-                          });
-                          setNewAward('');
-                        }
-                      }} 
-                      className="bg-blue-600 text-white px-2 rounded"
-                    >
-                      +
-                    </button>
+                    <button type="button" onClick={() => { if (newAward.trim()) { setFormData({...formData, documents: {...formData.documents, awards: [...(formData.documents?.awards || []), newAward.trim()]}}); setNewAward(''); } }} className="bg-blue-600 text-white px-2 rounded">+</button>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {formData.documents?.awards?.map((a, i) => (
-                      <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                        {a} 
-                        <button type="button" onClick={()=> {
-                          const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); 
-                          setFormData({...formData, documents: {...formData.documents, awards: newAw}})
-                        }} className="text-red-500 ml-1 font-bold">x</button>
-                      </span>
+                      <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">{a} <button type="button" onClick={()=> { const newAw = formData.documents.awards.filter((_, idx)=>idx!==i); setFormData({...formData, documents: {...formData.documents, awards: newAw}}) }} className="text-red-500 ml-1 font-bold">x</button></span>
                     ))}
                   </div>
                 </div>
               </div>
-
               <div className="space-y-3">
                 <h4 className="font-bold text-gray-800 border-b pb-2">Social Media Links</h4>
                 <div><label className="text-xs">Facebook</label><input type="text" placeholder="https://..." value={formData.socialMedia?.facebook||''} onChange={e=>setFormData({...formData, socialMedia: {...formData.socialMedia, facebook: e.target.value}})} className="w-full p-2 border rounded" /></div>
@@ -407,7 +423,7 @@ const OwnerFacility = () => {
           {/* 8. ANNOUNCEMENTS */}
           <FormSection title="Announcements & Campaigns" icon="📢">
             <div className="p-4 bg-yellow-50 rounded-xl mb-4 border border-yellow-200">
-              <h4 className="font-bold mb-3 text-yellow-800">Add Announcement (e.g. Free Blood Camp)</h4>
+              <h4 className="font-bold mb-3 text-yellow-800">Add Announcement</h4>
               <div className="flex flex-wrap gap-3 mb-3">
                 <input type="text" placeholder="Title *" value={newAnnouncement.title} onChange={e=>setNewAnnouncement({...newAnnouncement, title: e.target.value})} className="w-1/3 p-2 border rounded shadow-sm" />
                 <input type="text" placeholder="Description" value={newAnnouncement.description} onChange={e=>setNewAnnouncement({...newAnnouncement, description: e.target.value})} className="flex-1 p-2 border rounded shadow-sm" />
@@ -424,104 +440,108 @@ const OwnerFacility = () => {
             </div>
           </FormSection>
 
+          {/* ✅ Feature 15: FAQ Section */}
+          <FormSection title="FAQ (Frequently Asked Questions)" icon="❓">
+            <p className="text-sm text-gray-500 mb-4">Add common questions patients ask. These will show on your facility's detail page.</p>
+            <div className="p-4 bg-indigo-50 rounded-xl mb-4 border border-indigo-100">
+              <h4 className="font-bold mb-3 text-indigo-800">Add FAQ</h4>
+              <div className="space-y-3 mb-3">
+                <input
+                  type="text"
+                  placeholder="Question * (e.g. Is cashless treatment available?)"
+                  value={newFaq.question}
+                  onChange={e => setNewFaq({...newFaq, question: e.target.value})}
+                  className="w-full p-2 border rounded shadow-sm focus:ring-2 focus:ring-indigo-400"
+                />
+                <textarea
+                  placeholder="Answer * (e.g. Yes, we accept Ayushman Bharat, Star Health...)"
+                  value={newFaq.answer}
+                  onChange={e => setNewFaq({...newFaq, answer: e.target.value})}
+                  rows={3}
+                  className="w-full p-2 border rounded shadow-sm focus:ring-2 focus:ring-indigo-400 resize-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddComplexItem('faqs', newFaq, setNewFaq, {question:'', answer:''})}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition"
+              >
+                Add FAQ
+              </button>
+            </div>
+            <div className="space-y-3">
+              {formData.faqs?.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No FAQs added yet.</p>
+              )}
+              {formData.faqs?.map((f, i) => (
+                <div key={i} className="bg-white p-4 border border-gray-100 rounded-xl shadow-sm">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-800 text-sm mb-1">Q: {f.question}</p>
+                      <p className="text-sm text-gray-600">A: {f.answer}</p>
+                    </div>
+                    <button type="button" onClick={() => handleRemoveArrayItem('faqs', i)} className="text-red-500 font-bold hover:underline shrink-0 text-sm">Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FormSection>
+
           {/* 9. GENERAL FACILITIES & TREATMENTS */}
           <FormSection title="General Facilities & Treatments" icon="🩺">
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities (Add comma separated)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Facilities</label>
               <div className="flex gap-2 mb-3">
                 <input type="text" value={customFacility} onChange={e => setCustomFacility(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('facilities', customFacility, setCustomFacility)} placeholder="Type facility name and press Enter" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                 <button type="button" onClick={() => handleAddArrayItem('facilities', customFacility, setCustomFacility)} className="px-6 py-2 bg-blue-600 text-white rounded-lg"><FaPlus /></button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.facilities.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm font-medium border border-gray-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('facilities', i)} className="text-red-500 font-bold hover:text-red-700">×</button></span>)}
-              </div>
+              <div className="flex flex-wrap gap-2">{formData.facilities.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm font-medium border border-gray-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('facilities', i)} className="text-red-500 font-bold hover:text-red-700">×</button></span>)}</div>
             </div>
-
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Tests Available</label>
-              <div className="flex gap-2 mb-3">
-                <input type="text" value={newTest} onChange={e => setNewTest(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('tests', newTest, setNewTest)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                <button type="button" onClick={() => handleAddArrayItem('tests', newTest, setNewTest)} className="px-6 py-2 bg-blue-600 text-white rounded-lg"><FaPlus /></button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.tests.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('tests', i)} className="text-red-500 font-bold">×</button></span>)}
-              </div>
+              <div className="flex gap-2 mb-3"><input type="text" value={newTest} onChange={e => setNewTest(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('tests', newTest, setNewTest)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('tests', newTest, setNewTest)} className="px-6 py-2 bg-blue-600 text-white rounded-lg"><FaPlus /></button></div>
+              <div className="flex flex-wrap gap-2">{formData.tests.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('tests', i)} className="text-red-500 font-bold">×</button></span>)}</div>
             </div>
-
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Treatments</label>
-              <div className="flex gap-2 mb-3">
-                <input type="text" value={newTreatment} onChange={e => setNewTreatment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                <button type="button" onClick={() => handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="px-6 py-2 bg-green-600 text-white rounded-lg"><FaPlus /></button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.treatments.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('treatments', i)} className="text-red-500 font-bold">×</button></span>)}
-              </div>
+              <div className="flex gap-2 mb-3"><input type="text" value={newTreatment} onChange={e => setNewTreatment(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('treatments', newTreatment, setNewTreatment)} className="px-6 py-2 bg-green-600 text-white rounded-lg"><FaPlus /></button></div>
+              <div className="flex flex-wrap gap-2">{formData.treatments.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('treatments', i)} className="text-red-500 font-bold">×</button></span>)}</div>
             </div>
-
             {isHospital && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Surgeries</label>
-                <div className="flex gap-2 mb-3">
-                  <input type="text" value={newSurgery} onChange={e => setNewSurgery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                  <button type="button" onClick={() => handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="px-6 py-2 bg-red-600 text-white rounded-lg"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.surgeries.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium border border-red-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('surgeries', i)} className="text-red-500 font-bold">×</button></span>)}
-                </div>
+                <div className="flex gap-2 mb-3"><input type="text" value={newSurgery} onChange={e => setNewSurgery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('surgeries', newSurgery, setNewSurgery)} className="px-6 py-2 bg-red-600 text-white rounded-lg"><FaPlus /></button></div>
+                <div className="flex flex-wrap gap-2">{formData.surgeries.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium border border-red-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('surgeries', i)} className="text-red-500 font-bold">×</button></span>)}</div>
               </div>
             )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {isHospital && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Procedures</label>
-                  <div className="flex gap-2 mb-3">
-                    <input type="text" value={newProcedure} onChange={e => setNewProcedure(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('procedures', newProcedure, setNewProcedure)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={() => handleAddArrayItem('procedures', newProcedure, setNewProcedure)} className="px-4 py-2 bg-purple-600 text-white rounded-lg"><FaPlus /></button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.procedures.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('procedures', i)} className="text-red-500 font-bold">×</button></span>)}
-                  </div>
+                  <div className="flex gap-2 mb-3"><input type="text" value={newProcedure} onChange={e => setNewProcedure(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('procedures', newProcedure, setNewProcedure)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('procedures', newProcedure, setNewProcedure)} className="px-4 py-2 bg-purple-600 text-white rounded-lg"><FaPlus /></button></div>
+                  <div className="flex flex-wrap gap-2">{formData.procedures.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('procedures', i)} className="text-red-500 font-bold">×</button></span>)}</div>
                 </div>
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Therapies</label>
-                <div className="flex gap-2 mb-3">
-                  <input type="text" value={newTherapy} onChange={e => setNewTherapy(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('therapies', newTherapy, setNewTherapy)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                  <button type="button" onClick={() => handleAddArrayItem('therapies', newTherapy, setNewTherapy)} className="px-4 py-2 bg-teal-600 text-white rounded-lg"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.therapies.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('therapies', i)} className="text-red-500 font-bold">×</button></span>)}
-                </div>
+                <div className="flex gap-2 mb-3"><input type="text" value={newTherapy} onChange={e => setNewTherapy(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('therapies', newTherapy, setNewTherapy)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('therapies', newTherapy, setNewTherapy)} className="px-4 py-2 bg-teal-600 text-white rounded-lg"><FaPlus /></button></div>
+                <div className="flex flex-wrap gap-2">{formData.therapies.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('therapies', i)} className="text-red-500 font-bold">×</button></span>)}</div>
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {isHospital && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Management Services</label>
-                  <div className="flex gap-2 mb-3">
-                    <input type="text" value={newManagement} onChange={e => setNewManagement(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('managementServices', newManagement, setNewManagement)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                    <button type="button" onClick={() => handleAddArrayItem('managementServices', newManagement, setNewManagement)} className="px-4 py-2 bg-orange-600 text-white rounded-lg"><FaPlus /></button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.managementServices.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('managementServices', i)} className="text-red-500 font-bold">×</button></span>)}
-                  </div>
+                  <div className="flex gap-2 mb-3"><input type="text" value={newManagement} onChange={e => setNewManagement(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('managementServices', newManagement, setNewManagement)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('managementServices', newManagement, setNewManagement)} className="px-4 py-2 bg-orange-600 text-white rounded-lg"><FaPlus /></button></div>
+                  <div className="flex flex-wrap gap-2">{formData.managementServices.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('managementServices', i)} className="text-red-500 font-bold">×</button></span>)}</div>
                 </div>
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Insurance Accepted</label>
-                <div className="flex gap-2 mb-3">
-                  <input type="text" value={newInsurance} onChange={e => setNewInsurance(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('insuranceAccepted', newInsurance, setNewInsurance)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-                  <button type="button" onClick={() => handleAddArrayItem('insuranceAccepted', newInsurance, setNewInsurance)} className="px-4 py-2 bg-green-600 text-white rounded-lg"><FaPlus /></button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.insuranceAccepted.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('insuranceAccepted', i)} className="text-red-500 font-bold">×</button></span>)}
-                </div>
+                <div className="flex gap-2 mb-3"><input type="text" value={newInsurance} onChange={e => setNewInsurance(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArrayItem('insuranceAccepted', newInsurance, setNewInsurance)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /><button type="button" onClick={() => handleAddArrayItem('insuranceAccepted', newInsurance, setNewInsurance)} className="px-4 py-2 bg-green-600 text-white rounded-lg"><FaPlus /></button></div>
+                <div className="flex flex-wrap gap-2">{formData.insuranceAccepted.map((item, i) => <span key={i} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-200">{item} <button type="button" onClick={() => handleRemoveArrayItem('insuranceAccepted', i)} className="text-red-500 font-bold">×</button></span>)}</div>
               </div>
             </div>
-
             {isHospital && (
               <div className="border-t border-gray-200 pt-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Number of Beds Available</label>
