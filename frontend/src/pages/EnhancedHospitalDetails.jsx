@@ -118,6 +118,14 @@ const EnhancedHospitalDetails = () => {
   // Feature 11: Before-visit checklist expanded
   const [checklistOpen, setChecklistOpen] = useState(false);
 
+  // Feature 12: Cost calculator states
+  const [calcRoom, setCalcRoom] = useState('');
+  const [calcNights, setCalcNights] = useState(1);
+  const [calcPackage, setCalcPackage] = useState('');
+
+  // Feature 13: Similar Hospitals state
+  const [similarHospitals, setSimilarHospitals] = useState([]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchHospital();
@@ -131,6 +139,12 @@ const EnhancedHospitalDetails = () => {
       const res = await axios.get(`${API_URL}/api/hospitals/${id}`);
       const data = res.data.data;
       setHospital(data);
+
+      // Feature 13: similar hospitals fetch karo
+      if (data.address?.city) {
+        fetchSimilarHospitals(data.address.city, id);
+      }
+
       if (userLocation && data.location?.coordinates) {
         const dist = calculateDistance(
           userLocation.latitude, userLocation.longitude,
@@ -154,6 +168,18 @@ const EnhancedHospitalDetails = () => {
       console.error('Error fetching reviews:', err);
     } finally {
       setReviewsLoading(false);
+    }
+  };
+
+  // Feature 13: Fetch function
+  const fetchSimilarHospitals = async (city, currentId) => {
+    try {
+      const res = await axios.get(`${API_URL}/api/hospitals?city=${city}&limit=4`);
+      const all = res.data.data || [];
+      // current hospital ko exclude karo
+      setSimilarHospitals(all.filter(h => (h._id || h.id) !== currentId).slice(0, 3));
+    } catch (err) {
+      console.error('Similar hospitals fetch failed:', err);
     }
   };
 
@@ -705,6 +731,115 @@ const EnhancedHospitalDetails = () => {
                         </div>
                       </div>
                     ) : <p className="text-gray-500 mt-6">No room types listed.</p>}
+
+                    {/* ── Feature 12: Estimated Cost Calculator ── */}
+                    {(hospital.roomTypes?.length > 0 || hospital.packages?.length > 0) && (
+                      <div className="mt-8 border-t pt-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                          🧮 Estimate Your Bill
+                        </h3>
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4">
+                          {/* Room selector */}
+                          {hospital.roomTypes?.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                  Room Type
+                                </label>
+                                <select
+                                  value={calcRoom}
+                                  onChange={e => setCalcRoom(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                >
+                                  <option value="">-- Select room --</option>
+                                  {hospital.roomTypes.map((r, i) => (
+                                    <option key={i} value={r.pricePerDay}>
+                                      {r.type} — ₹{r.pricePerDay}/day
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                  Number of Nights
+                                </label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={60}
+                                  value={calcNights}
+                                  onChange={e => setCalcNights(Math.max(1, parseInt(e.target.value) || 1))}
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {/* Package selector */}
+                          {hospital.packages?.length > 0 && (
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                Health Package (optional)
+                              </label>
+                              <select
+                                value={calcPackage}
+                                onChange={e => setCalcPackage(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                              >
+                                <option value="">-- No package --</option>
+                                {hospital.packages.map((p, i) => (
+                                  <option key={i} value={p.price}>
+                                    {p.name} — ₹{p.price}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          {/* Total display */}
+                          {(calcRoom || calcPackage) && (
+                            <div className="bg-white rounded-xl p-4 border border-blue-200">
+                              <p className="text-sm font-semibold text-gray-700 mb-3">Cost Breakdown</p>
+                              <div className="space-y-2 text-sm">
+                                {calcRoom && (
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">
+                                      Room charges ({calcNights} night{calcNights > 1 ? 's' : ''})
+                                    </span>
+                                    <span className="font-semibold text-gray-800">
+                                      ₹{(parseInt(calcRoom) * calcNights).toLocaleString('en-IN')}
+                                    </span>
+                                  </div>
+                                )}
+                                {calcPackage && (
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Health package</span>
+                                    <span className="font-semibold text-gray-800">
+                                      ₹{parseInt(calcPackage).toLocaleString('en-IN')}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between pt-2 border-t border-gray-100">
+                                  <span className="font-bold text-gray-900">Estimated Total</span>
+                                  <span className="font-black text-blue-600 text-lg">
+                                    ₹{(
+                                      (calcRoom ? parseInt(calcRoom) * calcNights : 0) +
+                                      (calcPackage ? parseInt(calcPackage) : 0)
+                                    ).toLocaleString('en-IN')}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-gray-400 mt-3">
+                                * Estimate only. Actual charges may vary. Doctor fees, medicines & tests not included.
+                              </p>
+                            </div>
+                          )}
+                          {!calcRoom && !calcPackage && (
+                            <p className="text-sm text-gray-500 text-center py-2">
+                              Select a room type or package to see estimated cost
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1038,6 +1173,47 @@ const EnhancedHospitalDetails = () => {
           )}
         </div>
       </div>
+
+      {/* ── Feature 13: Similar Hospitals ── */}
+      {similarHospitals.length > 0 && (
+        <div className="max-w-6xl mx-auto px-4 pb-8 print:hidden">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            🏥 You might also consider
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {similarHospitals.map((h, idx) => (
+              <div
+                key={idx}
+                onClick={() => navigate(`/hospital/${h._id || h.id}`)}
+                className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 cursor-pointer hover:shadow-lg transition-all"
+              >
+                {h.images?.[0] && (
+                  <img
+                    src={h.images[0]}
+                    alt={h.name}
+                    className="w-full h-32 object-cover rounded-xl mb-3"
+                  />
+                )}
+                <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-1">{h.name}</h3>
+                <p className="text-xs text-gray-500 mb-2">
+                  {[h.address?.area, h.address?.city].filter(Boolean).join(', ')}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-0.5 rounded-full">
+                    {h.type}
+                  </span>
+                  {h.googleRating > 0 && (
+                    <span className="flex items-center gap-1 text-xs font-bold text-gray-700">
+                      <FaStar className="text-yellow-400" />
+                      {h.googleRating.toFixed(1)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Feature 1: Last updated + Feature 10: Report link ── */}
       <div className="max-w-6xl mx-auto px-4 pb-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400 print:hidden">
