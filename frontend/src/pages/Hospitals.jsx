@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import axios from 'axios';
 import HospitalCard from '../components/HospitalCard';
 import { FaHospital, FaSearch } from 'react-icons/fa';
 import Footer from '../components/Footer';
-import API_URL from '../config/api'; 
+import API_URL from '../config/api';
 
 const Hospitals = () => {
   const [hospitals, setHospitals] = useState(() => {
     const cached = sessionStorage.getItem('hospitalsData');
     return cached ? JSON.parse(cached) : [];
   });
-  
+
   const [loading, setLoading] = useState(() => {
     return sessionStorage.getItem('hospitalsData') ? false : true;
   });
@@ -18,6 +18,10 @@ const Hospitals = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
 
+  // Ref to track if location has been fetched (avoid duplicate calls)
+  const locationFetchedRef = useRef(false);
+
+  // Restore scroll position after data loads
   useLayoutEffect(() => {
     if (!loading && hospitals.length > 0) {
       const savedScroll = sessionStorage.getItem('hospitalsScroll');
@@ -27,6 +31,7 @@ const Hospitals = () => {
     }
   }, [loading, hospitals.length]);
 
+  // Save scroll position on scroll
   useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('hospitalsScroll', window.scrollY.toString());
@@ -35,54 +40,67 @@ const Hospitals = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // On mount: always get location first, then fetch hospitals
   useEffect(() => {
-    if (hospitals.length === 0) {
-      getUserLocation();
-    }
+    getUserLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ✅ FIX: ALWAYS fetch fresh data in background to override stale cache
-  useEffect(() => {
-    if (userLocation !== null) {
-      fetchHospitals();
-    } else {
-      const timer = setTimeout(() => {
-        if (!userLocation) fetchHospitals();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [userLocation]);
 
   const getUserLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+          const loc = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(loc);
+          locationFetchedRef.current = true;
+          fetchHospitalsWithLocation(loc); // ✅ Location directly pass
         },
         (error) => {
-          setUserLocation(null);
+          // Permission denied or error — fetch without location
+          console.warn('Geolocation error:', error.message);
+          locationFetchedRef.current = true;
+          fetchHospitalsWithLocation(null);
+        },
+        {
+          timeout: 8000,       // ✅ 8s timeout (desktop browsers slow hote hain)
+          maximumAge: 60000,   // 1 min cached location OK hai
+          enableHighAccuracy: false,
         }
       );
     } else {
-      setUserLocation(null);
+      // Geolocation not supported
+      locationFetchedRef.current = true;
+      fetchHospitalsWithLocation(null);
     }
   };
 
-  const fetchHospitals = async () => {
+  // ✅ Takes location as parameter — no stale closure issue
+  const fetchHospitalsWithLocation = async (location) => {
     try {
-      if (hospitals.length === 0) setLoading(true);
+      // Show loading only when no cached data exists
+      setLoading(() => {
+        const cached = sessionStorage.getItem('hospitalsData');
+        return !cached;
+      });
+
       const params = {};
-      if (userLocation) {
-        params.latitude = userLocation.lat || userLocation.latitude;
-        params.longitude = userLocation.lng || userLocation.longitude;
+      if (location) {
+        params.latitude = location.lat;
+        params.longitude = location.lng;
       }
 
       const response = await axios.get(`${API_URL}/api/hospitals`, { params });
-      
+
       if (response.data?.data) {
-        const normalized = response.data.data.map(h => ({ ...h, id: h._id || h.id }));
-        setHospitals(normalized); // UI instantly updates to fresh data
-        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized)); 
+        const normalized = response.data.data.map((h) => ({
+          ...h,
+          id: h._id || h.id,
+        }));
+        setHospitals(normalized);
+        sessionStorage.setItem('hospitalsData', JSON.stringify(normalized));
       }
     } catch (error) {
       console.error('Fetch hospitals error:', error);
@@ -91,10 +109,11 @@ const Hospitals = () => {
     }
   };
 
-  const filteredHospitals = hospitals.filter(hospital =>
-    hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    hospital.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    hospital.address?.state?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredHospitals = hospitals.filter(
+    (hospital) =>
+      hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      hospital.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      hospital.address?.state?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -135,7 +154,8 @@ const Hospitals = () => {
 
           <div className="mb-4">
             <p className="text-gray-600">
-              Showing <strong>{filteredHospitals.length}</strong> hospital{filteredHospitals.length !== 1 ? 's' : ''}
+              Showing <strong>{filteredHospitals.length}</strong> hospital
+              {filteredHospitals.length !== 1 ? 's' : ''}
             </p>
           </div>
 
